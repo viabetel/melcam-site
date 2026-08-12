@@ -1,0 +1,8 @@
+/*
+ * CaretDown (phosphor-icons/CaretDown@0.0.57)
+ *
+ * Learn More: https://www.framer.com/asset-urls
+ */
+
+export * from "../js/caretdown.js"
+export { default } from "../js/caretdown.js"

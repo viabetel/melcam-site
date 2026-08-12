@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" role="img" aria-label="Arte a decidir">
+  <rect width="1200" height="1200" fill="#221E17"/>
+  <rect x="24" y="24" width="1152" height="1152" fill="none" stroke="#F2A900" stroke-width="3" stroke-dasharray="18 14" opacity=".55"/>
+  <g fill="#F2A900" opacity=".9">
+    <circle cx="600" cy="530" r="96" fill="none" stroke="#F2A900" stroke-width="10"/>
+    <circle cx="600" cy="530" r="34"/>
+    <rect x="470" y="382" width="86" height="34" rx="8"/>
+  </g>
+  <text x="600" y="742" text-anchor="middle" fill="#FBF7EE"
+        font-family="Georgia,serif" font-size="76" letter-spacing="1">a decidir</text>
+  <text x="600" y="806" text-anchor="middle" fill="#FBF7EE" opacity=".6"
+        font-family="system-ui,sans-serif" font-size="34">arte oficial pendente</text>
+</svg>

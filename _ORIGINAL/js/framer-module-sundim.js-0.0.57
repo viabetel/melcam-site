@@ -1,0 +1,8 @@
+/*
+ * SunDim (phosphor-icons/SunDim@0.0.57)
+ *
+ * Learn More: https://www.framer.com/asset-urls
+ */
+
+export * from "../js/sundim.js"
+export { default } from "../js/sundim.js"

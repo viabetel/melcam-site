@@ -1,0 +1,7 @@
+# MELCAM
+User-agent: *
+Allow: /
+Disallow: /sacola
+Disallow: /404
+
+Sitemap: https://www.melcam.com.br/sitemap.xml

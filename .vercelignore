@@ -1,0 +1,7 @@
+# Fora do site publicado — versionado no repo, mas não vai pro ar.
+_ORIGINAL/
+tools/
+serve.js
+melcam.config.json
+progresso.md
+ASSETS_NECESSARIOS.md

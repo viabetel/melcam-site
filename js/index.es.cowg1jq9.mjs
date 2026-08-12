@@ -1,0 +1,2 @@
+import{t as e}from"./rolldown-runtime.dh6celcd.mjs";function t(e,t){return t?1e3/t*e:0}var n,r,i,a=e((()=>{n=(e,t,n)=>Math.min(Math.max(n,e),t),r=e=>e,i={ms:e=>1e3*e,s:e=>e/1e3}}));export{t as a,r as i,i as n,a as r,n as t};
+//# sourceMappingURL=index.es.CoWG1jq9.mjs.map

@@ -1,0 +1,732 @@
+/* Identidade MELCAM. Gerado por tools/identidade.js — nao editar a mao.
+   Sobrescreve os 9 tokens de cor do template e a familia tipografica.
+   Nenhuma regra de layout, espacamento, transicao ou animacao e tocada. */
+
+@import url("/melcam/fonts/fontes.css");
+
+:root{
+  --mel-carvao:#221E17; --mel-mel:#F2A900; --mel-papel:#FBF7EE;
+  --mel-coral:#EE6A4D; --mel-verde:#5E8C7B;
+  --token-3e6ec15f-2b75-4e3b-ad0b-168aa37f4237:#221E17;
+  --token-9f5c7abb-959f-460d-bc9f-d2f6fbaa130d:#221E17;
+  --token-ad4d2a8b-0add-4634-8710-f4704da278ff:#FBF7EE;
+  --token-e5fd1d2d-45e6-49b9-b341-ad7384948a67:#FBF7EE;
+  --token-ee01c93a-c94e-42a3-8ebf-3f7c78c2647a:#9A9083;
+  --token-1d4f7ead-bfa1-40e6-9e94-a738e2b2b3fc:#2B251C;
+  --token-30e9a435-77d0-4905-81f2-ed32927858c6:#2B251C;
+  --token-cb084d69-fb3a-43a7-b50a-e7506bdef46c:rgba(251,247,238,.07);
+  --token-ab591a21-7f4d-4730-9bd6-d3f6304cf2d9:rgba(34,30,23,.35);
+}
+
+/* Tipografia. Area assume o texto corrido; Iowan fica em display,
+   porque o toolkit so entrega o peso Bold dela. */
+:root{ --framer-font-family:"Area","Inter",sans-serif; }
+body,.framer-text{ font-family:"Area","Inter",sans-serif; }
+h1,h2,.framer-text h1,.framer-text h2{
+  font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
+  letter-spacing:-.01em;
+}
+
+/* Mel e a cor expressiva: entra em CTA e destaque, nao no fundo das secoes. */
+[data-framer-name="Button"], .framer-button, button[data-framer-component-type]{
+  --mel-acento:#F2A900;
+}
+
+/* --------------------------------------------------------------------
+   CATALOGO DE DOIS PRODUTOS
+   O template foi feito para vitrine de muitos SKUs. A MELCAM tem duas
+   linhas, entao dois cards iguais lado a lado achatariam as duas. A saida
+   e dar a cada uma um destaque de natureza diferente, nao de tamanho:
+
+   POLEN — o argumento e ESCOLHA. E a linha madura, 7 cores. Ganha a
+   moldura em papel (claro sobre escuro), que puxa o olho primeiro, e a
+   régua de cores como assinatura visual.
+
+   BEE — o argumento e NOVIDADE. E o lancamento, 2 cores, de levar junto.
+   Ganha o selo em mel e a borda viva, que comunica "chegou agora" sem
+   precisar competir em area com a Polen.
+   -------------------------------------------------------------------- */
+
+[data-framer-name="Polen"]{ --mel-produto:#FBF7EE; }
+[data-framer-name="Bee"]{ --mel-produto:#F2A900; }
+
+/* Selo de novidade da Bee. O eyebrow ja existe no DOM do template. */
+[data-framer-name="Bee"] [data-framer-name="Eyebrow"],
+[data-framer-name="Bee"] .framer-text:first-child:not(h1):not(h2){
+  color:#221E17;
+}
+[data-framer-name="Bee"]::before{
+  content:"Novidade";
+  position:absolute; z-index:3; top:1.25rem; left:1.25rem;
+  padding:.35rem .75rem; border-radius:999px;
+  background:#F2A900; color:#221E17;
+  font-family:"Area",sans-serif; font-size:.72rem; font-weight:700;
+  letter-spacing:.09em; text-transform:uppercase;
+  pointer-events:none;
+}
+[data-framer-name="Bee"]{ position:relative; }
+
+/* Regua de cores da Polen: 7 pontos, a assinatura da linha. */
+[data-framer-name="Polen"]::after{
+  content:""; position:absolute; z-index:3; left:1.25rem; bottom:1.25rem;
+  width:7.5rem; height:.75rem; pointer-events:none;
+  background:
+    radial-gradient(circle .34rem at .375rem 50%, #F2C300 99%, transparent) 0 0/1.07rem 100% no-repeat,
+    radial-gradient(circle .34rem at .375rem 50%, #FBF7EE 99%, transparent) 1.07rem 0/1.07rem 100% no-repeat,
+    radial-gradient(circle .34rem at .375rem 50%, #EE6A4D 99%, transparent) 2.14rem 0/1.07rem 100% no-repeat,
+    radial-gradient(circle .34rem at .375rem 50%, #7A5A44 99%, transparent) 3.21rem 0/1.07rem 100% no-repeat,
+    radial-gradient(circle .34rem at .375rem 50%, #1A1714 99%, transparent) 4.28rem 0/1.07rem 100% no-repeat,
+    radial-gradient(circle .34rem at .375rem 50%, #E8A0AE 99%, transparent) 5.35rem 0/1.07rem 100% no-repeat,
+    radial-gradient(circle .34rem at .375rem 50%, #5E8C7B 99%, transparent) 6.42rem 0/1.07rem 100% no-repeat;
+}
+[data-framer-name="Polen"]{ position:relative; }
+
+/* No mobile o selo e a regua encolhem junto, para nao cobrir a foto. */
+@media (max-width:809.98px){
+  [data-framer-name="Bee"]::before{ top:.75rem; left:.75rem; font-size:.62rem; padding:.28rem .6rem }
+  [data-framer-name="Polen"]::after{ left:.75rem; bottom:.75rem; width:5.6rem; height:.56rem;
+    background-size:.8rem 100%,.8rem 100%,.8rem 100%,.8rem 100%,.8rem 100%,.8rem 100%,.8rem 100%;
+    background-position:0 0,.8rem 0,1.6rem 0,2.4rem 0,3.2rem 0,4rem 0,4.8rem 0 }
+}
+
+/* --------------------------------------------------------------------
+   BLOCOS EDITORIAIS ABAIXO DO HERO
+
+   O template posiciona o packshot em absolute sangrando para fora da base
+   do card (.framer-f91ze bottom:-67px, .framer-1c6kfm4 -165px,
+   .framer-1np01p -148px), com drop-shadow e z-index:1. O card e so o fundo.
+
+   O que faltava: as fotos com fundo ficavam em object-fit:cover e apareciam
+   recortadas dentro do retangulo. Packshot transparente pede contain, para
+   a camera aparecer inteira e o sangramento funcionar.
+
+   NOTA: nunca usar crase em comentario aqui — este CSS mora dentro de um
+   template literal e a crase fecha a string. Foi o que quebrou o build.
+   -------------------------------------------------------------------- */
+/* A fileira em si: os 10 nos a 80vh, 2:3, em linha com gap 20px.
+
+   O template declara height:80vh, mas a regra vem prefixada por uma classe de
+   escopo de pagina e nem sempre vence. Aqui o tamanho e cravado, com piso em
+   px para nao encolher em tela baixa. Sem isso as fotos ficam do tamanho
+   intrinseco e parecem miniatura, que foi o defeito relatado. */
+/* ATENCAO AO SELETOR: existem DOIS nos com data-framer-name="Header" — o
+   <header class="framer-vrbx7h"> que envolve a pagina inteira, e o
+   .framer-dtlgl4 que e a fileira. Usar o atributo pegava o de fora e
+   vazava para as imagens de outras secoes. Alvo correto e a CLASSE. */
+
+/* O container era width:min-content, e min-content encolhe os filhos ate o
+   tamanho intrinseco da foto. Era a causa raiz do "parece miniatura". */
+.framer-dtlgl4{
+  width:100% !important;
+  max-width:100% !important;
+  height:auto !important;
+  gap:20px !important;
+  overflow-x:auto !important;
+  overflow-y:hidden !important;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+  scroll-snap-type:x proximity;
+}
+.framer-dtlgl4::-webkit-scrollbar{ display:none }
+
+.framer-dtlgl4 > div{
+  height:80vh !important;
+  min-height:560px !important;
+  aspect-ratio:.666667 !important;
+  width:auto !important;
+  flex:0 0 auto !important;
+  border-radius:4px; overflow:hidden;
+  scroll-snap-align:center;
+}
+/* As fotos precisam PREENCHER o frame — cover, nao contain, senao sobra fundo. */
+.framer-dtlgl4 img{
+  width:100% !important; height:100% !important;
+  object-fit:cover !important; object-position:50% 50%;
+}
+@media (max-width:809.98px){
+  .framer-dtlgl4 > div{ height:78svh !important; min-height:420px !important }
+}
+
+/* Reveal na entrada: transform + opacity, sem reflow.
+   Duracao e easing acompanham o spring do template (damping 100 /
+   stiffness 200), lido como 620ms em cubic-bezier(.22,.61,.36,1). */
+/* Sem scale no estado inicial: encolher a foto era o que a fazia parecer
+   pequena quando o observer nao disparava. So deslocamento e opacidade. */
+[data-mel-reveal]{
+  opacity:0; transform:translate3d(0,42px,0);
+  transition:opacity 620ms cubic-bezier(.22,.61,.36,1),
+             transform 620ms cubic-bezier(.22,.61,.36,1);
+  will-change:transform,opacity;
+}
+[data-mel-reveal].mel-visivel{ opacity:1; transform:none }
+/* escalonamento suave entre os blocos, sem virar cascata longa */
+[data-mel-reveal]:nth-child(2){ transition-delay:90ms }
+[data-mel-reveal]:nth-child(3){ transition-delay:180ms }
+[data-mel-reveal]:nth-child(4){ transition-delay:270ms }
+
+/* Hover: zoom contido na foto, dentro da mascara do container — o frame nao
+   muda de tamanho, entao nao ha layout shift. */
+.framer-dtlgl4 img{ transition:transform 520ms cubic-bezier(.22,.61,.36,1) }
+.framer-dtlgl4 > div:hover img{ transform:scale(1.05) }
+
+@media (prefers-reduced-motion:reduce){
+  /* estado final, mantendo escala e impacto — nao some com nada */
+  [data-mel-reveal]{ opacity:1; transform:none; transition:none }
+  .framer-dtlgl4{ scroll-snap-type:none }
+  .framer-dtlgl4 img{ transition:none }
+  .framer-dtlgl4 > div:hover img{ transform:none }
+}
+
+/* Placeholder honesto: onde a arte ainda nao existe, o site diz isso. */
+img[src$="a-decidir.svg"]{ background:#221E17; object-fit:contain }
+
+/* Acessibilidade: foco visivel que o template nao trazia. */
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible{
+  outline:2px solid #F2A900; outline-offset:3px; border-radius:2px;
+}
+
+/* Respeita quem pediu menos movimento.
+
+   NAO usar display:none em video aqui. Foi o que apagou o hero: com "reduzir
+   movimento" ligado no sistema, a regra escondia o <video> do template e
+   sobrava o fundo, preto. Video pausado ja mostra o proprio poster — o
+   interacoes.js chama pause(), e a imagem fica. Esconder e desnecessario e
+   destrutivo. */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important; animation-iteration-count:1!important;
+    transition-duration:.01ms!important; scroll-behavior:auto!important;
+  }
+}
+
+/* ---------------- Hero em vídeo ----------------
+   O <video> é o do próprio template, já posicionado por ele. Aqui só cuidamos
+   do que o template não previa: fundo enquanto carrega e reduced-motion. */
+video[data-mel="hero-video"]{ background:#221E17 }
+@media (prefers-reduced-motion:reduce){
+  video[data-mel="hero-video"]{
+    /* fica o poster, sem movimento */
+    animation:none;
+  }
+}
+
+/* ---------------- Carrossel de banners ---------------- */
+.mel-carrossel{
+  position:relative; width:100%; max-width:1440px; margin:0 auto;
+  padding:0 24px; overflow:hidden;
+}
+.mel-trilho{
+  display:flex; margin:0; padding:0; list-style:none;
+  transition:transform 520ms cubic-bezier(.22,.61,.36,1);
+}
+.mel-slide{ flex:0 0 100%; min-width:100% }
+.mel-slide-link{
+  position:relative; display:block; border-radius:12px; overflow:hidden;
+  aspect-ratio:24/10; text-decoration:none;
+}
+.mel-slide-link img{ width:100%; height:100%; object-fit:cover; display:block }
+.mel-slide-txt{
+  position:absolute; inset:auto auto 0 0; padding:clamp(20px,4vw,56px);
+  max-width:60%;
+}
+.mel-slide-txt h2{
+  margin:0; color:#FBF7EE;
+  font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
+  font-size:clamp(1.5rem,3.4vw,3rem); line-height:1.1;
+  text-shadow:0 2px 24px rgba(34,30,23,.6);
+}
+.mel-seta{
+  position:absolute; top:50%; transform:translateY(-50%); z-index:2;
+  width:44px; height:44px; border:0; border-radius:999px; cursor:pointer;
+  display:grid; place-items:center;
+  background:rgba(34,30,23,.62); color:#FBF7EE;
+  backdrop-filter:blur(6px);
+  transition:background 200ms ease, transform 200ms ease;
+}
+.mel-seta:hover{ background:#F2A900; color:#221E17 }
+.mel-seta svg{ width:22px; height:22px }
+.mel-seta-ant{ left:38px } .mel-seta-prox{ right:38px }
+.mel-controles{
+  display:flex; align-items:center; justify-content:center; gap:20px;
+  margin-top:18px;
+}
+.mel-dots{ display:flex; gap:9px }
+.mel-dot{
+  width:9px; height:9px; padding:0; border:0; border-radius:999px; cursor:pointer;
+  background:rgba(251,247,238,.32); transition:background 200ms ease, width 200ms ease;
+}
+.mel-dot[aria-current="true"]{ background:#F2A900; width:26px }
+.mel-pausa{
+  border:0; background:none; cursor:pointer; color:#9A9083;
+  font-family:"Area",sans-serif; font-size:.78rem; letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.mel-pausa:hover{ color:#FBF7EE }
+.mel-sr{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+}
+@media (max-width:809.98px){
+  .mel-carrossel{ padding:0 16px }
+  .mel-slide-link{ aspect-ratio:4/5 }
+  .mel-slide-txt{ max-width:100% }
+  .mel-seta-ant{ left:24px } .mel-seta-prox{ right:24px }
+  .mel-seta{ width:38px; height:38px }
+}
+@media (prefers-reduced-motion:reduce){
+  .mel-trilho{ transition:none }
+}
+
+/* ============ Seções MELCAM: comunidade, clipes, segurança ============
+   Seguem o vocabulário do template: largura 1440, gutter 24, raio 4px,
+   respiro generoso. Nada aqui altera nó do template. */
+.mel-sec{ width:100%; max-width:1440px; margin:0 auto; padding:clamp(56px,7vw,110px) 24px }
+.mel-sec-topo{ margin:0 0 clamp(28px,4vw,52px) }
+.mel-eyebrow{
+  margin:0 0 .6rem; color:#F2A900;
+  font-family:"Area",sans-serif; font-size:.76rem; font-weight:600;
+  letter-spacing:.14em; text-transform:uppercase;
+}
+.mel-tit{
+  margin:0; color:#FBF7EE;
+  font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
+  font-size:clamp(1.8rem,4vw,3.4rem); line-height:1.08; letter-spacing:-.01em;
+}
+.mel-tag{ margin:.9rem 0 0; color:#9A9083; font-family:"Area",sans-serif; font-size:.95rem }
+.mel-nota{
+  margin:clamp(20px,3vw,34px) 0 0; color:#9A9083;
+  font-family:"Area",sans-serif; font-size:.82rem; line-height:1.55;
+}
+.mel-nota strong{ color:#F2A900; font-weight:600 }
+
+/* --- comunidade --- */
+.mel-com-grade{
+  list-style:none; margin:0; padding:0; display:grid; gap:12px;
+  grid-template-columns:repeat(4,1fr);
+}
+.mel-com-item{ position:relative; border-radius:4px; overflow:hidden; background:#2B251C }
+.mel-com-item img{
+  width:100%; aspect-ratio:1; object-fit:cover; display:block;
+  transition:transform 520ms cubic-bezier(.22,.61,.36,1);
+}
+.mel-com-item:hover img{ transform:scale(1.045) }
+.mel-com-cap{
+  position:absolute; inset:auto 0 0 0; padding:.55rem .7rem;
+  background:linear-gradient(180deg,rgba(34,30,23,0),rgba(34,30,23,.86));
+  color:#FBF7EE; font-family:"Area",sans-serif; font-size:.66rem;
+  letter-spacing:.04em; opacity:0; transition:opacity 260ms ease;
+}
+.mel-com-item:hover .mel-com-cap,.mel-com-item:focus-within .mel-com-cap{ opacity:1 }
+
+/* --- clipes --- */
+.mel-clipes-grade{
+  list-style:none; margin:0; padding:0; display:grid; gap:20px;
+  grid-template-columns:repeat(3,1fr);
+}
+.mel-clipe-box{
+  position:relative; border-radius:4px; overflow:hidden;
+  aspect-ratio:9/16; background:#221E17;
+  border:1px dashed rgba(242,169,0,.42);
+}
+.mel-clipe-box img{ width:100%; height:100%; object-fit:contain; display:block }
+.mel-clipe-spec{
+  position:absolute; inset:auto 0 0 0; padding:.6rem;
+  text-align:center; color:#9A9083;
+  font-family:"Area",sans-serif; font-size:.7rem; letter-spacing:.05em;
+}
+
+/* --- barra de segurança --- */
+.mel-seguranca{
+  border-top:1px solid rgba(251,247,238,.07);
+  border-bottom:1px solid rgba(251,247,238,.07);
+}
+.mel-seg-lista{
+  list-style:none; margin:0 auto; padding:clamp(26px,3.4vw,44px) 24px;
+  max-width:1440px; display:grid; gap:clamp(18px,2.6vw,36px);
+  grid-template-columns:repeat(4,1fr);
+}
+.mel-seg-item{
+  display:flex; align-items:center; gap:.85rem;
+  color:#FBF7EE; font-family:"Area",sans-serif; font-size:.92rem; line-height:1.35;
+}
+.mel-seg-ico{ width:26px; height:26px; flex:none; color:#F2A900 }
+
+/* --- responsivo, nos breakpoints do próprio template --- */
+@media (max-width:1439.98px){
+  .mel-com-grade{ grid-template-columns:repeat(3,1fr) }
+  .mel-seg-lista{ grid-template-columns:repeat(2,1fr) }
+}
+@media (max-width:809.98px){
+  .mel-sec{ padding:clamp(44px,9vw,72px) 16px }
+  .mel-com-grade{ grid-template-columns:repeat(2,1fr); gap:8px }
+  .mel-clipes-grade{ grid-template-columns:1fr; gap:16px }
+  .mel-clipe-box{ max-width:340px; margin:0 auto }
+  .mel-seg-lista{ grid-template-columns:1fr; padding-left:16px; padding-right:16px }
+  /* legenda sempre visível no toque: hover não existe */
+  .mel-com-cap{ opacity:1; font-size:.6rem }
+}
+@media (prefers-reduced-motion:reduce){
+  .mel-com-item img{ transition:none }
+  .mel-com-item:hover img{ transform:none }
+}
+
+/* ============ Páginas internas MELCAM ============
+   O que é só da home some nas internas. Nada é removido do DOM. */
+body.mel-interna [data-framer-name="The first section"],
+body.mel-interna [data-framer-name="Speed On"],
+body.mel-interna .mel-carrossel,
+body.mel-interna .mel-comunidade,
+body.mel-interna .mel-clipes,
+body.mel-interna .mel-seguranca{ display:none !important }
+
+/* ---- barra de produto fixa, referência apple.com/ipad-air ---- */
+.mel-barra{
+  position:sticky; top:0; z-index:40;
+  background:rgba(34,30,23,.82); backdrop-filter:saturate(180%) blur(18px);
+  border-bottom:1px solid rgba(251,247,238,.08);
+}
+.mel-barra-in{
+  max-width:1440px; margin:0 auto; padding:.7rem 24px;
+  display:flex; align-items:center; gap:clamp(12px,2.4vw,32px);
+}
+.mel-barra-nome{
+  font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
+  font-size:1.05rem; color:#FBF7EE;
+}
+.mel-barra-anc{ display:flex; gap:clamp(12px,1.8vw,26px); margin-right:auto }
+.mel-barra-anc a{
+  color:#9A9083; text-decoration:none;
+  font-family:"Area",sans-serif; font-size:.82rem; letter-spacing:.02em;
+  transition:color 200ms ease;
+}
+.mel-barra-anc a:hover{ color:#FBF7EE }
+.mel-barra-preco{ color:#9A9083; font-family:"Area",sans-serif; font-size:.85rem }
+
+.mel-bt{
+  display:inline-block; border:0; cursor:pointer; text-decoration:none;
+  border-radius:999px; padding:.62rem 1.25rem;
+  font-family:"Area",sans-serif; font-size:.85rem; font-weight:600;
+  letter-spacing:.02em; transition:transform 200ms ease, background 200ms ease, color 200ms ease;
+}
+.mel-bt:hover{ transform:translateY(-1px) }
+.mel-bt-mel{ background:#F2A900; color:#221E17 }
+.mel-bt-mel:hover{ background:#FFC22E }
+.mel-bt-linha{ background:transparent; color:#FBF7EE; box-shadow:inset 0 0 0 1px rgba(251,247,238,.28) }
+.mel-bt-linha:hover{ background:#F2A900; color:#221E17; box-shadow:none }
+
+/* ---- abertura ---- */
+.mel-abertura{ text-align:center; position:relative }
+.mel-ab-alerta{
+  max-width:520px; margin:0 auto clamp(28px,4vw,52px);
+  padding:1.4rem 1.6rem; border-radius:14px;
+  background:#2B251C; box-shadow:0 24px 60px rgba(0,0,0,.42);
+  text-align:left;
+}
+.mel-ab-badge{
+  display:inline-block; margin-bottom:.6rem; padding:.2rem .6rem; border-radius:6px;
+  background:#EE6A4D; color:#FBF7EE;
+  font-family:"Area",sans-serif; font-size:.68rem; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase;
+}
+.mel-ab-l1{ margin:0; color:#FBF7EE; font-family:"Area",sans-serif; font-size:1rem }
+.mel-ab-l2{ margin:.3rem 0 0; color:#9A9083; font-family:"Area",sans-serif; font-size:1rem }
+.mel-ab-tit{ max-width:16ch; margin:0 auto }
+.mel-ab-cta{ margin-top:clamp(22px,3vw,34px) }
+.mel-ab-camera{ margin:clamp(30px,5vw,64px) auto 0; max-width:640px }
+.mel-ab-camera img{ width:100%; height:auto; display:block }
+
+/* ---- cores ---- */
+.mel-preco-linha{ margin:1rem 0 0; font-family:"Area",sans-serif; color:#9A9083; font-size:.95rem }
+.mel-preco-linha strong{ color:#FBF7EE; font-size:1.25rem; margin-right:.5rem }
+.mel-cores{
+  list-style:none; margin:0; padding:0; display:grid; gap:clamp(16px,2.2vw,28px);
+  grid-template-columns:repeat(4,1fr);
+}
+.mel-cor{
+  background:#2B251C; border-radius:8px; padding:1.1rem;
+  display:flex; flex-direction:column; gap:.35rem;
+  transition:transform 420ms cubic-bezier(.22,.61,.36,1);
+}
+.mel-cor:hover{ transform:translateY(-4px) }
+.mel-cor-img{ aspect-ratio:1; border-radius:6px; overflow:hidden; background:#221E17 }
+.mel-cor-img img{ width:100%; height:100%; object-fit:contain; display:block }
+.mel-cor-nome{ margin:.6rem 0 0; color:#FBF7EE; font-family:"Iowan Old Style",Georgia,serif; font-size:1.15rem }
+.mel-cor-sub{ margin:0 0 .8rem; color:#9A9083; font-family:"Area",sans-serif; font-size:.82rem }
+.mel-cor .mel-bt{ margin-top:auto; text-align:center }
+
+/* ---- benefícios ---- */
+.mel-benef{ border-top:1px solid rgba(251,247,238,.07); border-bottom:1px solid rgba(251,247,238,.07) }
+.mel-benef-lista{
+  list-style:none; margin:0 auto; padding:clamp(24px,3vw,40px) 24px; max-width:1440px;
+  display:flex; flex-wrap:wrap; gap:.7rem 1.6rem; justify-content:center;
+}
+.mel-benef-lista li{
+  color:#FBF7EE; font-family:"Area",sans-serif; font-size:.88rem;
+  padding-left:1.2rem; position:relative;
+}
+.mel-benef-lista li::before{
+  content:""; position:absolute; left:0; top:.52em;
+  width:6px; height:6px; border-radius:50%; background:#F2A900;
+}
+
+/* ---- galeria ---- */
+.mel-galeria{
+  list-style:none; margin:0; padding:0; display:grid; gap:12px;
+  grid-template-columns:repeat(4,1fr);
+}
+.mel-gal-item{ border-radius:4px; overflow:hidden; background:#2B251C }
+.mel-gal-item img{
+  width:100%; aspect-ratio:3/4; object-fit:cover; display:block;
+  transition:transform 520ms cubic-bezier(.22,.61,.36,1);
+}
+.mel-gal-item:hover img{ transform:scale(1.04) }
+
+/* ---- filtros ---- */
+.mel-filtro-palco{
+  border-radius:8px; overflow:hidden; background:#2B251C; aspect-ratio:4/3;
+  max-width:900px; margin:0 auto;
+}
+.mel-filtro-palco img{
+  width:100%; height:100%; object-fit:cover; display:block;
+  transition:opacity 380ms ease;
+}
+.mel-filtro-palco img.mel-trocando{ opacity:0 }
+.mel-pills{
+  display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center;
+  margin:clamp(18px,2.4vw,28px) 0 0;
+}
+.mel-pill{
+  border:0; cursor:pointer; border-radius:999px; padding:.48rem 1rem;
+  background:transparent; color:#9A9083;
+  box-shadow:inset 0 0 0 1px rgba(251,247,238,.2);
+  font-family:"Area",sans-serif; font-size:.82rem;
+  transition:background 200ms ease, color 200ms ease, box-shadow 200ms ease;
+}
+.mel-pill:hover{ color:#FBF7EE }
+.mel-pill[aria-selected="true"]{ background:#F2A900; color:#221E17; box-shadow:none }
+
+/* ---- specs ---- */
+.mel-specs{
+  list-style:none; margin:0; padding:0; display:grid; gap:.9rem 2rem;
+  grid-template-columns:repeat(3,1fr);
+}
+.mel-specs li{
+  color:#FBF7EE; font-family:"Area",sans-serif; font-size:.92rem;
+  padding:.9rem 0 .9rem 1.3rem; position:relative;
+  border-top:1px solid rgba(251,247,238,.07);
+}
+.mel-specs li::before{
+  content:""; position:absolute; left:0; top:1.35em;
+  width:6px; height:6px; border-radius:50%; background:#5E8C7B;
+}
+
+/* ---- colméia ---- */
+.mel-colmeia{ text-align:center }
+.mel-col-txt{
+  max-width:60ch; margin:1rem auto 0; color:#9A9083;
+  font-family:"Area",sans-serif; font-size:1rem; line-height:1.65;
+}
+.mel-perks{
+  list-style:none; margin:clamp(20px,3vw,32px) 0; padding:0;
+  display:flex; flex-wrap:wrap; gap:.6rem; justify-content:center;
+}
+.mel-perks li{
+  padding:.42rem 1rem; border-radius:999px;
+  background:rgba(94,140,123,.16); color:#FBF7EE;
+  box-shadow:inset 0 0 0 1px rgba(94,140,123,.4);
+  font-family:"Area",sans-serif; font-size:.82rem;
+}
+
+/* ---- FAQ ---- */
+.mel-faq{ list-style:none; margin:0; padding:0; max-width:880px }
+.mel-faq-item{ border-top:1px solid rgba(251,247,238,.07) }
+.mel-faq-item:last-child{ border-bottom:1px solid rgba(251,247,238,.07) }
+.mel-faq-q{
+  width:100%; border:0; background:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:space-between; gap:1rem;
+  padding:1.15rem 0; text-align:left; color:#FBF7EE;
+  font-family:"Area",sans-serif; font-size:1rem; font-weight:500;
+}
+.mel-faq-q svg{ width:22px; height:22px; flex:none; color:#F2A900; transition:transform 280ms ease }
+.mel-faq-q[aria-expanded="true"] svg{ transform:rotate(180deg) }
+.mel-faq-r p{
+  margin:0; padding:0 0 1.25rem; max-width:70ch;
+  color:#9A9083; font-family:"Area",sans-serif; font-size:.94rem; line-height:1.65;
+}
+
+/* ---- LP Bee: abertura, a opção 1 do briefing ---- */
+.mel-bee-l1{ text-align:center; color:#9A9083; font-size:1.05rem; margin:0 0 clamp(20px,3vw,34px) }
+.mel-bee-palco{
+  position:relative; max-width:460px; margin:0 auto clamp(24px,4vw,44px);
+  aspect-ratio:1;
+}
+.mel-bee-cam{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
+  transform-origin:50% 42%;
+}
+.mel-bee-branca{
+  animation:mel-bee-gira 5.2s cubic-bezier(.45,.05,.35,1) .4s infinite;
+}
+.mel-bee-amarela{
+  opacity:0;
+  animation:mel-bee-revela 5.2s cubic-bezier(.45,.05,.35,1) .4s infinite;
+}
+/* A branca balança da direita para a esquerda, gira e entrega o quadro para a
+   amarela na metade do giro — quando está de perfil e a troca não aparece. */
+@keyframes mel-bee-gira{
+  0%   { transform:rotateY(0) translateX(9%) }
+  26%  { transform:rotateY(0) translateX(-9%) }
+  46%  { transform:rotateY(0) translateX(0) }
+  50%  { transform:rotateY(90deg) }
+  50.1%,100%{ transform:rotateY(90deg); opacity:0 }
+}
+@keyframes mel-bee-revela{
+  0%,49.9%{ opacity:0; transform:rotateY(-90deg) }
+  50%  { opacity:1; transform:rotateY(-90deg) }
+  74%  { transform:rotateY(0) }
+  100% { opacity:1; transform:rotateY(0) }
+}
+.mel-cores-2{ grid-template-columns:repeat(2,1fr); max-width:820px; margin-inline:auto }
+.mel-cor-bee{ text-align:center }
+.mel-cor-bee .mel-cor-nome{ margin:0 0 .8rem; font-size:1.3rem }
+
+/* ---- LP Bee: destaques ---- */
+.mel-dest{
+  display:grid; grid-template-columns:1fr 1fr; gap:clamp(20px,4vw,56px);
+  align-items:center; margin-bottom:clamp(36px,5vw,72px);
+}
+.mel-dest-inv .mel-dest-img{ order:2 }
+.mel-dest-img{ border-radius:8px; overflow:hidden; background:#2B251C }
+.mel-dest-img img{ width:100%; aspect-ratio:4/5; object-fit:cover; display:block }
+.mel-dest-txt h3,.mel-dest-specs h3{
+  margin:0 0 .8rem; color:#FBF7EE;
+  font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
+  font-size:clamp(1.3rem,2.4vw,2rem);
+}
+.mel-dest-txt p{
+  margin:0; max-width:52ch; color:#9A9083;
+  font-family:"Area",sans-serif; font-size:1rem; line-height:1.65;
+}
+.mel-dest-specs{ margin-top:clamp(20px,3vw,32px) }
+
+@media (max-width:809.98px){
+  .mel-bee-palco{ max-width:280px }
+  .mel-dest{ grid-template-columns:1fr }
+  .mel-dest-inv .mel-dest-img{ order:0 }
+  .mel-cores-2{ grid-template-columns:1fr }
+}
+@media (prefers-reduced-motion:reduce){
+  /* Sem giro: entrega direto a Bee amarela, que é o final da animação. */
+  .mel-bee-branca{ animation:none; opacity:0 }
+  .mel-bee-amarela{ animation:none; opacity:1; transform:none }
+}
+
+/* ---- CTA final ---- */
+.mel-cta-final{ text-align:center }
+.mel-cta-final .mel-tit{ max-width:20ch; margin:0 auto }
+.mel-cta-final .mel-bt{ margin-top:clamp(22px,3vw,32px) }
+
+/* ---- responsivo, nos breakpoints do template ---- */
+@media (max-width:1439.98px){
+  .mel-cores{ grid-template-columns:repeat(3,1fr) }
+  .mel-galeria{ grid-template-columns:repeat(3,1fr) }
+  .mel-specs{ grid-template-columns:repeat(2,1fr) }
+}
+@media (max-width:809.98px){
+  .mel-barra-in{ padding:.55rem 16px; gap:10px; overflow-x:auto }
+  .mel-barra-anc{ gap:12px }
+  .mel-barra-preco{ display:none }
+  .mel-cores{ grid-template-columns:repeat(2,1fr) }
+  .mel-galeria{ grid-template-columns:repeat(2,1fr); gap:8px }
+  .mel-specs{ grid-template-columns:1fr }
+  .mel-filtro-palco{ aspect-ratio:1 }
+}
+@media (prefers-reduced-motion:reduce){
+  .mel-cor,.mel-gal-item img,.mel-filtro-palco img,.mel-faq-q svg{ transition:none }
+  .mel-cor:hover,.mel-gal-item:hover img{ transform:none }
+}
+
+/* ============ Acessórios, Sobre, 404 e Sacola ============ */
+.mel-embreve,.mel-404{ text-align:center; position:relative }
+.mel-embreve .mel-col-txt,.mel-404 .mel-col-txt{ margin-inline:auto }
+.mel-embreve-pattern{ margin-top:clamp(36px,6vw,80px); opacity:.13 }
+.mel-embreve-pattern img{ width:100%; max-width:900px; height:auto }
+
+.mel-aviso{ max-width:460px; margin:clamp(26px,4vw,44px) auto 0; text-align:left }
+.mel-aviso-lab{
+  display:block; margin-bottom:.6rem; color:#9A9083;
+  font-family:"Area",sans-serif; font-size:.85rem;
+}
+.mel-aviso-linha{ display:flex; gap:.5rem }
+.mel-aviso-linha input{
+  flex:1; min-width:0; padding:.65rem .9rem; border-radius:999px;
+  border:1px solid rgba(251,247,238,.22); background:#2B251C; color:#FBF7EE;
+  font-family:"Area",sans-serif; font-size:.9rem;
+}
+.mel-aviso-linha input:focus-visible{ outline:2px solid #F2A900; outline-offset:2px }
+.mel-aviso-msg{
+  margin:.7rem 0 0; min-height:1.2em; color:#F2A900;
+  font-family:"Area",sans-serif; font-size:.82rem;
+}
+
+.mel-sob-lead{ max-width:64ch }
+.mel-sob-cards{
+  list-style:none; margin:clamp(32px,5vw,64px) 0 0; padding:0;
+  display:grid; gap:clamp(18px,2.6vw,32px); grid-template-columns:repeat(3,1fr);
+}
+.mel-sob-cards li{ background:#2B251C; border-radius:8px; padding:clamp(18px,2.4vw,28px) }
+.mel-sob-cards h2{
+  margin:0 0 .6rem; color:#FBF7EE;
+  font-family:"Iowan Old Style",Georgia,serif; font-size:1.2rem; font-weight:700;
+}
+.mel-sob-cards p{ margin:0; color:#9A9083; font-family:"Area",sans-serif; font-size:.92rem; line-height:1.6 }
+
+.mel-contato{ list-style:none; margin:0; padding:0; max-width:640px }
+.mel-contato li{
+  display:flex; justify-content:space-between; gap:1rem; padding:.85rem 0;
+  border-top:1px solid rgba(251,247,238,.07);
+  font-family:"Area",sans-serif; font-size:.94rem;
+}
+.mel-contato span{ color:#9A9083 }
+.mel-contato strong{ color:#FBF7EE; font-weight:500 }
+
+.mel-404-links{
+  display:flex; flex-wrap:wrap; gap:.6rem; justify-content:center;
+  margin-top:clamp(22px,3vw,34px);
+}
+
+.mel-sac-lista{ list-style:none; margin:0; padding:0; max-width:760px }
+.mel-sac-item{
+  display:grid; grid-template-columns:64px 1fr auto auto; gap:1rem;
+  align-items:center; padding:1rem 0;
+  border-top:1px solid rgba(251,247,238,.07);
+}
+.mel-sac-item img{ width:64px; height:64px; object-fit:contain; border-radius:4px; background:#2B251C }
+.mel-sac-nome{ color:#FBF7EE; font-family:"Area",sans-serif; font-size:.95rem }
+.mel-sac-preco{ color:#9A9083; font-family:"Area",sans-serif; font-size:.85rem }
+.mel-qtd{ display:flex; align-items:center; gap:.4rem }
+.mel-qtd button{
+  width:30px; height:30px; border:0; border-radius:999px; cursor:pointer;
+  background:#2B251C; color:#FBF7EE; font-size:1rem; line-height:1;
+}
+.mel-qtd button:hover{ background:#F2A900; color:#221E17 }
+.mel-qtd span{ min-width:2ch; text-align:center; color:#FBF7EE; font-family:"Area",sans-serif }
+.mel-remover{
+  border:0; background:none; cursor:pointer; color:#9A9083;
+  font-family:"Area",sans-serif; font-size:.8rem; text-decoration:underline;
+}
+.mel-remover:hover{ color:#EE6A4D }
+.mel-sac-total{
+  display:flex; justify-content:space-between; max-width:760px;
+  padding:1.2rem 0; border-top:1px solid rgba(251,247,238,.16);
+  color:#9A9083; font-family:"Area",sans-serif;
+}
+.mel-sac-total strong{ color:#FBF7EE; font-size:1.3rem }
+.mel-sac-fechar{ margin-top:.4rem }
+
+@media (max-width:1439.98px){ .mel-sob-cards{ grid-template-columns:1fr } }
+@media (max-width:809.98px){
+  .mel-aviso-linha{ flex-direction:column }
+  .mel-sac-item{ grid-template-columns:56px 1fr; row-gap:.6rem }
+  .mel-contato li{ flex-direction:column; gap:.2rem }
+}
