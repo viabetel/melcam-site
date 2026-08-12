@@ -9,8 +9,10 @@
 - Conteúdo versionado: `index.html`, `polen.html`, `bee.html`, `bee2.html`,
   `rascunho.html` e `assets/` (~24 MB). O material bruto do cliente (~1 GB)
   ficou de fora do repo.
-- Deploy inicial na Vercel (conta viabetel) como v0, pra iterar em cima do que
-  está publicado.
+- Repo: https://github.com/viabetel/melcam-site (privado, conta viabetel).
+- Deploy inicial na Vercel (projeto `viabetels-projects/melcam-site`) como v0,
+  pra iterar em cima do que está publicado: https://melcam-site.vercel.app
+  O repo já está conectado à Vercel, então push na `main` publica sozinho.
 
 ## Próximos passos
 
