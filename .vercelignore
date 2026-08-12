@@ -5,3 +5,8 @@ serve.js
 melcam.config.json
 progresso.md
 ASSETS_NECESSARIOS.md
+MOTION_SPEC.md
+medidas/
+# 9,4 MB de assets preparados para subir no canvas do Framer.
+# Não são usados por nenhuma página; só pesariam o build.
+melcam/img/header-fileira/

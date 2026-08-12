@@ -296,22 +296,259 @@ function js() {
     requestAnimationFrame(passo);
   }
 
-  /* ---------------- menu mobile ---------------- */
+  /* ---------------- nav some ao rolar, volta com o mouse ----------------
+     Pedido do cliente: rolou, a barra sai; o mouse chegando perto do topo, ela
+     volta.
+
+     Tres regras de seguranca em cima disso:
+       - no topo da pagina (< 80px) a barra fica sempre visivel, senao a home
+         abre sem navegacao;
+       - com o menu aberto ela nao se esconde, senao o X sumia junto;
+       - quem nao tem mouse (toque) nunca dispararia o "chegar perto", entao
+         ali a barra volta ao rolar para cima — o padrao conhecido de header
+         retratil no celular. */
+  function iniciarNavRetratil() {
+    var barra = document.querySelector('[data-framer-name="Meniu"]');
+    while (barra && getComputedStyle(barra).position !== 'fixed') barra = barra.parentElement;
+    if (!barra) return;
+
+    var TOPO_SEGURO = 80;   // px de scroll em que a barra nunca some
+    var PERTO = 90;         // px do topo da janela que contam como "mouse perto"
+    var escondida = false;
+    var ultimoY = window.scrollY;
+    var temMouse = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    /* A barra JA TEM transform proprio do template (um translateX de
+       centralizacao, medido: matrix(1,0,0,1,-720,0) no desktop). Escrever
+       translateY(-100%) direto apagava esse X e a barra escorregava 720px de
+       lado enquanto subia. Entao guarda-se o transform de origem e compoe-se
+       em cima dele. */
+    var base = getComputedStyle(barra).transform;
+    if (base === 'none') base = '';
+
+    barra.style.transition = menosMovimento.matches ? 'none'
+      : 'transform 300ms cubic-bezier(.4,0,.2,1)';
+    barra.style.willChange = 'transform';
+
+    function mostrar() {
+      if (!escondida) return;
+      escondida = false;
+      barra.style.transform = base;
+    }
+    function esconder() {
+      if (escondida) return;
+      if (document.querySelector('.mel-menu')) return;   // menu aberto: fica
+      if (window.scrollY <= TOPO_SEGURO) return;
+      escondida = true;
+      barra.style.transform = (base + ' translateY(-100%)').trim();
+    }
+
+    window.addEventListener('scroll', function () {
+      var y = window.scrollY;
+      if (y <= TOPO_SEGURO) mostrar();
+      else if (!temMouse && y < ultimoY) mostrar();  // rolou pra cima, no toque
+      else esconder();
+      ultimoY = y;
+    }, { passive: true });
+
+    if (temMouse) {
+      document.addEventListener('mousemove', function (e) {
+        if (e.clientY <= PERTO) mostrar();
+      }, { passive: true });
+    }
+  }
+
+  /* ---------------- menu de navegacao ----------------
+     Reproduz o comportamento medido no template original (MOTION_SPEC.md, sec. 7):
+       - painel de tela cheia, criado no clique e removido no fechamento;
+       - entrada so por opacidade, 0 -> 1 em ~400ms, desacelerando;
+       - trava de scroll em <html>, nao no <body> (evita o pulo de scroll);
+       - Escape fecha; o icone e toggle.
+     A versao antiga procurava data-framer-name*="Menu", mas o botao do template
+     se chama "Meniu" (romeno), entao nunca casava e o menu ficava morto. */
+  var NAV = ${JSON.stringify(cfg.navegacao)};
+
   function iniciarMenu() {
-    var botoes = document.querySelectorAll('[data-framer-name*="Menu"],[data-framer-name*="Burger"],[data-framer-name*="Hamburger"]');
-    var nav = document.querySelector('nav[data-framer-name*="Mobile"]');
-    if (!botoes.length || !nav) return;
-    var aberto = false;
-    Array.prototype.forEach.call(botoes, function (b) {
-      b.setAttribute('role', 'button');
-      b.setAttribute('tabindex', '0');
-      b.setAttribute('aria-expanded', 'false');
-      b.addEventListener('click', function () {
-        aberto = !aberto;
-        b.setAttribute('aria-expanded', String(aberto));
-        nav.classList.toggle('mel-menu-aberto', aberto);
+    /* O template tem uma variante de nav por breakpoint, cada uma com o seu
+       botao, e so a do breakpoint ativo renderiza. Pegar so o primeiro pegava o
+       do desktop, que fica oculto no mobile — por isso liga em todos. */
+    var botoes = Array.prototype.slice.call(document.querySelectorAll(
+      '[data-framer-name="Meniu"],[data-framer-name*="Menu"],[data-framer-name*="Burger"]'));
+    if (!botoes.length || !NAV.length) return;
+
+    var painel = null;
+    var ultimoFoco = null;
+
+    botoes.forEach(function (botao) {
+      botao.setAttribute('role', 'button');
+      botao.setAttribute('tabindex', '0');
+      botao.setAttribute('aria-expanded', 'false');
+      botao.setAttribute('aria-label', 'Abrir menu');
+      botao.style.cursor = 'pointer';
+    });
+
+    /* Menu suspenso ancorado na barra, nao overlay de tela cheia.
+       Fica preso embaixo da nav, alinhado com o proprio botao, e ocupa so o
+       espaco dos links. O resto da pagina continua a vista. */
+    function montar(botao) {
+      var fixo = botao;
+      while (fixo && getComputedStyle(fixo).position !== 'fixed') fixo = fixo.parentElement;
+      var barra = fixo ? fixo.getBoundingClientRect() : { bottom: 64 };
+      var bt = botao.getBoundingClientRect();
+
+      var p = document.createElement('nav');
+      p.className = 'mel-menu';
+      p.setAttribute('aria-label', 'Navegacao principal');
+      p.style.cssText = 'position:fixed;top:' + Math.round(barra.bottom) + 'px;'
+        + 'left:' + Math.round(bt.left) + 'px;z-index:2147483000;'
+        + 'display:flex;flex-direction:column;gap:.1rem;'
+        + 'padding:.75rem 2.5rem .9rem 1rem;background:#221E17;'
+        + 'border:1px solid rgba(251,247,238,.14);border-radius:6px;'
+        + 'box-shadow:0 18px 40px -12px rgba(0,0,0,.7);'
+        + 'opacity:0;transform:translateY(-6px);max-height:calc(100vh - '
+        + Math.round(barra.bottom) + 'px - 1.5rem);overflow-y:auto';
+
+      NAV.forEach(function (item) {
+        var a = document.createElement('a');
+        a.href = item.href;
+        a.textContent = item.rotulo;
+        a.style.cssText = 'display:block;padding:.42rem 0;color:#FBF7EE;text-decoration:none;'
+          + 'font-family:"Area",sans-serif;font-weight:700;font-size:1.0625rem;'
+          + 'line-height:1.3;letter-spacing:-.01em;white-space:nowrap';
+        if (location.pathname === item.href) {
+          a.style.color = '#F2A900';
+          a.setAttribute('aria-current', 'page');
+        }
+        function acende() { a.style.color = '#F2A900'; }
+        function apaga() { if (location.pathname !== item.href) a.style.color = '#FBF7EE'; }
+        a.addEventListener('focus', acende);
+        a.addEventListener('blur', apaga);
+        a.addEventListener('mouseenter', acende);
+        a.addEventListener('mouseleave', apaga);
+        p.appendChild(a);
+      });
+      return p;
+    }
+
+    /* 0 -> 1 em 400ms. A curva do original nao e ease-out: e um S, com partida
+       lenta. Medido no template (MOTION_SPEC.md, sec. 7):
+
+         80ms  160ms  240ms  320ms  400ms
+         0.066 0.344  0.677  0.955  1
+
+       smoothstep (k*k*(3-2k)) da 0.104 / 0.352 / 0.648 / 0.896, que acompanha o
+       S de perto. Um ease-out simples daria 0.488 aos 80ms — sete vezes claro
+       demais no comeco, e a diferenca se ve. */
+    function surgir(el, aoFim) {
+      if (menosMovimento.matches) {
+        el.style.opacity = '1'; el.style.transform = 'none';
+        if (aoFim) aoFim();
+        return;
+      }
+      var t0 = 0;
+      function passo(t) {
+        if (!t0) t0 = t;
+        var k = Math.min((t - t0) / 400, 1);
+        var s = k * k * (3 - 2 * k);
+        el.style.opacity = String(s);
+        el.style.transform = 'translateY(' + (-6 * (1 - s)).toFixed(2) + 'px)';
+        if (k < 1) requestAnimationFrame(passo); else if (aoFim) aoFim();
+      }
+      requestAnimationFrame(passo);
+    }
+
+    function marcar(estado) {
+      botoes.forEach(function (b) {
+        b.setAttribute('aria-expanded', String(estado));
+        b.setAttribute('aria-label', estado ? 'Fechar menu' : 'Abrir menu');
+      });
+    }
+
+    /* ---- o hamburguer vira X ----
+       O icone do template e um frame com tres filhos chamados "1", "2" e "3":
+       barras de 14x2, 10x2 e 14x2. Para virar X, a de cima desce ate o centro e
+       gira 45, a do meio some, a de baixo sobe e gira -45.
+
+       Os deslocamentos sao MEDIDOS no proprio DOM, nao chutados: cada barra tem
+       o seu offsetTop dentro do icone, e o alvo e o centro do icone. Assim
+       funciona mesmo se o template mudar o espacamento. */
+    function barrasDe(botao) {
+      var icone = botao.querySelector('[data-framer-name="Icon"]') || botao;
+      var bs = [];
+      ['1', '2', '3'].forEach(function (n) {
+        var el = icone.querySelector('[data-framer-name="' + n + '"]');
+        if (el) bs.push(el);
+      });
+      if (bs.length !== 3) bs = Array.prototype.slice.call(icone.children, 0, 3);
+      return { icone: icone, bs: bs };
+    }
+
+    function animarIcone(abrindo) {
+      botoes.forEach(function (botao) {
+        var alvo = barrasDe(botao);
+        if (alvo.bs.length !== 3) return;
+        var meio = alvo.icone.offsetHeight / 2;
+        var deslocs = alvo.bs.map(function (b) { return meio - (b.offsetTop + b.offsetHeight / 2); });
+
+        alvo.bs.forEach(function (b, i) {
+          b.style.transformOrigin = '50% 50%';
+          if (menosMovimento.matches) b.style.transition = 'none';
+          else b.style.transition = 'transform 400ms cubic-bezier(.4,0,.2,1), opacity 400ms cubic-bezier(.4,0,.2,1)';
+          if (!abrindo) { b.style.transform = ''; b.style.opacity = ''; return; }
+          if (i === 1) { b.style.opacity = '0'; b.style.transform = 'scaleX(.2)'; return; }
+          b.style.transform = 'translateY(' + deslocs[i].toFixed(1) + 'px) rotate('
+            + (i === 0 ? 45 : -45) + 'deg)';
+        });
+      });
+    }
+
+    function alternar() {
+      if (painel) {
+        painel.remove();
+        painel = null;
+        marcar(false);
+        animarIcone(false);
+        if (ultimoFoco && ultimoFoco.focus) ultimoFoco.focus();
+        return;
+      }
+      ultimoFoco = document.activeElement;
+      // ancora no botao que foi clicado — cada breakpoint tem o seu
+      var visivel = botoes.filter(function (b) { return b.offsetHeight > 0; })[0] || botoes[0];
+      painel = montar(visivel);
+      document.body.appendChild(painel);
+      marcar(true);
+      animarIcone(true);
+      surgir(painel, function () {
+        var primeiro = painel && painel.querySelector('a');
+        if (primeiro) primeiro.focus();
+      });
+    }
+
+    botoes.forEach(function (botao) {
+      botao.addEventListener('click', alternar);
+      botao.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alternar(); }
       });
     });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && painel) alternar();
+    });
+
+    /* Sem overlay cobrindo a tela, quem fecha ao clicar fora e este ouvinte.
+       O clique no proprio botao ja e tratado pelo toggle, entao aqui ele e
+       ignorado — senao abriria e fecharia no mesmo clique. */
+    document.addEventListener('click', function (e) {
+      if (!painel) return;
+      if (painel.contains(e.target)) return;
+      for (var i = 0; i < botoes.length; i++) {
+        if (botoes[i] === e.target || botoes[i].contains(e.target)) return;
+      }
+      alternar();
+    }, true);
+
+    /* A ancoragem e calculada na abertura; se a janela mudar de tamanho com o
+       menu aberto, o menu fecha em vez de ficar solto no lugar errado. */
+    window.addEventListener('resize', function () { if (painel) alternar(); });
   }
 
   /* ---------------- troca de filtro (LP Polen) ----------------
@@ -543,6 +780,7 @@ function js() {
     iniciarAviso();
     document.querySelectorAll('[data-framer-name="Our products"]').forEach(iniciarTicker);
     iniciarMenu();
+    iniciarNavRetratil();
 
     /* O vídeo pode ser bloqueado pelo navegador: nesse caso fica o poster,
        que o atributo já garante. Com reduced-motion nem tenta tocar. */
@@ -595,4 +833,6 @@ function aplicar(walk) {
   return n;
 }
 
-module.exports = { aplicar };
+// `js` sai exportado para dar para regerar só o interacoes.js, sem rodar o
+// `aplicar` inteiro (que também mexe no HTML das páginas).
+module.exports = { aplicar, js };

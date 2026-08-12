@@ -210,7 +210,10 @@ module.exports = {
   barra, abertura, modelos, beneficios, galeria, filtros,
   diferencial, colmeia, faq, ctaFinal,
   conteudo() {
+    // A Colméia fecha a página, depois do CTA final. Fica igual à Bee, onde
+    // ela já era a última: o convite para a comunidade é o último passo, não
+    // uma interrupção entre o diferencial e o FAQ.
     return barra() + abertura() + modelos() + beneficios() + galeria()
-      + filtros() + diferencial() + colmeia() + faq() + ctaFinal();
+      + filtros() + diferencial() + faq() + ctaFinal() + colmeia();
   },
 };

@@ -1,0 +1,308 @@
+{
+  "no-preference": [
+    {
+      "y": 150,
+      "opacity": 0,
+      "escala": 0.5,
+      "telaW": 2490
+    },
+    {
+      "y": 150,
+      "opacity": 0,
+      "escala": 0.5,
+      "telaW": 2490
+    },
+    {
+      "y": 24.7,
+      "opacity": 0.763,
+      "escala": 0.9175,
+      "telaW": 4569.3
+    },
+    {
+      "y": 2.1,
+      "opacity": 0.907,
+      "escala": 0.9929,
+      "telaW": 4944.6
+    },
+    {
+      "y": 0,
+      "opacity": 0.927,
+      "escala": 1,
+      "telaW": 4980
+    },
+    {
+      "y": 0,
+      "opacity": 0.934,
+      "escala": 1,
+      "telaW": 4980
+    },
+    {
+      "y": 0,
+      "opacity": 0.94,
+      "escala": 1,
+      "telaW": 4980
+    }
+  ],
+  "reduce": [
+    {
+      "y": 0,
+      "opacity": 0.9,
+      "escala": 1,
+      "telaW": 4980
+    },
+    {
+      "y": 0,
+      "opacity": 0.905,
+      "escala": 1,
+      "telaW": 4980
+    },
+    {
+      "y": 0,
+      "opacity": 0.911,
+      "escala": 1,
+      "telaW": 4980
+    },
+    {
+      "y": 0,
+      "opacity": 0.916,
+      "escala": 1,
+      "telaW": 4980
+    },
+    {
+      "y": 0,
+      "opacity": 0.922,
+      "escala": 1,
+      "telaW": 4980
+    },
+    {
+      "y": 0,
+      "opacity": 0.927,
+      "escala": 1,
+      "telaW": 4980
+    },
+    {
+      "y": 0,
+      "opacity": 0.933,
+      "escala": 1,
+      "telaW": 4980
+    }
+  ],
+  "transicao": [
+    {
+      "dt": 0,
+      "path": "/",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 71,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 228,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 241,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 327,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 365,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 422,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 488,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 550,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 610,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 666,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 720,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 782,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 844,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 909,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 975,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1038,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1081,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1141,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1202,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1264,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1327,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1381,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1446,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1513,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1561,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1623,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1685,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1746,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1808,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1863,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1929,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 1980,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 2046,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 2101,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    },
+    {
+      "dt": 2163,
+      "path": "/sort-by/Jeans",
+      "op": 1,
+      "tr": "none"
+    }
+  ]
+}

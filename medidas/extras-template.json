@@ -1,0 +1,559 @@
+{
+  "sticky": {
+    "desktop": [
+      {
+        "frac": 0,
+        "itens": [
+          {
+            "nome": "",
+            "classe": "framer-1gfj5qd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "2",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "matrix(1, 0, 0, 1, -720, 0)",
+            "alturaCaixa": 81,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "framer-ene9dd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "0",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 900,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "822px",
+            "zIndex": "2147483647",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 78,
+            "topoTela": 822
+          }
+        ]
+      },
+      {
+        "frac": 0.15,
+        "itens": [
+          {
+            "nome": "",
+            "classe": "framer-1gfj5qd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "2",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "matrix(1, 0, 0, 1, -720, 0)",
+            "alturaCaixa": 81,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "framer-ene9dd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "0",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 900,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "822px",
+            "zIndex": "2147483647",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 78,
+            "topoTela": 822
+          }
+        ]
+      },
+      {
+        "frac": 0.5,
+        "itens": [
+          {
+            "nome": "",
+            "classe": "framer-1gfj5qd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "2",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "matrix(1, 0, 0, 1, -720, 0)",
+            "alturaCaixa": 81,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "framer-ene9dd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "0",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 900,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "822px",
+            "zIndex": "2147483647",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 78,
+            "topoTela": 822
+          }
+        ]
+      },
+      {
+        "frac": 1,
+        "itens": [
+          {
+            "nome": "",
+            "classe": "framer-1gfj5qd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "2",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "matrix(1, 0, 0, 1, -720, 0)",
+            "alturaCaixa": 81,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "framer-ene9dd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "0",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 900,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "822px",
+            "zIndex": "2147483647",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 78,
+            "topoTela": 822
+          }
+        ]
+      }
+    ],
+    "mobile": [
+      {
+        "frac": 0,
+        "itens": [
+          {
+            "nome": "",
+            "classe": "framer-1gfj5qd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "2",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "matrix(1, 0, 0, 1, -195, 0)",
+            "alturaCaixa": 81,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "framer-ene9dd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "0",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 844,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "766px",
+            "zIndex": "2147483647",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 78,
+            "topoTela": 766
+          }
+        ]
+      },
+      {
+        "frac": 0.15,
+        "itens": [
+          {
+            "nome": "",
+            "classe": "framer-1gfj5qd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "2",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "matrix(1, 0, 0, 1, -195, 0)",
+            "alturaCaixa": 81,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "framer-ene9dd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "0",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 844,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "766px",
+            "zIndex": "2147483647",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 78,
+            "topoTela": 766
+          }
+        ]
+      },
+      {
+        "frac": 0.5,
+        "itens": [
+          {
+            "nome": "",
+            "classe": "framer-1gfj5qd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "2",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "matrix(1, 0, 0, 1, -195, 0)",
+            "alturaCaixa": 81,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "framer-ene9dd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "0",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 844,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "766px",
+            "zIndex": "2147483647",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 78,
+            "topoTela": 766
+          }
+        ]
+      },
+      {
+        "frac": 1,
+        "itens": [
+          {
+            "nome": "",
+            "classe": "framer-1gfj5qd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "2",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "matrix(1, 0, 0, 1, -195, 0)",
+            "alturaCaixa": 81,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "framer-ene9dd-container",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "0px",
+            "zIndex": "0",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 844,
+            "topoTela": 0
+          },
+          {
+            "nome": "",
+            "classe": "",
+            "tag": "DIV",
+            "position": "fixed",
+            "top": "766px",
+            "zIndex": "2147483647",
+            "bg": "rgba(0, 0, 0, 0)",
+            "backdrop": "none",
+            "borda": "0px rgb(0, 0, 0)",
+            "sombra": "none",
+            "opacity": 1,
+            "transform": "none",
+            "alturaCaixa": 78,
+            "topoTela": 766
+          }
+        ]
+      }
+    ]
+  },
+  "paginas": {
+    "links": [
+      "./",
+      "./sort-by/Jeans",
+      "./sort-by/T-Shirts",
+      "./sort-by/Shirts",
+      "./sort-by/Sneakers",
+      "./sort-by/Promotions",
+      "./blue-jeans",
+      "./t-shirt-green-kids",
+      "./t-shirt-green-women-copy",
+      "./t-shirt-white-kids",
+      "./sneakers-white",
+      "./shirt-blue-women",
+      "./comfort-curves",
+      "./white-jeans",
+      "./shirt-white-women",
+      "./t-shirt-black-women",
+      "./shirt-green-women",
+      "./black-jeans",
+      "./sneakers-black",
+      "./t-shirt-black-kids"
+    ],
+    "declaracoes": {
+      "pageTransition": 0,
+      "page-transition": 0,
+      "framer/pageTransition": 0,
+      "exitBeforeEnter": 0,
+      "AnimatePresence": 0,
+      "routeTransition": 0,
+      "transitionDuration": 0
+    },
+    "durante": [
+      {
+        "t": 33746,
+        "path": "/",
+        "bodyOpacity": 1,
+        "bodyTransform": "none",
+        "wrappers": 0
+      },
+      {
+        "t": 33901,
+        "path": "/",
+        "bodyOpacity": 1,
+        "bodyTransform": "none",
+        "wrappers": 0
+      },
+      {
+        "t": 34058,
+        "path": "/",
+        "bodyOpacity": 1,
+        "bodyTransform": "none",
+        "wrappers": 0
+      },
+      {
+        "t": 34213,
+        "path": "/",
+        "bodyOpacity": 1,
+        "bodyTransform": "none",
+        "wrappers": 0
+      },
+      {
+        "t": 34367,
+        "path": "/",
+        "bodyOpacity": 1,
+        "bodyTransform": "none",
+        "wrappers": 0
+      },
+      {
+        "t": 34528,
+        "path": "/",
+        "bodyOpacity": 1,
+        "bodyTransform": "none",
+        "wrappers": 0
+      }
+    ]
+  },
+  "reduzido": {
+    "no-preference": {
+      "inicio": {
+        "opacity": 0,
+        "transform": "matrix3d(0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 1, -0.000833333, 0, 150, 0, 1)",
+        "telaW": 2490,
+        "layoutW": 4980,
+        "layoutH": 720,
+        "frames": 10,
+        "visivel": false,
+        "escala": 0.5,
+        "y": 150
+      },
+      "fim": {
+        "opacity": 0,
+        "transform": "matrix3d(0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 1, -0.000833333, -1000, 150, 0, 1)",
+        "telaW": 2490,
+        "layoutW": 4980,
+        "layoutH": 720,
+        "frames": 10,
+        "visivel": false,
+        "escala": 0.5,
+        "y": 150
+      }
+    },
+    "reduce": {
+      "inicio": {
+        "opacity": 0,
+        "transform": "matrix3d(0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 1, -0.000833333, -1000, 150, 0, 1)",
+        "telaW": 2490,
+        "layoutW": 4980,
+        "layoutH": 720,
+        "frames": 10,
+        "visivel": false,
+        "escala": 0.5,
+        "y": 150
+      },
+      "fim": {
+        "opacity": 0,
+        "transform": "matrix3d(0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 1, -0.000833333, -1000, 150, 0, 1)",
+        "telaW": 2490,
+        "layoutW": 4980,
+        "layoutH": 720,
+        "frames": 10,
+        "visivel": false,
+        "escala": 0.5,
+        "y": 150
+      }
+    }
+  }
+}

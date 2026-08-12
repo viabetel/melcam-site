@@ -192,11 +192,33 @@ function aplicar(walk) {
     if (rel.startsWith('melcam' + path.sep) || rel.startsWith('tools' + path.sep)) continue;
     if (!/index\.html$/i.test(f)) continue;
     let s = fs.readFileSync(f, 'utf8');
-    // Só insere, antes do <footer>. Nunca recorta.
-    s = s.replace(/(<footer)/, () => {
-      n++;
-      return comunidade() + clipes() + seguranca() + '<footer';
-    });
+    // Só insere, nunca recorta.
+    //
+    // ⚠️ NÃO voltar a inserir antes do primeiro `<footer>`. São três rodapés,
+    // um por ssr-variant, e o primeiro mora dentro de
+    // `<div class="ssr-variant hidden-1g8fb3q">`, que é `display:none` fora do
+    // desktop. As três seções ficavam com altura 0 no tablet e no mobile — o
+    // defeito passou despercebido porque no desktop aparecia tudo certo.
+    //
+    // O lugar certo é como filha direta do stack da home (o
+    // `<header data-framer-name="Header">`, flex column), depois de todas as
+    // variantes. Fora de variante, renderiza nos três breakpoints. A ordem
+    // visual continua correta pelas regras de `order` em identidade.css:
+    // conteúdo (0) → Colméia (1) → rodapé (2).
+    const abertura = /<header[^>]*class="[^"]*framer-vrbx7h[^"]*"[^>]*>/.exec(s);
+    if (abertura) {
+      const re = /<(\/?)header\b[^>]*>/g;
+      re.lastIndex = abertura.index;
+      let prof = 0, t, corte = -1;
+      while ((t = re.exec(s))) {
+        prof += t[1] ? -1 : 1;
+        if (prof === 0) { corte = t.index; break; }
+      }
+      if (corte > 0) {
+        s = s.slice(0, corte) + comunidade() + clipes() + seguranca() + s.slice(corte);
+        n++;
+      }
+    }
     fs.writeFileSync(f, s, 'utf8');
   }
   return { n, fotos: fotosComunidade().length };

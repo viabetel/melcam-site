@@ -52,14 +52,14 @@ const M = {
   JFVPvnkBFfpqh3p50q: ['/melcam/img/polen/polen-preto.png', 'Polen Preta'],
   N8n9AACRdqrIMFeKgg: ['/melcam/img/polen/polen-rosa.png', 'Polen Rosa'],
   HcYRufuH0L1i8HETbq: ['/melcam/img/polen/polen-verde.png', 'Polen Verde'],
-  mxOD2EdPpQTvsdb7pn: ['/melcam/img/bee/bee-catalogo-amarela-frente.png', 'Bee Amarela'],
-  oMv0h3P8whNPGwtUG1: ['/melcam/img/bee/bee-catalogo-branca-frente.png', 'Bee Branca'],
+  mxOD2EdPpQTvsdb7pn: ['/melcam/img/bee/bee-catalogo-amarela-frente.jpg', 'Bee Amarela'],
+  oMv0h3P8whNPGwtUG1: ['/melcam/img/bee/bee-catalogo-branca-frente.jpg', 'Bee Branca'],
   B73PH8avLmaIeu8V9i: ['/melcam/img/polen/polen-angulo.png', 'Polen vista em ângulo'],
   '6isPgVJrEoLEhJsfo0': ['/melcam/img/polen/polen-conjunto.png', 'Conjunto de câmeras Polen'],
   JgKZzDalFFmq4lsQOc: ['/melcam/img/galeria-polen/polen-gallery-02.jpg', 'Foto feita com a Polen'],
   z55wVpasPB5T1MXnVm: ['/melcam/img/galeria-polen/polen-gallery-03.jpg', 'Foto feita com a Polen'],
   BhQQrZ1sE8Vmk7gijZ: ['/melcam/img/galeria-polen/polen-gallery-04.jpg', 'Foto feita com a Polen'],
-  nxcW6ieYyqUGcBSMpc: ['/melcam/img/logo/../img/favicon.png', 'Símbolo da Melcam'],
+  nxcW6ieYyqUGcBSMpc: ['/melcam/img/favicon.png', 'Símbolo da Melcam'],
   mikToIV1SoCqQhyveq: ['/melcam/img/galeria-polen/polen-gallery-05.jpg', 'Foto feita com a Polen'],
   BXSaHvzSYEqCOjcJMq: ['/melcam/img/galeria-polen/polen-gallery-06.jpg', 'Foto feita com a Polen'],
   q0bvSJ9ax4gsNAlPlR: ['/melcam/img/galeria-polen/polen-gallery-07.jpg', 'Foto feita com a Polen'],
@@ -71,7 +71,7 @@ const M = {
   QUXCWKuepJu9WOicM1: ['/melcam/logo/symbol-branco.svg', 'Meio de pagamento a decidir'],
   mFN7qRFb6aBfqn8RZt: ['/melcam/logo/symbol-branco.svg', 'Meio de pagamento a decidir'],
   wF1FvkGQKavYUtCR8N: ['/melcam/logo/symbol-branco.svg', 'Meio de pagamento a decidir'],
-  mP89rOLcHZd2NwwX4E: ['/melcam/img/bee/bee-catalogo-amarela-frente.png', 'Câmera Bee Amarela'],
+  mP89rOLcHZd2NwwX4E: ['/melcam/img/bee/bee-catalogo-amarela-frente.jpg', 'Câmera Bee Amarela'],
 };
 
 const vm = require('vm');

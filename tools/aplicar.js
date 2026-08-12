@@ -82,6 +82,7 @@ const TEXTO = [
   ['Advisable', 'Sobre Nós'],
   ['TRENDING NOW', 'DESTAQUES'],
   ['Subscribe', cfg.colmeia.cta],
+  ['Your email address', 'Seu e-mail'],
   ['Company', 'Ajuda'],
   ['Product', 'Produtos'],
   ['Contact', 'Fale conosco'],

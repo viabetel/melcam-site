@@ -111,8 +111,8 @@
       "cta": "Adicionar à sacola",
       "nota": "Envio em 24h · Cabo USB-C incluso",
       "cores": [
-        { "nome": "Bee Amarela", "img": "/melcam/img/bee/bee-catalogo-amarela-frente.png" },
-        { "nome": "Bee Branca", "img": "/melcam/img/bee/bee-catalogo-branca-frente.png" }
+        { "nome": "Bee Amarela", "img": "/melcam/img/bee/bee-catalogo-amarela-frente.jpg" },
+        { "nome": "Bee Branca", "img": "/melcam/img/bee/bee-catalogo-branca-frente.jpg" }
       ]
     }
   },

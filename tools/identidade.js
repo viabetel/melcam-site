@@ -125,12 +125,22 @@ h1,h2,.framer-text h1,.framer-text h2{
 [data-framer-name="Polen"]{ --mel-produto:${P.papel}; }
 [data-framer-name="Bee"]{ --mel-produto:${P.mel}; }
 
+/* ATENCAO AO SELETOR (corrigido em 12/08/2026)
+   data-framer-name="Polen" casa com 8 elementos por pagina e "Bee" com 4:
+   os cards <a> (duas variantes de breakpoint cada) E os <div> de rich text
+   que carregam so o rotulo. Sem ancorar na tag, o selo e a regua eram
+   desenhados tambem em cima do texto "Polen" e "Bee" — as "particulas de
+   cor" que o cliente reportou.
+   Os cards sao <a>; os rotulos sao <div data-framer-component-type=
+   "RichTextContainer">. Ancorar o seletor na tag "a" separa os dois sem
+   depender de classe hasheada, que muda a cada export. */
+
 /* Selo de novidade da Bee. O eyebrow ja existe no DOM do template. */
 [data-framer-name="Bee"] [data-framer-name="Eyebrow"],
 [data-framer-name="Bee"] .framer-text:first-child:not(h1):not(h2){
   color:${P.carvao};
 }
-[data-framer-name="Bee"]::before{
+a[data-framer-name="Bee"]::before{
   content:"Novidade";
   position:absolute; z-index:3; top:1.25rem; left:1.25rem;
   padding:.35rem .75rem; border-radius:999px;
@@ -139,10 +149,10 @@ h1,h2,.framer-text h1,.framer-text h2{
   letter-spacing:.09em; text-transform:uppercase;
   pointer-events:none;
 }
-[data-framer-name="Bee"]{ position:relative; }
+a[data-framer-name="Bee"]{ position:relative; }
 
 /* Regua de cores da Polen: 7 pontos, a assinatura da linha. */
-[data-framer-name="Polen"]::after{
+a[data-framer-name="Polen"]::after{
   content:""; position:absolute; z-index:3; left:1.25rem; bottom:1.25rem;
   width:7.5rem; height:.75rem; pointer-events:none;
   background:
@@ -154,12 +164,12 @@ h1,h2,.framer-text h1,.framer-text h2{
     radial-gradient(circle .34rem at .375rem 50%, #E8A0AE 99%, transparent) 5.35rem 0/1.07rem 100% no-repeat,
     radial-gradient(circle .34rem at .375rem 50%, ${P.verdeMar} 99%, transparent) 6.42rem 0/1.07rem 100% no-repeat;
 }
-[data-framer-name="Polen"]{ position:relative; }
+a[data-framer-name="Polen"]{ position:relative; }
 
 /* No mobile o selo e a regua encolhem junto, para nao cobrir a foto. */
 @media (max-width:809.98px){
-  [data-framer-name="Bee"]::before{ top:.75rem; left:.75rem; font-size:.62rem; padding:.28rem .6rem }
-  [data-framer-name="Polen"]::after{ left:.75rem; bottom:.75rem; width:5.6rem; height:.56rem;
+  a[data-framer-name="Bee"]::before{ top:.75rem; left:.75rem; font-size:.62rem; padding:.28rem .6rem }
+  a[data-framer-name="Polen"]::after{ left:.75rem; bottom:.75rem; width:5.6rem; height:.56rem;
     background-size:.8rem 100%,.8rem 100%,.8rem 100%,.8rem 100%,.8rem 100%,.8rem 100%,.8rem 100%;
     background-position:0 0,.8rem 0,1.6rem 0,2.4rem 0,3.2rem 0,4rem 0,4.8rem 0 }
 }
@@ -259,6 +269,30 @@ img[src$="a-decidir.svg"]{ background:${P.carvao}; object-fit:contain }
 a:focus-visible,button:focus-visible,[tabindex]:focus-visible{
   outline:2px solid ${P.mel}; outline-offset:3px; border-radius:2px;
 }
+
+/* A Colmeia fecha a home.
+
+   Pedido de 12/08/2026: a secao "Entre para a Colmeia" (data-framer-name
+   "Speed On") sai do meio da pagina e vira a ultima, antes do rodape.
+
+   Feito com "order" e nao recortando DOM. Recortar DOM neste arquivo ja
+   custou caro antes; ver a REGRA APRENDIDA no progresso.md.
+
+   O detalhe que complica: o rodape NAO e irmao da Colmeia. Ele mora dentro do
+   .framer-8hdwjm-container, junto com comunidade, clipes e seguranca. Um
+   order:1 solto na Colmeia jogava ela para depois do rodape, o que e pior do
+   que estava.
+
+   Por isso o wrapper vira display:contents. Ele e um bloco vazio de estilo
+   (sem padding, margem, fundo, transform, radius ou overflow — conferido no
+   navegador), entao apagar a caixa dele nao muda nada visualmente, e os
+   filhos sobem para o mesmo nivel de flex da Colmeia. Ai da para ordenar os
+   tres grupos:
+
+     conteudo (order 0) -> Colmeia (order 1) -> rodape (order 2)  */
+.framer-8hdwjm-container{ display:contents }
+.framer-bx6rvt-container{ order:1 }
+.framer-8hdwjm-container > footer{ order:2 }
 
 /* Respeita quem pediu menos movimento.
 

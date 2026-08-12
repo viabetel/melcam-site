@@ -1,33 +1,487 @@
 # MELCAM — progresso da transformação do template
 
 Arquivo de handoff. Outro agente deve conseguir retomar só lendo isto.
-Última atualização: **12/08/2026**.
+Última atualização: **12/08/2026 — spec medida da fileira do Header + assets
+1600×2400 prontos em `melcam/img/header-fileira/`**.
 
 **Pasta de trabalho:** `C:\Users\israe\Downloads\framer-teste`
-**Repo (espelho publicado):** `C:\Users\israe\viabetel\melcam-site` → https://github.com/viabetel/melcam-site
 **Backup intocado do template:** `_ORIGINAL\` (94 arquivos, 5,7 MB) — criado, confere
+**Congelamento em git:** commit `debf362`, 320 arquivos, estado pré-correção
 **Servidor local:** `node serve.js` → http://localhost:3030
-**Produção:** https://melcam-site.vercel.app (projeto `viabetels-projects/melcam-site`)
 
 ---
 
-## 12/08/2026 — repo corrigido e site publicado
+# 🔴 CORREÇÃO DE ARQUITETURA — 12/08/2026
 
-O primeiro commit do repo tinha subido o **mockup de referência do cliente**, não
-o site de verdade. Corrigido: o repo agora versiona o conteúdo desta pasta
-(template Framer transformado, o que roda em `localhost:3030`). O mockup antigo
-segue recuperável no histórico, no commit `62afb5b`.
+**Leia esta seção antes de qualquer outra. Ela invalida decisões tomadas abaixo.**
 
-Dois defeitos que só apareceriam em produção, corrigidos junto:
+## O que estava errado
 
-- `/privacidade` e `/termos` não tinham arquivo — o template exporta
-  `privacy-policy.html` e `terms-and-conditions.html`, e o `rotas.js` já apontava
-  a navegação pros nomes em português. O `serve.js` local escondia o problema
-  porque cai no `index.html` em rota desconhecida; na Vercel seria 404.
-  `tools/rotas.js` passou a gerar as cópias `privacidade.html` e `termos.html`,
-  então um `node tools/aplicar.js` mantém a correção.
-- `.vercelignore` mantém `_ORIGINAL/`, `tools/`, `serve.js` e os documentos de
-  trabalho fora do ar — o template original não deve ficar público.
+Auditoria independente apontou, e eu confirmei byte a byte: o grupo
+`.framer-dtlgl4` (`data-framer-name="Header"`, a fileira de imagens logo abaixo
+do hero) está **congelado no estado inicial**.
+
+| | `style` inline |
+|---|---|
+| `_ORIGINAL` | `opacity:0;transform:perspective(1200px) translateY(150px) scale(0.5)` |
+| build atual | `opacity:1;transform:perspective(1200px) translateY(150px) scale(0.5)` |
+
+O pipeline corrigiu só a opacidade. O `translateY(150px) scale(0.5)` ficou de pé
+para sempre — por isso as imagens aparecem com metade do tamanho e sem
+movimento.
+
+### Duas afirmações minhas neste arquivo estavam erradas
+
+**1. "O que se perde não é perda" (seção da hidratação desligada) — FALSO.**
+
+Conferi o JSON de appear animations. A entrada de `zfsne5` anima **só
+opacidade**:
+
+```json
+"initial": { "opacity":0.001, "scale":1, "y":0 }
+"animate": { "opacity":1,     "scale":1, "y":0 }
+```
+
+`scale` e `y` são idênticos nos dois estados. Ou seja: o
+`translateY(150px) scale(0.5)` **não é appear animation**. É efeito do runtime
+React, e `.framer-dtlgl4` **não tem `data-framer-appear-id`** nenhum. O
+`animator` inline que sobreviveu nunca poderia restaurar isso. Desligar a
+hidratação foi perda real e irrecuperável por aquele caminho.
+
+**2. "Zero ocorrências de COMETICA / Blue Jeans / T-Shirt" — media só texto
+visível.**
+
+Nas camadas ocultas os termos continuam: slugs de CMS e índice de busca
+(`"blue-jeans"`, `"t-shirt-green-kids"`, `"white-jeans"`) e atributos
+`data-framer-name="Sneakers"` e `data-framer-name="CCOMMERCE"`, em
+`index.html`, `bee.html`, `polen.html`, `acessorios.html`, `sacola.html` e
+`404.html`.
+
+### Um alarme falso, descartado
+
+Os "19 IDs duplicados `zfsne5`" **não são defeito**. `zfsne5` é
+`data-framer-name="Card Product"` — um componente reusado 19 vezes. Os 19
+duplicados existem no `_ORIGINAL` **e no site publicado que funciona**. Não
+mexer.
+
+(Efeito colateral real, esse sim: o `animator` inline usa
+`document.querySelector` singular por appear-id, então sem React só o primeiro
+dos 19 recebe o fade. Some junto com a hidratação restaurada.)
+
+### UTF-8: não reproduz
+
+Zero `Ã` em qualquer arquivo do projeto, zero BOM nos 11 HTML. Já conforme.
+
+## A arquitetura nova
+
+**O Framer é a fonte. O export é produto derivado, nunca código-fonte autoral.**
+
+Duplicada editável e publicada: **https://busy-buttons-865629.framer.app**
+(ainda COMETICA intacto — é a base limpa).
+
+O fluxo passa a ser:
+
+```
+canvas do Framer  ->  publicar  ->  node tools/baixar-framer.js  ->  site/
+```
+
+### `tools/baixar-framer.js` — espelho com runtime inteiro
+
+Baixa o HTML publicado, varre recursivamente todo asset remoto
+(`framerusercontent.com`, `app.framerstatic.com`, `fonts.gstatic.com`), grava em
+`site/_framer/<host>/<caminho>` e reescreve as URLs para local.
+
+**Não edita nenhum bundle.** Era essa a premissa errada que quebrava a sintaxe e
+levou a arrancar a hidratação.
+
+| Verificação | Resultado |
+|---|---|
+| Assets locais | **182** · 15,6 MB |
+| Referências `/_framer/` que resolvem | **158 de 158**, zero faltando |
+| Bundles `.mjs` com sintaxe válida | **18 de 18**, zero quebrados |
+| `script_main` + `modulepreload` | presentes, apontando para local |
+| `.framer-dtlgl4` | `opacity:0` + transform inicial **preservados** |
+| URLs remotas restantes | 0 relevantes |
+
+O `opacity:0` volta a ser o estado inicial legítimo, porque **quem o anima
+voltou a existir**. O hack global de opacidade deixa de ser necessário —
+`tools/aplicar.js` e companhia saem do caminho crítico.
+
+Config por variável de ambiente: `FRAMER_BASE`, `FRAMER_OUT`, `FRAMER_ROTAS`.
+
+### `serve.js` — reescrito (Passo 7, concluído)
+
+Mapa explícito de rotas; nada fora dele vira página.
+
+| Caso | Antes | Agora |
+|---|---|---|
+| `/privacidade` · `/termos` | home, 200 | `privacy-policy.html` · `terms-and-conditions.html`, 200 |
+| `/404` | home, 200 | `404.html`, **HTTP 404** |
+| rota desconhecida | home, 200 | `404.html`, **HTTP 404** |
+| asset ausente | `index.html`, 200 | **404** `text/plain` |
+| traversal codificado | servia | **403** |
+| `decodeURIComponent` inválido | 200 | **400** |
+
+Testado nos 16 casos, todos conforme.
+
+## 🛠️ MEDIÇÃO SEM EXTENSÃO — `tools/medir.js` + `tools/cdp.js`
+
+A extensão do Chrome nunca conectou, então o caminho é outro: **Edge headless
+dirigido por CDP**, com cliente WebSocket escrito à mão em `tools/cdp.js`
+(sem dependência externa, sem `npm install`).
+
+```bash
+node tools/medir.js "https://busy-buttons-865629.framer.app" duplicata 1
+```
+
+Argumentos: URL · rótulo do arquivo de saída · deslocamento da porta de debug
+(use um por processo se rodar dois em paralelo).
+
+O que ele faz, por breakpoint (1440×900, 768×1024, 390×844): navega, espera o
+runtime do Framer assentar, localiza `.framer-dtlgl4`, percorre 7 posições de
+scroll cobrindo a entrada do grupo, e em cada uma lê `getComputedStyle` do grupo
+e dos 10 frames. Grava `medida-<rótulo>.json` e 9 capturas PNG.
+
+Colhe também erro de console e exceção de runtime, via `Log.entryAdded` e
+`Runtime.exceptionThrown`.
+
+Binário usado: `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`.
+
+⚠️ **Chame o Edge pelo Bash, não pelo PowerShell.** Pelo PowerShell o processo
+sobe e não devolve nada (`--screenshot` não grava, `--dump-dom` sai vazio). Pelo
+Bash, com redirecionamento normal, funciona.
+
+Medições guardadas em `medidas/`: `medida-template.json`,
+`medida-duplicata.json`, `medida-build-antigo.json`.
+
+---
+
+## 📏 BASELINE MEDIDA — o que a versão MELCAM tem que reproduzir
+
+Template e duplicata publicados deram **idêntico em tudo**, nos três
+breakpoints. Zero erro de console nos dois. Confirma que a duplicata no ar ainda
+é o template limpo.
+
+| Breakpoint | viewport | frame | proporção | grupo | conferência |
+|---|---|---|---|---|---|
+| desktop | 1440×900 | 480×720 | 0,6667 | 4980×720 | 10×480 + 9×20 |
+| tablet | 768×1024 | 341×512 | 0,6660 | 3593×512 | 10×341,3 + 180 |
+| mobile | 390×844 | 281×422 | 0,6659 | 2993×422 | 10×281,3 + 180 |
+
+Nos dez frames, nos três breakpoints: `aspect-ratio` resolve `0.666667 / 1`,
+`overflow: hidden`, `object-fit: cover`. Sem exceção.
+
+### Curva da animação (desktop, 7 pontos de scroll)
+
+| scrollY | opacity | scale | translateY | largura na tela |
+|---|---|---|---|---|
+| 0 | 0,000 | 0,500 | 150 px | 2490 |
+| 290 | 0,000 | 0,500 | 150 px | 2490 |
+| 580 | 0,722 | 0,895 | 31,4 px | 4458 |
+| 870 | 0,900 | 0,989 | 3,2 px | 4927 |
+| 1159 | 0,927 | 1,000 | 0 | 4980 |
+| 1449 | 0,934 | 1,000 | 0 | 4980 |
+| 1739 | 0,940 | 1,000 | 0 | 4980 |
+
+**Correção de uma afirmação antiga deste arquivo:** a opacidade final **não é 1**.
+Assenta perto de `0,93` e sobe devagar com o scroll. Tablet e mobile seguem a
+mesma curva, com a mesma partida em `0.5 / 150px / 0`.
+
+### A prova que encerra a dúvida sobre proporção
+
+As imagens que o Framer serve no template **não são 2:3**. Naturais medidas:
+`533×650`, `533×530`, `534×800`, `533×666`. Uma é quase quadrada. E mesmo assim
+todo frame renderiza `480×720` exato.
+
+**A proporção do arquivo de origem não afeta o layout.** Não é hipótese, é
+medição. Quem quebra a fileira é ajuste de frame, nunca a foto.
+
+### Assinatura de defeito, medida no build antigo (`localhost:3030`)
+
+| Medida | saudável | quebrado | leitura |
+|---|---|---|---|
+| opacity inicial | 0,000 | 1,000 | nunca parte do zero |
+| scale final | 1,000 | 0,500 | travado no inicial |
+| translateY final | 0 | 150 px | travado no inicial |
+| largura do grupo | 4980 | 1392 | virou faixa de rolagem |
+| overflow do grupo | `hidden` | `auto hidden` | a causa da largura |
+| frames | 10 × 480×720 | 10 × 480×720 | **intactos** |
+
+Os dez frames do build antigo continuam com tamanho, proporção e `cover`
+corretos. O defeito estava no grupo, não nas imagens.
+
+Nota: no build antigo as imagens 6 a 10 aparecem sem `currentSrc` na sonda.
+**Não estão faltando** — é lazy loading, porque ficam fora da viewport com o
+grupo reduzido a 1392px. Os arquivos existem.
+
+---
+
+## 🐝 A COLMÉIA FECHA A HOME — 12/08/2026
+
+Pedido: jogar a seção "Entre para a Colméia" (`data-framer-name="Speed On"`)
+para o final da home. Feito **sem recortar DOM**, em `tools/identidade.js`.
+
+### Por que um `order` solto não bastava
+
+O rodapé **não é irmão da Colméia**. Ele mora dentro do
+`.framer-8hdwjm-container`, junto com `mel-comunidade`, `mel-clipes` e
+`mel-seguranca`. Um `order:1` na Colméia jogava ela para **depois do rodapé** —
+pior do que estava. Medido e visto em captura antes de corrigir.
+
+### A solução
+
+O `.framer-8hdwjm-container` é wrapper puro: `display:block`, sem padding,
+margem, fundo, transform, radius ou overflow (conferido por
+`getComputedStyle` no navegador). Então vira `display:contents`, a caixa dele
+some sem efeito visual, e os filhos sobem para o mesmo nível de flex da
+Colméia. Aí a ordem é trivial:
+
+```css
+.framer-8hdwjm-container{ display:contents }
+.framer-bx6rvt-container{ order:1 }        /* Colméia */
+.framer-8hdwjm-container > footer{ order:2 }
+```
+
+Ordem final, conferida nos três breakpoints: comunidade · clipes · segurança ·
+**Colméia** · rodapé. Larguras inalteradas (1440 / 768 / 390), sem 404.
+
+A regra está em `tools/identidade.js` (a fonte, que faz `writeFileSync`) **e**
+aplicada em `melcam/identidade.css`, para valer sem re-rodar o pipeline.
+
+### 🖼️ CORRIGIDO — imagens quebradas e placeholder em inglês (12/08/2026)
+
+Três referências apontavam para arquivo inexistente, o que deixava buracos no
+catálogo. Corrigido na fonte (`tools/imagens.js`, `melcam.config.json`,
+`tools/aplicar.js`) **e** nas 7 páginas já geradas:
+
+| era | virou |
+|---|---|
+| `bee/bee-catalogo-amarela-frente.png` | `.jpg` |
+| `bee/bee-catalogo-branca-frente.png` | `.jpg` |
+| `/melcam/img/logo/../img/favicon.png` | `/melcam/img/favicon.png` |
+| `"Your email address"` | `"Seu e-mail"` |
+
+Conferido depois: **0 referências quebradas** nas 7 páginas, 0 ocorrência do
+texto em inglês. `['Your email address', 'Seu e-mail']` entrou na tabela do
+`aplicar.js` para valer nas próximas rodadas.
+
+### 🔴 GRAVE, EM ABERTO — rótulo e imagem descolados no catálogo da home
+
+Levantamento de todos os 41 pares (src, alt) das 7 páginas mostrou que na grade
+`[data-framer-name="Header Grids"]` o texto do card e a imagem **não têm
+relação nenhuma**:
+
+| rótulo na tela | imagem servida |
+|---|---|
+| Polen **Verde** | `polen-branca.png` |
+| Polen **Branca** | `polen-marrom.png` |
+| **Bee** Branca | `polen-preto.png` |
+| Polen **Branca** | `bee-catalogo-amarela-frente.jpg` |
+| **Bee** Amarela | `polen-gallery-03.jpg` (foto, não produto) |
+| Polen **Preta** | `polen-angulo.png` |
+
+**Duas causas independentes que nunca se falaram:**
+
+1. `tools/imagens.js` troca imagem **por hash do Framer**
+   (`mxOD2EdPpQTvsdb7pn: [...]`), ou seja por posição no template, sem nenhuma
+   noção de qual produto o card representa.
+2. `tools/aplicar.js` troca **texto por string global e cega**. Daí saem
+   nomes de produto como `['Promotions', 'Sobre Nós']` e
+   `['Advisable', 'Sobre Nós']` — rótulo de menu virando nome de câmera.
+
+Some ainda o fato de que preço, desconto ("50%"), estoque e "2 cores
+disponíveis" desses cards são dado inventado, herdado do template.
+
+**Correção certa:** gerar os cards da grade a partir de
+`melcam.config.json > produtos`, onde `nome` e `img` já vivem no mesmo objeto e
+não têm como divergir. Não foi feito porque exige decidir quais produtos entram
+na grade da home e o que fazer com preço/estoque fictícios — decisão de
+conteúdo, não mecânica.
+
+### Defeito anterior encontrado de passagem, NÃO corrigido
+
+`mel-comunidade`, `mel-clipes` e `mel-seguranca` têm altura **0 no tablet e no
+mobile**. Causa: estão dentro de `.ssr-variant.hidden-1g8fb3q`, que é
+`display:none` fora do desktop — foram injetadas só na variante desktop.
+
+Confirmado que **não é regressão desta mudança**: medido com a regra valendo e
+com ela anulada, o resultado é o mesmo. Fica registrado como pendência.
+
+Também pendente: o campo da Colméia ainda mostra o placeholder em inglês
+`"Your email address"`.
+
+---
+
+## 📐 SPEC DA FILEIRA "A câmera que vive com você." — medida no publicado
+
+Levantada em 12/08/2026 a partir de `site/index.html`, que é o espelho da
+duplicata publicada. É a referência boa: o `_ORIGINAL` é de outra versão.
+
+### Identificação
+
+O título `A câmera que vive com você.` está em `.framer-klb4ly`
+(`data-framer-name="Header Info"`). A fileira animada é a **irmã**
+`.framer-dtlgl4` (`data-framer-name="Header"`). São dois nós distintos; mexer no
+título não é mexer na fileira.
+
+### Geometria — as 10 layers são idênticas
+
+As dez dividem **uma única regra CSS**, agrupada num só seletor:
+
+```css
+aspect-ratio: .666667;   /* 2:3 vertical, travado */
+width: auto;             /* largura DERIVADA da altura x proporcao */
+height: 80vh;            /* desktop */
+border-radius: 4px;
+flex: none;
+position: relative;
+overflow: hidden;        /* este e o clipping */
+gap: 0;
+```
+
+Container `.framer-dtlgl4`: `flex-flow:row` · `gap:20px` ·
+`width:min-content` · `height:min-content` · `overflow:hidden` ·
+`align-items:flex-start` · `flex:none`.
+
+Cada imagem é Fill, não child: um `<div style="position:absolute;inset:0">`
+embrulhando um `<img>` com `width:100%;height:100%;object-fit:cover;
+object-position:center`.
+
+| # | data-framer-name | classe |
+|---|---|---|
+| 1 | `Image 1` | `.framer-1mlwrve` |
+| 2 | `Image 2` | `.framer-1lggaqu` |
+| 3 | `Image 3` | `.framer-p5dsc8` |
+| 4 | `Image 4` | `.framer-zhwqt9` |
+| 5 | `Image 5` | `.framer-14kqz2p` |
+| 6 | `Image 6` | `.framer-vsbea7` |
+| 7 | `Image 7` | `.framer-lk3zu3` |
+| 8 | `Image 8` | `.framer-hz6fbf` |
+| 9 | `Image 9` | `.framer-1baa5n9` |
+| 10 | `Image` (sem número) | `.framer-1qo1eaf` |
+
+### Breakpoints — estrutura única, só a altura muda
+
+| Faixa | Regra |
+|---|---|
+| base (≥1440) | `height:80vh` |
+| `810–1439.98px` | `height:50vh` |
+| `≤809.98px` | `height:50vh` |
+
+Mesmas 10 classes nos três. **Não há layer independente por breakpoint nesta
+seção.** Se no canvas as estruturas estiverem diferentes entre desktop, tablet e
+mobile, isso já é a quebra, não uma diferença a preservar.
+
+### O que a geometria elimina como causa
+
+`aspect-ratio` travado + `width:auto` + `object-fit:cover` torna o frame
+**imune à proporção da imagem de origem**. Qualquer foto, de qualquer lado,
+preenche sem deformar e sem mudar o layout.
+
+Logo: se quebrou depois da troca, **não foi a dimensão do arquivo**. Foi o
+caminho da substituição. As causas plausíveis que sobram, na ordem:
+
+1. **Width mudou de `auto` para Fit Content**, ou o `aspect-ratio` se perdeu.
+   O frame passa a herdar a proporção da foto; como o pai é `width:min-content`,
+   uma foto horizontal explode a fileira inteira na largura.
+2. **Imagem entrou como child layer** em vez de Fill. Não ganha o wrapper
+   `position:absolute;inset:0`, vira filho de flex com `gap:0` e é recortada
+   pelo `overflow:hidden`.
+3. **Image Fit trocado de Cover para Fit/Contain.** Aparece faixa vazia dentro
+   do frame 2:3.
+4. **Frame apagado e imagem nova arrastada.** Perde aspect-ratio, radius,
+   overflow e a posição na ordem das layers.
+
+Qual das quatro foi, **só o canvas diz**. Não dá para determinar pelo publicado,
+porque a publicação atual ainda é o template, sem as alterações MELCAM.
+
+### Assets preparados — `melcam/img/header-fileira/`
+
+16 candidatos, todos **1600×2400 (2:3 exato)**, JPEG q2, sRGB, sem EXIF
+pendente, nome simples. Origem toda com ICC sRGB confirmado, então a conversão
+não desloca cor. As fontes 2:3 não sofreram recorte nenhum: a composição do
+fotógrafo está intacta.
+
+Mapa sugerido, alternando Bee e Polen, produto e vida real:
+
+| Pos | Layer | Arquivo | Conteúdo | alt |
+|---|---|---|---|---|
+| 1 | `Image 1` | `cards-19.jpg` | Bee amarela sobre girassóis | Câmera Bee amarela sobre girassóis |
+| 2 | `Image 2` | `polen-lp-3.jpg` | Polen couro caramelo | Câmera Polen em couro caramelo |
+| 3 | `Image 3` | `bee-lp-06.jpg` | pessoa com a Bee no rosto | Pessoa fotografando com a câmera Bee |
+| 4 | `Image 4` | `polen-lp-1.jpg` | Polen preta na embalagem | Câmera Polen preta em sua embalagem |
+| 5 | `Image 5` | `bee-lp-1169.jpg` | duas Bee, Pão de Açúcar ao fundo | Duas câmeras Bee com o Pão de Açúcar ao fundo |
+| 6 | `Image 6` | `cards-01.jpg` | macro da Polen couro | Detalhe da lente da câmera Polen |
+| 7 | `Image 7` | `bee-lp-0761.jpg` | Bee presa no jeans | Câmera Bee presa ao jeans como acessório |
+| 8 | `Image 8` | `polen-lp-5.jpg` | Polen amarela | Câmera Polen amarela |
+| 9 | `Image 9` | `bee-lp-0725.jpg` | Bee pendurada em planta | Câmera Bee pendurada por chaveiro em uma planta |
+| 10 | `Image` | `bee-lp-1237.jpg` | fotografando à beira-mar | Pessoa fotografando com a câmera Bee à beira-mar |
+
+Sobram como reserva: `bee-lp-0676` (mesa de café), `bee-lp-0689` (tela da Bee),
+`bee-lp-1065` (Bee no bolso), `bee-lp-22` e `bee-lp-23` (duplas na grama),
+`bee-lp-1171` (quase idêntica à `1169`, não usar junto).
+
+### Por que 1600×2400
+
+Frame renderiza com no máximo ~550px de largura no desktop (80vh × 0,667 numa
+viewport de ~1030px de altura). Em tela 2x isso dá ~1100px. 1600×2400 cobre com
+folga, é 2:3 exato e evita subir arquivo de 4000×6000 e 13 MB.
+
+---
+
+## ⏸️ PARADO EM 12/08/2026 — retomar por aqui
+
+O cliente pediu para pausar; outras prioridades. **A base está pronta e provada**,
+só falta o passo no Framer.
+
+**Provas fechadas nesta sessão** (capturas em `Downloads\Captura de tela 2026-08-12
+154728.png` = template publicado, e `…154805.png` = build MELCAM atual):
+
+| Medida na imagem central da fileira | Template | MELCAM atual | Razão |
+|---|---|---|---|
+| Largura | ≈526 px | ≈262 px | **0,498** |
+| Altura da fileira | ≈790 px | ≈398 px | **0,504** |
+
+Escala 0,5 confirmada em pixel. O deslocamento vertical medido (≈71 px) bate com
+o previsto: as funções de `transform` se aplicam da direita para a esquerda, então
+`translateY(150px)` acontece dentro do espaço já reduzido — `150 × 0,5 = 75 px`.
+
+Na captura MELCAM o **conteúdo está correto** (logo, assets Bee/Polen, texto em
+português). Quebrado é só o mecanismo de animação.
+
+**Para retomar, na ordem:**
+
+1. No canvas da duplicada (https://busy-buttons-865629.framer.app), aplicar
+   identidade MELCAM e trocar os assets do grupo abaixo do hero pelos Bee/Polen.
+   **Não tocar em animação, variants nem scroll transform.**
+2. Publicar no Framer.
+3. `node tools/baixar-framer.js` → gera `site/` com runtime intacto.
+4. Rotas, SEO e QA sobre `site/`. As specs de cada página continuam válidas nas
+   seções antigas deste arquivo.
+
+**Bloqueio das capturas: RESOLVIDO em 12/08/2026, sem extensão nenhuma.**
+Ver a seção "MEDIÇÃO SEM EXTENSÃO" abaixo. A extensão do Chrome continua não
+conectando (`tabs_context_mcp` dá `No group with id: …`), e deixou de importar.
+
+**Servidores locais:** `node serve.js` → :3030 (build antigo) ·
+`SERVE_ROOT=site PORT=3031 node serve.js` → :3031 (espelho com runtime).
+
+---
+
+## O que falta, e de quem depende
+
+**Depende de você, no canvas do Framer:** aplicar identidade MELCAM na
+duplicada — paleta, fontes, logo, textos, e trocar os assets do grupo abaixo do
+hero pelos Bee/Polen, sem tocar em animação. Depois publicar.
+
+**Depende de conexão de browser:** as capturas comparativas do Passo 12. A
+extensão do Chrome não está conectada nesta sessão.
+
+**Meu, assim que houver publicação MELCAM:** rodar o espelho, localizar assets,
+gerar rotas e SEO sobre o resultado, QA e comparação.
+
+⚠️ **`_ORIGINAL` é export de versão diferente da duplicada no ar**: a duplicada
+tem um appear-id a mais (`n0ccwk`). Usar sempre a duplicada como referência.
 
 ---
 
@@ -50,13 +504,13 @@ Dois defeitos que só apareceriam em produção, corrigidos junto:
 | 8 | LP Bee (`/bee`) | **CONCLUÍDA** |
 | 9 | Acessórios · Sobre Nós · 404 · Sacola | **CONCLUÍDA** |
 | 10 | `robots.txt` · `sitemap.xml` · Schema.org · canonical | **CONCLUÍDA** |
-| 11 | Validação final: responsivo, console, contraste, OG image | **PRÓXIMA — comece por aqui** |
-| 7 | LP Polen | pendente |
-| 8 | LP Bee | pendente |
-| 9 | Acessórios · Sobre Nós · ajuda · 404 | pendente |
-| 10 | Sacola | pendente |
-| 11 | SEO · acessibilidade · responsivo | pendente |
-| 12 | Validação final + ASSETS_NECESSARIOS.md | pendente |
+| 11 | Validação final: responsivo, console, contraste, OG image | pendente |
+
+> ⚠️ **Tudo nesta tabela vale para o caminho antigo (patch do export), que foi
+> abandonado — ver "CORREÇÃO DE ARQUITETURA" no topo.** O conteúdo continua
+> valendo como *spec* do que cada página precisa ter; a *implementação* migra
+> para o canvas do Framer. Linhas duplicadas que marcavam as fases 7 a 12 como
+> pendentes foram removidas: eram resíduo de uma versão anterior da tabela.
 
 ### Decisões do cliente em 12/08/2026
 
@@ -469,8 +923,24 @@ descrição, conteúdo)`.
 5. **Galeria** — "Feitas com a Polen", 8 fotos.
 6. **Filtros** — "Uma foto. 8 filtros", com as 8 pills e troca animada.
 7. **O diferencial** — "Analógica por fora, digital por dentro" + 9 tópicos.
-8. **Colméia** — eyebrow, título, texto, 3 perks e CTA.
-9. **FAQ** com as 7 perguntas + **CTA final**.
+8. **FAQ** com as 7 perguntas + **CTA final**.
+9. **Colméia** — eyebrow, título, texto, 3 perks e CTA. **Fecha a página.**
+
+> Ordem alterada em 12/08/2026, a pedido: a Colméia saiu do meio (entre o
+> diferencial e o FAQ) e passou a ser a última seção, depois do CTA final.
+> Fica igual à Bee, onde já era a última. A mudança é uma linha em
+> `tools/polen.js` (`conteudo()`); a Bee não precisou de nada.
+>
+> Para regenerar só a Polen, sem re-rodar o pipeline inteiro:
+>
+> ```js
+> const paginas = require('./tools/paginas.js');
+> const polen   = require('./tools/polen.js');
+> paginas.gerar('polen.html', 'mel-interna mel-pagina-polen', titulo, descricao, polen.conteudo());
+> ```
+>
+> ⚠️ Não chame `paginas.aplicar()` para isso: ele faz `appendFileSync` em
+> `melcam/identidade.css` e **duplica o CSS a cada execução**.
 
 Seções que o briefing mandou não criar ("O que vem na caixa", "Fotografia de
 verdade") **não foram criadas**.
@@ -888,3 +1358,242 @@ copy aprovado usa **"Laranja"**. Tratados como a mesma variante por ora.
 2. Ler este arquivo inteiro, em especial o bloco "O ACHADO QUE DECIDE A ABORDAGEM".
 3. Restaurar o template limpo, se precisar: copiar de `_ORIGINAL\`.
 4. Começar pela Fase 4.
+
+---
+
+## 🍔 NAVBAR FUNCIONAL — 12/08/2026
+
+Antes: a navbar tinha **zero links** (só dois âncoras vazios do logo) e um
+hambúrguer morto. Sem hidratação React, o componente de menu do Framer nunca
+monta. Confirmado por medição: clicar no ícone não criava elemento nenhum e não
+travava o scroll.
+
+**Dois defeitos, não um.** Além da hidratação, `iniciarMenu()` procurava
+`[data-framer-name*="Menu"]` — mas o botão do template se chama **"Meniu"**
+(romeno). Nunca casava, então a função saía no primeiro `if`.
+
+### O que foi feito, em `tools/hero-carrossel.js` (gerador do `interacoes.js`)
+
+Menu próprio, replicando o comportamento **medido** no template original
+(`MOTION_SPEC.md`, seção 7):
+
+| Comportamento | Original | MELCAM |
+|---|---|---|
+| painel | criado no clique, removido ao fechar | igual |
+| entrada | só opacidade, ~400 ms, curva em S | igual, `smoothstep` |
+| transform | `none` | `none` |
+| trava de scroll | `html { overflow:hidden }` | igual |
+| Escape | fecha | fecha |
+| ícone | toggle | toggle |
+
+Links vindos de `melcam.config.json > navegacao`, os cinco do cliente:
+Home · Polen · Bee · Acessórios · Sobre Nós. A página atual sai em mel
+(`#F2A900`) com `aria-current="page"`.
+
+Acessibilidade: `role`, `tabindex`, `aria-expanded`, `aria-label` que alterna,
+foco vai para o primeiro link ao abrir e volta ao botão ao fechar, Enter e Espaço
+acionam. Com `prefers-reduced-motion`, aparece direto no estado final.
+
+### Duas correções durante a implementação
+
+1. **Ligava só no primeiro botão.** Cada breakpoint tem sua variante de nav com
+   seu próprio botão, e só a ativa renderiza — o `querySelector` pegava o do
+   desktop, oculto no mobile. Passou a ligar em todos.
+2. **A curva estava errada.** Usei ease-out, que dá `0.504` aos 80 ms; o
+   original dá `0.066`. Trocado por `smoothstep` (`k*k*(3-2k)`), que dá `0.112`
+   e acompanha o S do original de perto.
+
+### Conferido
+
+Desktop 1440 e mobile 390: painel aparece, opacidade 0.112 → 0.438 → 0.741 →
+0.980 → 1.000 nos mesmos marcos do original, `html overflow` trava e destrava,
+os 5 links com href certo, foco em "Home", Escape fecha.
+
+`js` foi exportado em `tools/hero-carrossel.js` para dar para regerar só o
+`interacoes.js`:
+
+```js
+require('./tools/hero-carrossel.js').js()   // e gravar em melcam/interacoes.js
+```
+
+---
+
+## 🛒 GRADE DA HOME CORRIGIDA — 12/08/2026 · `tools/grade.js`
+
+Fecha a pendência grave registrada acima (rótulo e imagem descolados).
+
+### A regra que guiou a correção
+
+A raiz do card é `<a class="framer-a0g3Z" data-framer-appear-id="zfsne5"
+data-framer-name="Card Produtos">` — **o card É o elemento animado**, o único
+com appear animation declarada em todo o template (`MOTION_SPEC.md`, seção 1).
+
+Por isso o card **não foi substituído**. `tools/grade.js` reescreve só o
+conteúdo de dentro: `src`, `srcset`, `alt`, `<h5>`, `<h6>` e os `<p>`. A `<a>`,
+suas classes, o `appear-id` e o `will-change` ficam intactos.
+
+### Fonte única
+
+Cada card passa a ser preenchido a partir de **um objeto** de
+`melcam.config.json > produtos`. Nome, imagem, preço e contagem de variantes
+saem do mesmo lugar, então não têm como divergir. São 9 produtos reais:
+7 cores de Polen (R$ 399,00) e 2 Bee (R$ 299,00).
+
+### O que saiu, e por quê
+
+Três campos do card eram **dado inventado**, herdado do template COMETICA. Nada
+disso existe no briefing:
+
+| Campo | Era | Virou |
+|---|---|---|
+| selo | "Em estoque" / "Esgotado" / "Sobre Nós" | a linha do produto: `Polen` ou `Bee` |
+| desconto | "50%" / "25%" | vazio |
+| preço riscado | "R$ 399,00" tachado | vazio |
+| preço | fictício | o real do config |
+| "N cores" | sempre "2 cores" | 7 para Polen, 2 para Bee |
+
+Estoque, promoção e preço antigo continuam em `PENDENTES`: quando houver dado
+de verdade, é aqui que ele entra.
+
+### Conferido
+
+19 cards por página, em 7 páginas. Cada um internamente coerente — nome, foto,
+preço e contagem do mesmo produto. Desktop 1440 e mobile 390. **0 erros de
+console.** O `appear-id` `zfsne5` segue presente em todos.
+
+### Só os 9, sem repetir (pedido de 12/08/2026)
+
+Eram 19 posições no template para 9 produtos reais. Os 10 excedentes recebem
+`display:none` e `data-mel-excedente="1"` — **escondidos, não recortados**: o
+card é o elemento com `data-framer-appear-id="zfsne5"`, e remover mexeria na
+estrutura que o MOTION_SPEC manda preservar. Quando o catálogo crescer, os slots
+estão lá.
+
+Na medição aparecem **18** cards visíveis, e isso está certo: são os 9 mais 9
+clones que o `iniciarTicker` cria com `cloneNode(true)` para o loop da marquise
+parecer infinito. É o mecanismo do ticker, não repetição de catálogo — sem o
+clone o carrossel daria um salto ao voltar ao início.
+
+Rodar de novo: `node tools/grade.js` (idempotente).
+
+---
+
+## 📱 SEÇÕES SUMIDAS E BOTÃO HAMBÚRGUER — 12/08/2026
+
+### 1. Comunidade, clipes e segurança voltaram no tablet e mobile
+
+**Causa:** `tools/comunidade.js` injetava com `s.replace(/(<footer)/)`, que pega o
+**primeiro** dos três `<footer>` — e esse mora dentro de
+`<div class="ssr-variant hidden-1g8fb3q">`, que é `display:none` fora do
+desktop. As três seções ficavam com altura **0** no tablet e no mobile. Passou
+despercebido porque no desktop aparecia tudo certo.
+
+**Correção:** `tools/mover-secoes.js` recorta as três com contagem equilibrada
+de tags e recoloca como filhas diretas do stack da home (o
+`<header class="framer-vrbx7h">`, flex column), **depois de todas as variantes**.
+Fora de variante, renderiza nos três breakpoints. O gerador foi corrigido junto,
+com o aviso para nunca voltar ao `<footer>`.
+
+| | desktop | tablet | mobile |
+|---|---|---|---|
+| `.mel-comunidade` | 1114 px | **1803** | **1009** |
+| `.mel-clipes` | 1192 px | **2136** | **2098** |
+| `.mel-seguranca` | 130 px | **218** | **212** |
+
+Antes, tablet e mobile eram `0` nas três. Ordem visual conferida depois da
+mudança: Colméia continua sendo a última seção, o rodapé continua por último,
+nos três breakpoints. Tags balanceadas (`section` 11/11, `header` 1/1). 0 erros
+de console.
+
+### 2. Botão hambúrguer com menu suspenso (o overlay saiu)
+
+Pedido do cliente. O ícone do template é um frame com três filhos chamados `1`,
+`2` e `3` — barras de 14×2, 10×2 e 14×2.
+
+| barra | fechado | aberto |
+|---|---|---|
+| 1 | — | `translateY(+6px) rotate(45deg)` |
+| 2 | — | `opacity 0`, `scaleX(.2)` |
+| 3 | — | `translateY(-6px) rotate(-45deg)` |
+
+Os deslocamentos são **medidos no DOM**, não cravados: cada barra tem seu
+`offsetTop` dentro do ícone e o alvo é o centro. Se o template mudar o
+espaçamento, continua fechando o X.
+
+O `×` separado que existia dentro do painel **saiu**: é um botão só, com dois
+estados. Para dar para clicar de novo com o painel aberto, a barra fixa da nav
+sobe de `z-index: 2` para `2147483001` enquanto durar, e volta ao fechar.
+
+Transição de 400 ms com `cubic-bezier(.4,0,.2,1)`, a mesma duração do painel.
+Com `prefers-reduced-motion`, troca sem transição.
+
+Conferido no desktop e no mobile: abre, vira X, `html overflow` trava, segundo
+clique no ícone fecha tudo e as barras voltam a `transform: none`.
+
+### Atualização: o overlay de tela cheia saiu
+
+Pedido do cliente. O painel deixou de ser `position:fixed; inset:0` sobre a
+página inteira e virou **menu suspenso ancorado na barra**.
+
+| | antes | agora |
+|---|---|---|
+| forma | overlay de tela cheia | caixa de 168×212, ancorada |
+| posição | `inset: 0` | `top` = base da nav, `left` = do próprio botão |
+| trava de scroll | `html { overflow:hidden }` | **nenhuma** — a página continua rolável |
+| fundo | chapado sobre tudo | painel com borda e sombra, página à vista |
+| fechar | ícone, Escape | ícone, Escape, **clique fora**, resize |
+
+A ancoragem é lida do DOM na abertura (`getBoundingClientRect` da barra fixa e
+do botão), não cravada — funciona em qualquer breakpoint sem número mágico.
+Se a janela mudar de tamanho com o menu aberto, ele fecha em vez de ficar solto
+no lugar errado.
+
+O `elevarNav` foi removido: existia só para o ícone ficar clicável por cima do
+overlay. Sem overlay, o menu nasce abaixo da barra e não cobre nada.
+
+Entrada: opacidade 0→1 mais `translateY(-6px)→0`, 400 ms, mesma `smoothstep`.
+Com `prefers-reduced-motion`, aparece direto.
+
+Conferido no desktop e no mobile: caixa em (24, 81) de 168×212, **não é tela
+cheia**, `html overflow` continua `visible`, os 5 links, hambúrguer vira X,
+clique fora fecha e as barras voltam. 0 erros de console.
+
+---
+
+## 🎈 NAV RETRÁTIL — 12/08/2026
+
+Pedido: rolou, a barra some; o mouse chegando perto do topo, ela volta.
+Em `tools/hero-carrossel.js`, função `iniciarNavRetratil()`.
+
+| Situação | Barra |
+|---|---|
+| topo da página (`scrollY ≤ 80`) | sempre visível |
+| rolando abaixo disso | some, `translateY(-100%)`, 300 ms |
+| mouse a ≤ 90 px do topo da janela | volta |
+| menu aberto | **fica**, mesmo rolando |
+| sem mouse (toque) | volta ao rolar **para cima** |
+
+Três guardas em cima do pedido cru, todas por um motivo:
+
+1. **Zona segura de 80 px no topo.** Sem ela a home abriria já sem navegação.
+2. **Não some com o menu aberto.** O X sumiria junto e o menu ficaria órfão.
+3. **No toque, volta ao rolar para cima.** `mousemove` nunca dispara em celular;
+   sem essa regra a barra ficaria inalcançável depois do primeiro scroll.
+   Detectado com `matchMedia('(hover: hover) and (pointer: fine)')`.
+
+### O defeito que quase passou
+
+A barra **já tem transform próprio** do template — um `translateX` de
+centralização, medido em `matrix(1, 0, 0, 1, -720, 0)` no desktop. Escrever
+`transform: translateY(-100%)` direto **apagava esse X**, e a barra escorregava
+720 px de lado enquanto subia.
+
+A correção lê o transform de origem no início e compõe em cima:
+`base + ' translateY(-100%)'`. Depois disso o valor escondido é
+`matrix(1, 0, 0, 1, -720, -81)` — só o Y mudou, como tem que ser.
+
+### Conferido
+
+Topo visível · scroll 60 visível · scroll 900 some · mouse a 40 px volta · rola
+de novo e some · menu aberto continua visível em 1500 e 2500 · fecha o menu e
+volta a sumir. 0 erros de console.
