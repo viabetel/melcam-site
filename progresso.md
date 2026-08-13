@@ -5285,3 +5285,20 @@ esse papel são os `tools/qa-*.js` e o `preflight.js`, e todos foram rodados.
 
 **Nenhum commit. Nenhum deploy.** O repositório está ligado à Vercel: push em
 `main` publica em produção sozinho.
+
+### 📦 Publicado — 13/08/2026
+
+| item | valor |
+|---|---|
+| commit | `bdeda47` — "Conta na navbar, acesso local e a navbar da /bee no mobile" |
+| push | `origin/main`, 26 arquivos |
+| produção | automática pelo push, `https://melcam-site.vercel.app` |
+| rotas conferidas | `/`, `/polen`, `/bee`, `/sacola`, `/acessorios`, `/sobre` — 200 nas seis |
+
+Provas de que o build NOVO está no ar, e não uma cópia em cache: `/bee` com
+**zero** ocorrências de `mel-barra`, `identidade.css` com o bloco do perfil e
+`interacoes.js` com `iniciarPerfil`.
+
+**O QA foi repetido contra produção, não só contra o localhost:**
+`BASE_URL=https://melcam-site.vercel.app node tools/qa-perfil.js` → 33/33 em
+390; `tools/qa-navbar-mobile.js` → 3 rotas × 5 larguras sem nenhuma falha.
