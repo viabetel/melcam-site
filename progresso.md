@@ -7,7 +7,9 @@ internas; as 6 internas voltaram a renderizar no tablet e no mobile; vazio dos
 destaques da Bee fechado; slot fantasma do ticker fora do fluxo; ticker
 arrastável com o mouse; etiqueta de pendência fora dos cards da Colméia; bloco
 Polen da home com conceito, 7 cores, preço e CTA; imagem partida dos cards
-Polen e Sobre Nós corrigida. Nada commitado.**
+Polen e Sobre Nós corrigida. Estado commitado em `48dda9d` e publicado em
+`https://melcam-site.vercel.app` — ver a última seção do arquivo. O hero da
+/bee foi junto **inacabado**: leia o "RETOMAR POR AQUI" antes de tocar nele.**
 
 **Pasta de trabalho:** `C:\Users\israe\Downloads\framer-teste`
 **Backup intocado do template:** `_ORIGINAL\` (94 arquivos, 5,7 MB) — criado, confere
@@ -4830,3 +4832,36 @@ só é usado pela Bee — se ela sair, ele fica órfão.
    alturas diferentes. Um sistema de coordenadas só.
 
 **Nenhum commit. Nenhum deploy.**
+
+---
+
+## 📦 COMMIT E PUBLICAÇÃO DESTE ESTADO — 13/08/2026
+
+A pedido, tudo o que estava na árvore de trabalho foi commitado e enviado,
+**inclusive o hero da /bee interrompido**. O "RETOMAR POR AQUI" acima continua
+valendo palavra por palavra: as fontes seguem à frente dos builds, e o que está
+publicado é o `bee.html` com a ordem antiga do DOM.
+
+| item | valor |
+|---|---|
+| commit | `48dda9d` — "Paleta aplicada abaixo do body, assets do deploy corrigidos e hero da /bee" |
+| push | `origin/main`, 22 arquivos, +3820 −168 |
+| preview | `melcam-site-lchnxuak8-viabetels-projects.vercel.app` (feito antes do commit, da mesma árvore) |
+| produção | `melcam-site-cs9aip2dp-…`, **automática**, disparada pelo push |
+| URL pública | `https://melcam-site.vercel.app` — 200 em `/`, `/polen` e `/bee` |
+
+**O repositório está conectado à Vercel: push em `main` publica em produção
+sozinho.** Não é preciso rodar `vercel deploy --prod`, e não dá para commitar em
+`main` sem publicar. Quem for retomar o hero da Bee decide antes se trabalha em
+branch.
+
+**Proteção da Vercel:** segue **ligada**. As URLs de preview respondem 302 para
+`vercel.com/sso-api`; só o domínio de produção abre sem login. Desligar de vez é
+o toggle *Settings → Deployment Protection → Vercel Authentication → Disabled*,
+que ninguém virou até aqui.
+
+Antes de subir: raiz canônica conferida pelo `.melcam-project.json` e
+`node tools/verificar-assets-deploy.js` — 93 assets publicáveis, 241 arquivos no
+deploy, nenhum asset referenciado caindo no `.vercelignore`. Isso fecha o item 4
+da lista "O que ainda NÃO foi feito". Os itens 1, 2, 3, 5, 6 e 7 continuam
+abertos, e as duas decisões do cliente continuam pendentes.
