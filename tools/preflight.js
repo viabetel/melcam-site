@@ -155,7 +155,34 @@ if (!cssBuf) {
   }
 }
 
-// -------------------------------------------- 7. servidor: identidade e hashes
+// ------------------------------------------ 7. assets que o deploy vai receber
+//
+// Em 13/08/2026 a hero da /polen abria sem foto no deploy e com foto no local.
+// Nada aqui pegava: todo o pré-voo olhava o disco e o localhost, e o arquivo
+// estava certo nos dois. O que faltava era conferir o que a VERCEL recebe —
+// .vercelignore excluía a pasta inteira. Por isso esta etapa entrou.
+{
+  let r = null;
+  try {
+    r = require('./verificar-assets-deploy.js').rodar();
+  } catch (e) {
+    erro('assets do deploy', `verificar-assets-deploy.js falhou: ${e.message}`);
+  }
+  if (r) {
+    const g = r.grupos;
+    const linhas = [];
+    for (const a of g.ignorado) linhas.push(`${a.url}\n  excluído por: ${a.regra}`);
+    for (const a of g.ausente) linhas.push(`${a.url}\n  não existe no disco`);
+    for (const a of g.caixa) linhas.push(`${a.url}\n  disco tem "${a.real}", a página pede "${a.esperado}"`);
+    for (const a of g.naoVersionado) linhas.push(`${a.url}\n  existe, mas não está versionado`);
+    for (const a of g.invalido) linhas.push(`${a.url}\n  ${a.motivo}`);
+    linhas.length
+      ? erro('assets do deploy', `${linhas.length} asset(s) usados não chegariam ao ar:\n` + linhas.join('\n'))
+      : ok(`assets do deploy  (${g.ok.length} referenciados, todos publicáveis)`);
+  }
+}
+
+// -------------------------------------------- 8. servidor: identidade e hashes
 (async () => {
   const raiz = await pegar('/');
 

@@ -25,31 +25,83 @@ function barra() {
 </div>`;
 }
 
-// Abertura — OPÇÃO 1 do briefing, escolhida.
-// Motivo: a opção 1 (Bee branca balança, gira e vira amarela) se apoia em
-// transform de um elemento único, que é exatamente o que o `animator` inline
-// do template sabe fazer sem o runtime React. A opção 2 (a página mergulha no
-// mel durante o scroll) exigiria scroll-linked animation, que morreu junto com
-// a hidratação. Escolher a 1 preserva movimento de verdade em vez de simular
-// mal a 2. As duas não foram misturadas.
-function abertura() {
+// HERO — "uma câmera para levar junto", 13/08/2026.
+//
+// SUBSTITUI a abertura anterior (a Bee branca girando e virando amarela, que
+// era a "opção 1" do briefing). Aquela cena dependia de um loop infinito de
+// rotateY e vivia numa página em carvão. O pedido novo é outro: hero clara,
+// solar, editorial, com personalidade própria em relação à Polen — e sem nada
+// se movendo depois da entrada. Loop infinito e falso giro 3D estão fora por
+// escrito, então a cena antiga não podia sobreviver com retoque.
+//
+// O render 3D final da Bee continua em PENDENTES do melcam.config.json e
+// continua não sendo inventado. A diferença é que a página parou de exibir
+// essa espera como nota ao visitante: o hero se apoia nos packshots oficiais
+// tratados como peça editorial, que é o mesmo caminho que a /polen tomou.
+//
+// ESCOLHA DOS DOIS ASSETS, com os arquivos abertos antes (nunca pelo nome):
+//   bee-amarela-angulo-corrente.png  1072x620  RGBA, recorte de verdade
+//     A câmera em três quartos COM a correntinha e o mosquetão. É o único par
+//     de arquivos do acervo que traz a alça, e a alça é a linha de movimento
+//     que o pedido descreve — sem precisar desenhar linha nenhuma.
+//   bee-branca-frente.png             685x340  RGBA, recorte de verdade
+//     De frente, silhueta chapada. Diferente da outra de propósito: duas
+//     câmeras no mesmo ângulo leriam como repetição, não como par.
+//
+// Descartados, e por quê:
+//   bee-branca-angulo-corrente.png — espelha a amarela, mesma pose, mesma
+//     direção de corrente. Juntas ficavam duas fotos iguais em cores
+//     diferentes.
+//   bee-lifestyle-acessorio.jpg — a melhor foto de "acessório" do acervo, mas
+//     ela JÁ É a imagem do bloco "Câmera como acessório" desta mesma página.
+//     Repetir no hero seria a mesma foto duas vezes em /bee.
+//   header-fileira/bee-lp-1169.jpg — as duas Bees na mão contra o mar do Rio.
+//     Linda e solar, mas é azul de ponta a ponta: dominaria uma página cuja
+//     assinatura é o mel, e azul não pertence à paleta.
+//   *-caixa.png e *-traseira.png — embalagem e verso não abrem uma página.
+function hero() {
+  const amarela = '/melcam/img/bee/bee-amarela-angulo-corrente.png';
   const branca = '/melcam/img/bee/bee-branca-frente.png';
-  const amarela = '/melcam/img/bee/bee-amarela-frente.png';
+  // Derivado, não digitado: se o config ganhar uma terceira cor, a linha muda
+  // sozinha. "foto e vídeo" e "filtros retrô" saem das SPECS_BEE abaixo, que
+  // são as aprovadas — nenhuma especificação nova entra aqui.
+  const apoio = `${BEE.cores.length} cores · foto e vídeo · filtros retrô`;
+
   return `
-<section class="mel-sec mel-abertura mel-bee-abertura" aria-labelledby="mel-bee-tit">
-  <p class="mel-eyebrow">antes do mel</p>
-  <p class="mel-ab-l1 mel-bee-l1">Antes do mel, é só uma câmera.</p>
-  <div class="mel-bee-palco" data-mel-bee-palco>
-    <img class="mel-bee-cam mel-bee-branca" src="${branca}" alt="Câmera Bee branca">
-    <img class="mel-bee-cam mel-bee-amarela" src="${amarela}" alt="Câmera Bee amarela">
+<section class="mel-bh" data-mel="bee-hero" aria-labelledby="mel-bee-tit">
+  <div class="mel-bh-in">
+    <div class="mel-bh-copy" data-mel="bee-hero-copy">
+      <p class="mel-bh-eyebrow">Bee</p>
+      <h1 id="mel-bee-tit" class="mel-bh-tit">Pequena o bastante para ir junto.</h1>
+      <p class="mel-bh-txt">Sem peso, sem cerimônia. Uma câmera digital retrô
+         feita para fotografar e continuar vivendo o momento.</p>
+      <a class="mel-bt mel-bh-cta" data-mel="bee-hero-cta" href="#modelos">Escolha sua Bee</a>
+      <p class="mel-bh-apoio">${apoio}</p>
+    </div>
   </div>
-  <h1 id="mel-bee-tit" class="mel-tit">Abelhas fazem mel, essa faz memórias</h1>
-  <p class="mel-col-txt">Bee, a menor da colmeia</p>
-  <a class="mel-bt mel-bt-mel mel-ab-cta" href="#modelos">Comprar</a>
-  <p class="mel-nota">Render 3D final <strong>a decidir</strong>. A animação usa
-     os packshots oficiais: a Bee branca gira e vira amarela, que é a
-     <strong>opção 1</strong> do briefing. A opção 2 depende de animação ligada
-     ao scroll, que não sobrevive sem o runtime do Framer.</p>
+  <!-- O palco vem DEPOIS do texto no DOM por dois motivos que apontam para o
+       mesmo lado: no celular a coluna única precisa abrir pela manchete, que
+       é o que explica a página, e para quem lê por leitor de tela a ordem
+       lógica também é texto e depois produto. No desktop nada muda: o palco
+       é posicionado, não empilhado.
+       A forma de mel mora AQUI DENTRO, e não solta no hero: assim ela e as
+       duas câmeras compartilham um sistema de coordenadas só. Enquanto ela
+       ficou presa ao hero, o retrato media a altura dela contra a página
+       inteira e o plano amarelo passava de 582px onde cabiam 190. -->
+  <div class="mel-bh-palco">
+    <div class="mel-bh-forma" aria-hidden="true"></div>
+    <img class="mel-bh-cam mel-bh-branca" data-mel="bee-hero-branca"
+         src="${branca}" width="685" height="340" decoding="async"
+         alt="A Bee branca, de frente, com a faixa colorida sob a lente.">
+    <img class="mel-bh-cam mel-bh-amarela" data-mel="bee-hero-amarela"
+         src="${amarela}" width="1072" height="620" decoding="async"
+         alt="A Bee amarela vista de três quartos, presa a uma correntinha com mosquetão, do tamanho de um chaveiro.">
+    <p class="mel-bh-cores">
+      <span class="mel-bh-cor mel-bh-cor-amarela" aria-hidden="true"></span>Amarela
+      <i aria-hidden="true">·</i>
+      <span class="mel-bh-cor mel-bh-cor-branca" aria-hidden="true"></span>Branca
+    </p>
+  </div>
 </section>`;
 }
 
@@ -90,7 +142,15 @@ function destaques() {
 <section class="mel-sec" id="destaques" aria-labelledby="mel-dest-tit">
   <div class="mel-sec-topo">
     <p class="mel-eyebrow">destaques</p>
-    <h2 id="mel-dest-tit" class="mel-tit">Pequena o bastante para ir junto</h2>
+    <!-- 13/08/2026 — este <h2> era "Pequena o bastante para ir junto", que
+         passou a ser o <h1> do hero novo. Manter os dois deixaria a MESMA
+         manchete duas vezes na mesma página, palavra por palavra — o defeito
+         que já foi corrigido na /polen, onde o card do Header Grid repetia o
+         título da seção de produto. O texto novo é derivado de spec aprovada
+         ("Aproximadamente 26 g", logo abaixo nesta mesma seção): nada novo foi
+         afirmado. Se o cliente preferir a frase antiga aqui, o hero é que
+         precisa de outro título. -->
+    <h2 id="mel-dest-tit" class="mel-tit">O que cabe em 26 gramas</h2>
   </div>
 
   <div class="mel-dest">
@@ -130,5 +190,5 @@ function destaques() {
 // (data-framer-name "Speed On"), outra implementação, e não foi pedida.
 // `cfg.colmeia` continua no config, com o texto aprovado intacto.
 module.exports = {
-  conteudo() { return barra() + abertura() + modelos() + destaques(); },
+  conteudo() { return barra() + hero() + modelos() + destaques(); },
 };

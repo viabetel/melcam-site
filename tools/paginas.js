@@ -169,7 +169,9 @@ ${esconder}{ display:none !important }
 .mel-ab-alerta{
   max-width:520px; margin:0 auto clamp(28px,4vw,52px);
   padding:1.4rem 1.6rem; border-radius:14px;
-  background:#2B251C; box-shadow:0 24px 60px rgba(0,0,0,.42);
+  /* Sombra em carvao escurecido, nao em preto puro: a pagina e quente e o
+     preto cru joga um halo frio na borda do card. Mesma densidade. */
+  background:#2B251C; box-shadow:0 24px 60px rgba(14,12,9,.42);
   text-align:left;
 }
 .mel-ab-badge{
@@ -304,38 +306,16 @@ ${esconder}{ display:none !important }
   color:#9A9083; font-family:"Area",sans-serif; font-size:.94rem; line-height:1.65;
 }
 
-/* ---- LP Bee: abertura, a opção 1 do briefing ---- */
-.mel-bee-l1{ text-align:center; color:#9A9083; font-size:1.05rem; margin:0 0 clamp(20px,3vw,34px) }
-.mel-bee-palco{
-  position:relative; max-width:460px; margin:0 auto clamp(24px,4vw,44px);
-  aspect-ratio:1;
-}
-.mel-bee-cam{
-  position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
-  transform-origin:50% 42%;
-}
-.mel-bee-branca{
-  animation:mel-bee-gira 5.2s cubic-bezier(.45,.05,.35,1) .4s infinite;
-}
-.mel-bee-amarela{
-  opacity:0;
-  animation:mel-bee-revela 5.2s cubic-bezier(.45,.05,.35,1) .4s infinite;
-}
-/* A branca balança da direita para a esquerda, gira e entrega o quadro para a
-   amarela na metade do giro — quando está de perfil e a troca não aparece. */
-@keyframes mel-bee-gira{
-  0%   { transform:rotateY(0) translateX(9%) }
-  26%  { transform:rotateY(0) translateX(-9%) }
-  46%  { transform:rotateY(0) translateX(0) }
-  50%  { transform:rotateY(90deg) }
-  50.1%,100%{ transform:rotateY(90deg); opacity:0 }
-}
-@keyframes mel-bee-revela{
-  0%,49.9%{ opacity:0; transform:rotateY(-90deg) }
-  50%  { opacity:1; transform:rotateY(-90deg) }
-  74%  { transform:rotateY(0) }
-  100% { opacity:1; transform:rotateY(0) }
-}
+/* ---- LP Bee: seleção de modelos ----
+   A ABERTURA ANTIGA SAIU EM 13/08/2026, com o hero novo da /bee.
+   Eram .mel-bee-l1, .mel-bee-palco, .mel-bee-cam, .mel-bee-branca,
+   .mel-bee-amarela e os keyframes mel-bee-gira / mel-bee-revela: a "opção 1"
+   do briefing, em que a Bee branca balançava, girava em rotateY e entregava o
+   quadro para a amarela, em loop infinito, sobre carvão.
+   O pedido novo proíbe por escrito loop infinito e falso giro 3D, e pede uma
+   página clara — nada daquilo sobreviveria a retoque, então foi removido em
+   vez de escondido. O que veio no lugar está em tools/bee-interacoes.js.
+   .mel-cores-2 e .mel-cor-bee FICAM: são da seção de modelos, que continua. */
 .mel-cores-2{ grid-template-columns:repeat(2,1fr); max-width:820px; margin-inline:auto }
 .mel-cor-bee{ text-align:center }
 .mel-cor-bee .mel-cor-nome{ margin:0 0 .8rem; font-size:1.3rem }
@@ -371,16 +351,10 @@ ${esconder}{ display:none !important }
 .mel-dest-specs{ margin-top:clamp(20px,3vw,32px) }
 
 @media (max-width:809.98px){
-  .mel-bee-palco{ max-width:280px }
   .mel-dest{ grid-template-columns:1fr }
   .mel-dest-inv .mel-dest-img{ order:0 }
   .mel-dest-img img{ max-height:none }   /* uma coluna: sem vazio, retrato cheio */
   .mel-cores-2{ grid-template-columns:1fr }
-}
-@media (prefers-reduced-motion:reduce){
-  /* Sem giro: entrega direto a Bee amarela, que é o final da animação. */
-  .mel-bee-branca{ animation:none; opacity:0 }
-  .mel-bee-amarela{ animation:none; opacity:1; transform:none }
 }
 
 /* ---- CTA final ---- */
@@ -408,6 +382,7 @@ ${esconder}{ display:none !important }
   .mel-cor:hover,.mel-gal-item:hover img{ transform:none }
 }
 ${require('./polen-interacoes.js').css()}
+${require('./bee-interacoes.js').css()}
 `;
 }
 

@@ -65,6 +65,19 @@ function gerarFontes() {
 }
 
 // ---------------------------------------------------------------- cores
+// As derivações neutras da identidade, num lugar só. Não são cores novas: são
+// os valores que o projeto já usava espalhados como literal em vários
+// geradores. Ficam aqui para que o MAPA_TOKEN abaixo e os `--mel-*` publicados
+// no CSS nasçam da MESMA constante — uma fonte, não duas concorrentes.
+const D = {
+  superficie: '#2B251C',                 // card e área elevada sobre carvão
+  secundario: '#9A9083',                 // descrição e metadado — 5,28:1 no carvão, AA
+  papelSuave: '#CFC6B8',                 // texto de apoio com mais presença — 9,81:1
+  borda: 'rgba(251,247,238,.07)',        // hairline sobre escuro
+  overlay: 'rgba(34,30,23,.35)',         // véu sobre foto
+  melClaro: '#FFC22E',                   // só o hover do botão de mel
+};
+
 // Mapa token do template -> cor MELCAM. Mantém a hierarquia clara/escura
 // original: o template é escuro, e carvão+papel preservam essa sofisticação.
 const MAPA_TOKEN = {
@@ -72,11 +85,11 @@ const MAPA_TOKEN = {
   '9f5c7abb-959f-460d-bc9f-d2f6fbaa130d': P.carvao,                  // #0d0d0d fundo
   'ad4d2a8b-0add-4634-8710-f4704da278ff': P.papel,                   // #fff
   'e5fd1d2d-45e6-49b9-b341-ad7384948a67': P.papel,                   // #dedede texto
-  'ee01c93a-c94e-42a3-8ebf-3f7c78c2647a': '#9A9083',                 // #696969 secundário (5,3:1 sobre carvão, AA)
-  '1d4f7ead-bfa1-40e6-9e94-a738e2b2b3fc': '#2B251C',                 // #1c1c1c superfície
-  '30e9a435-77d0-4905-81f2-ed32927858c6': '#2B251C',                 // #1c1c1c superfície
-  'cb084d69-fb3a-43a7-b50a-e7506bdef46c': 'rgba(251,247,238,.07)',   // borda sutil
-  'ab591a21-7f4d-4730-9bd6-d3f6304cf2d9': 'rgba(34,30,23,.35)',      // overlay
+  'ee01c93a-c94e-42a3-8ebf-3f7c78c2647a': D.secundario,              // #696969 secundário
+  '1d4f7ead-bfa1-40e6-9e94-a738e2b2b3fc': D.superficie,              // #1c1c1c superfície
+  '30e9a435-77d0-4905-81f2-ed32927858c6': D.superficie,              // #1c1c1c superfície
+  'cb084d69-fb3a-43a7-b50a-e7506bdef46c': D.borda,                   // borda sutil
+  'ab591a21-7f4d-4730-9bd6-d3f6304cf2d9': D.overlay,                 // overlay
 };
 
 function gerarIdentidade() {
@@ -86,9 +99,41 @@ function gerarIdentidade() {
 
 @import url("/melcam/fonts/fontes.css");
 
-:root{
+/* O SELETOR PRECISA SER ":root,body" — auditoria de paleta, 13/08/2026.
+
+   Ate esta data o bloco declarava so :root, e a paleta MELCAM nunca chegou a
+   pintar nada. O template declara os NOVE tokens em "body", duas vezes:
+
+     body{ --token-3e6ec15f:#f5f5f5; --token-e5fd1d2d:#333; ... }
+     @media (prefers-color-scheme:dark){ body{ --token-3e6ec15f:#0d0d0d; ... } }
+
+   Custom property herda. Heranca perde para QUALQUER declaracao direta no
+   proprio elemento — nao e questao de especificidade nem de ordem. Entao o
+   valor MELCAM valia so para o <html>, e tudo dentro de <body> lia de volta o
+   legado do template: fundo #0d0d0d, texto #dedede, secundario #696969 (3,54:1
+   no rodape, reprova AA), superficie #1c1c1c, borda #ffffff0d.
+
+   Pior: com "prefers-color-scheme: light" no sistema, o site inteiro abria na
+   pele CLARA do template — fundo #f5f5f5, texto #333. Medido no navegador, nao
+   deduzido.
+
+   Declarando tambem em "body", a especificidade empata com a do template
+   (0,0,1) e vence por ordem de fonte: identidade.css entra depois do <style>
+   do export, em todas as paginas. O @media dark do template tambem perde, pelo
+   mesmo motivo — @media nao soma especificidade. E como os dois esquemas caem
+   no mesmo valor, a paleta passa a ser a mesma com o sistema claro ou escuro,
+   que e o que a marca pede.
+
+   :root fica junto de proposito: e o que pinta a area fora do wrapper de
+   1440px em telas largas, que e filha de <html>, nao de <body>. */
+:root,body{
+  /* os cinco da marca */
   --mel-carvao:${P.carvao}; --mel-mel:${P.mel}; --mel-papel:${P.papel};
   --mel-coral:${P.coral}; --mel-verde:${P.verdeMar};
+  /* as derivacoes neutras, declaradas em vez de repetidas como literal */
+  --mel-superficie:${D.superficie}; --mel-secundario:${D.secundario};
+  --mel-papel-suave:${D.papelSuave}; --mel-borda:${D.borda};
+  --mel-overlay:${D.overlay}; --mel-mel-claro:${D.melClaro};
 `;
   for (const [id, cor] of Object.entries(MAPA_TOKEN)) css += `  --token-${id}:${cor};\n`;
   css += `}\n\n`;
@@ -135,9 +180,17 @@ h1,h2,.framer-text h1,.framer-text h2{
    "RichTextContainer">. Ancorar o seletor na tag "a" separa os dois sem
    depender de classe hasheada, que muda a cada export. */
 
-/* Selo de novidade da Bee. O eyebrow ja existe no DOM do template. */
-[data-framer-name="Bee"] [data-framer-name="Eyebrow"],
-[data-framer-name="Bee"] .framer-text:first-child:not(h1):not(h2){
+/* Selo de novidade da Bee.
+
+   O SEGUNDO BRACO DO SELETOR SAIU — auditoria de paleta, 13/08/2026.
+   Era ".framer-text:first-child:not(h1):not(h2)", escrito para pintar um
+   eyebrow em carvao dentro da pilula de mel. So que o card da Bee nao tem
+   eyebrow: o primeiro .framer-text dele e o <h3> com o titulo "Bee", e h3 nao
+   estava na lista de excecoes. Resultado medido no navegador: o titulo do card
+   saia em carvao #221E17 sobre o card escuro — 1,17:1, texto fantasma.
+   A pilula "Novidade" nao dependia disso; ela pinta a propria cor no ::before
+   logo abaixo. O braco so fazia estrago. */
+[data-framer-name="Bee"] [data-framer-name="Eyebrow"]{
   color:${P.carvao};
 }
 a[data-framer-name="Bee"]::before{
@@ -407,9 +460,48 @@ body.mel-interna .mel-polen-eyebrow{ display:none !important }
 /* Placeholder honesto: onde a arte ainda nao existe, o site diz isso. */
 img[src$="a-decidir.svg"]{ background:${P.carvao}; object-fit:contain }
 
+/* Pastilhas dos metodos de pagamento, no rodape — auditoria de 13/08/2026.
+   Seis retangulos em branco puro, escritos no atributo style do proprio no
+   pelo export. Eram a coisa mais clara da pagina inteira e destoavam do papel
+   em todas as rotas. Papel mantem o fundo claro que as marcas de cartao
+   precisam e para de brigar com o resto.
+   O !important e necessario: estilo inline so perde para ele. Nao alcanca as
+   marcas dentro das pastilhas — logo de terceiro nao se recolore. */
+[data-framer-name="Payment methods"] > div[data-border]{
+  background-color:${P.papel} !important;
+}
+
 /* Acessibilidade: foco visivel que o template nao trazia. */
 a:focus-visible,button:focus-visible,[tabindex]:focus-visible{
   outline:2px solid ${P.mel}; outline-offset:3px; border-radius:2px;
+}
+
+/* --------------------------------------------------------------------
+   CAMPO DE NEWSLETTER DO TEMPLATE — auditoria de paleta, 13/08/2026
+
+   O campo "Seu e-mail" que fecha a home e um componente de formulario do
+   Framer. Fundo, borda e placeholder dele saem de token e ja entraram na
+   paleta junto com o resto. Sobravam tres coisas medidas no navegador:
+
+   1. cor do texto digitado e do icone em rgb(153,153,153) — cinza frio, e
+      escrito no atributo style do wrapper. Sobrescrever a custom property
+      perderia para o inline; o que vence e pintar a propriedade consumida
+      (.framer-form-input{color:var(--framer-input-font-color)}), com a
+      mesma especificidade e depois na ordem.
+   2. borda de foco em #09f, o azul padrao do Framer. Ela pinta de verdade,
+      pelo ::after de .framer-form-text-input:focus-within.
+   3. .framer-form-input:focus-visible{outline:none} no proprio template.
+      Nossa regra de foco acima nao alcanca <input>, entao o campo ficava
+      sem indicador nenhum para quem navega no teclado.
+   -------------------------------------------------------------------- */
+.framer-form-input{ color:${P.papel}; caret-color:${P.papel} }
+.framer-form-text-input:focus-within::after{ border-color:${P.mel} }
+.framer-form-text-input.framer-form-text-input{
+  --framer-input-focused-border-color:${P.mel};
+}
+.framer-form-input:focus-visible,
+input:focus-visible,textarea:focus-visible,select:focus-visible{
+  outline:2px solid ${P.mel}; outline-offset:2px;
 }
 
 /* A Colmeia fecha a home.

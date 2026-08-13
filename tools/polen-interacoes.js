@@ -440,8 +440,10 @@ function css() {
   display:flex; align-items:center;
   /* Cor de base sob a foto, para o caso de ela ainda nao ter pintado. Nao ha
      mais gradiente de saida aqui: quem dissolve a emenda com a proxima secao e
-     a terceira camada do scrim, que fecha em #0d0d0d — o fundo da pagina,
-     cravado em .framer-vrbx7h pelo template. */
+     a terceira camada do scrim, que fecha no CARVAO — o fundo da pagina.
+     (Ate 13/08/2026 dizia #0d0d0d, o fundo do template. O .framer-vrbx7h le
+     esse fundo do --token-3e6ec15f, que a identidade traz para o carvao; a
+     emenda estava fechando numa cor que a pagina nao usa.) */
   background:${P.carvao};
   /* A largura cheia e escrita por JS (sangrar(), em interacoes.js), medida em
      document.documentElement.clientWidth — que NAO inclui a scrollbar. 100vw
@@ -486,8 +488,12 @@ function css() {
                limpo na direita, sem parar em carvao chapado como antes: nada
                aqui pode virar retangulo de novo.
      180deg  — assenta a navbar sobre a foto no topo.
-     0deg    — dissolve a base no #0d0d0d da pagina, para o hero terminar sem
-               linha reta e emendar na secao de produto. */
+     0deg    — dissolve a base no CARVAO da pagina, para o hero terminar sem
+               linha reta e emendar na secao de produto.
+               Ate 13/08/2026 fechava em #0d0d0d/rgb(13,13,13), o preto do
+               template: a base do hero morria numa cor mais fria e mais escura
+               que a secao logo abaixo, e a emenda que este gradiente existe
+               para esconder virava justamente uma faixa visivel. */
 .mel-ph-scrim{
   position:absolute; z-index:2; inset:0; pointer-events:none;
   background:
@@ -495,7 +501,7 @@ function css() {
       rgba(34,30,23,.94) 0%, rgba(34,30,23,.86) 28%,
       rgba(34,30,23,.62) 46%, rgba(34,30,23,.26) 68%, rgba(34,30,23,.08) 100%),
     linear-gradient(180deg, rgba(34,30,23,.70) 0%, rgba(34,30,23,.16) 18%, rgba(34,30,23,0) 38%),
-    linear-gradient(0deg, #0d0d0d 0%, rgba(13,13,13,.62) 7%, rgba(13,13,13,0) 20%);
+    linear-gradient(0deg, ${P.carvao} 0%, rgba(34,30,23,.62) 7%, rgba(34,30,23,0) 20%);
 }
 
 /* --- camada 3: o texto --- */
@@ -587,13 +593,13 @@ function css() {
 
   /* Em retrato o texto ocupa a largura toda, entao o gradiente de leitura tem
      de vir de CIMA, nao da esquerda: horizontal ali escureceria a coluna
-     inteira e apagaria a foto. A base continua fechando em #0d0d0d. */
+     inteira e apagaria a foto. A base continua fechando no carvao. */
   .mel-ph-scrim{
     background:
       linear-gradient(180deg,
         rgba(34,30,23,.94) 0%, rgba(34,30,23,.88) 34%,
         rgba(34,30,23,.60) 56%, rgba(34,30,23,.18) 78%, rgba(34,30,23,.05) 100%),
-      linear-gradient(0deg, #0d0d0d 0%, rgba(13,13,13,.60) 8%, rgba(13,13,13,0) 24%);
+      linear-gradient(0deg, ${P.carvao} 0%, rgba(34,30,23,.60) 8%, rgba(34,30,23,0) 24%);
   }
 }
 
@@ -625,7 +631,8 @@ function css() {
 .mel-pr-palco{
   position:relative; width:100%; aspect-ratio:1;
   border-radius:12px; overflow:hidden; background:#2B251C;
-  box-shadow:0 24px 60px rgba(0,0,0,.42), 0 0 0 1px rgba(251,247,238,.07);
+  /* carvao escurecido no lugar do preto puro — ver nota em tools/paginas.js */
+  box-shadow:0 24px 60px rgba(14,12,9,.42), 0 0 0 1px rgba(251,247,238,.07);
 }
 /* As duas camadas do crossfade. Em repouso so uma tem opacidade 1; o estado
    e mandado pela classe, escrita por um unico ponto do JS. */
@@ -646,7 +653,9 @@ function css() {
   font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
   font-size:clamp(1.8rem,3.4vw,2.6rem); line-height:1.1;
 }
-.mel-pr-sub{ margin:.35rem 0 0; color:#C9BFB0; font-family:"Area",sans-serif; font-size:1rem }
+/* #CFC6B8, nao #C9BFB0: os dois eram o mesmo apoio claro escrito duas vezes,
+   com dois valores diferentes. Um so — auditoria de paleta, 13/08/2026. */
+.mel-pr-sub{ margin:.35rem 0 0; color:#CFC6B8; font-family:"Area",sans-serif; font-size:1rem }
 .mel-pr-preco{ margin:clamp(18px,2.4vw,28px) 0 0; font-family:"Area",sans-serif; color:#9A9083 }
 .mel-pr-preco strong{
   display:block; color:${P.papel}; font-size:clamp(1.5rem,2.6vw,1.95rem);
@@ -825,7 +834,10 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
   padding:clamp(20px,4%,40px); gap:.35rem;
 }
 .mel-story-vaga-num{
-  margin:0; color:rgba(242,169,0,.5);
+  /* .60 e nao .50: em .50 o numero dava 2,97:1 sobre a superficie do
+     placeholder, abaixo dos 3:1 exigidos para texto grande. Em .60 sobe para
+     3,64:1 e continua sendo um numero de fundo, nao um titulo. */
+  margin:0; color:rgba(242,169,0,.6);
   font-family:"Iowan Old Style",Georgia,serif; font-size:clamp(2.4rem,5vw,3.6rem);
   line-height:1; font-variant-numeric:tabular-nums;
 }
@@ -897,13 +909,17 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
     grid-row:var(--linha);
     min-height:68vh; display:flex; flex-direction:column; justify-content:center;
     align-self:stretch;
-    /* 0,66 e nao 0,34. O apagado era bonito e REPROVAVA em contraste: medido no
+    /* 0,70 e nao 0,34. O apagado era bonito e REPROVAVA em contraste: medido no
        navegador, o numero em mel dava 2,06:1 contra os 4,5 exigidos e o titulo
        dava 2,94:1 contra 3. Capitulo inativo continua na tela, entao vale
-       WCAG igual. Em 0,66 o numero sobe para 4,66:1 e o titulo para 7,2:1, e a
-       diferenca para o capitulo ativo continua legivel — que era o pedido:
-       mudanca discreta, nao apagao. */
-    opacity:.66; transition:opacity 460ms cubic-bezier(.22,.61,.36,1);
+       WCAG igual.
+
+       Era 0,66, calibrado quando o fundo da pagina ainda era o #0d0d0d do
+       template. Com a paleta valendo de fato, o fundo virou carvao #221E17 —
+       mais claro — e o mesmo 0,66 caiu para 4,36:1. Em 0,70 o numero volta a
+       4,72:1 sobre carvao. A diferenca para o capitulo ativo continua legivel,
+       que era o pedido: mudanca discreta, nao apagao. */
+    opacity:.70; transition:opacity 460ms cubic-bezier(.22,.61,.36,1);
   }
   .mel-story-ligado .mel-story-passo[data-mel-story-ativa]{ opacity:1 }
 
@@ -926,11 +942,17 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
   .mel-story-ligado[data-lado-ativo="dir"] .mel-story-conta{ grid-column:2 }
   .mel-story-ligado .mel-story-conta-in{
     position:absolute; left:0; top:calc(100% + 16px);
-    color:#7C7365; font-family:"Area",sans-serif; font-size:.78rem;
+    /* #7C7365 ate 13/08/2026: 3,54:1 sobre o carvao, reprova AA para 12,5px.
+       O secundario oficial da 5,28:1 e continua recuado ao lado do numero
+       ativo, que e mel. O "/" separador segue em opacity .6 logo abaixo. */
+    color:#9A9083; font-family:"Area",sans-serif; font-size:.78rem;
     letter-spacing:.16em; font-variant-numeric:tabular-nums; white-space:nowrap;
   }
   .mel-story-conta [data-mel-story-atual]{ color:${P.mel} }
-  .mel-story-conta-de{ margin:0 .45rem; opacity:.6 }
+  /* Sem opacity. O .6 sobre o secundario dava 2,77:1 — o separador continua
+     sendo texto e vale WCAG. A hierarquia ja e feita pela cor: o numero atual
+     e mel, o resto e secundario. Apagar mais nao acrescentava leitura. */
+  .mel-story-conta-de{ margin:0 .45rem }
 }
 
 /* Em janela baixa o palco de 3:2 mais a navbar não cabem: encolhe o palco em

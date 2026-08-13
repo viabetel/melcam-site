@@ -384,7 +384,7 @@
         + 'display:flex;flex-direction:column;gap:.1rem;'
         + 'padding:.75rem 2.5rem .9rem 1rem;background:#221E17;'
         + 'border:1px solid rgba(251,247,238,.14);border-radius:6px;'
-        + 'box-shadow:0 18px 40px -12px rgba(0,0,0,.7);'
+        + 'box-shadow:0 18px 40px -12px rgba(14,12,9,.7);'
         + 'opacity:0;transform:translateY(-6px);max-height:calc(100vh - '
         + Math.round(barra.bottom) + 'px - 1.5rem);overflow-y:auto';
 
@@ -1203,6 +1203,68 @@
   }
 
 
+  /* ====== /bee — hero ======
+     Sai imediatamente fora de body.mel-pagina-bee: o alvo [data-mel="bee-hero"]
+     não existe em nenhuma outra página, então a primeira linha resolve.
+
+     TODA a animação de entrada é keyframe de CSS com "both": roda sozinha e
+     termina no estado final mesmo se este script não carregar. Estado inicial
+     escondido que só o JS desfaz foi o que produziu o "hero em branco"
+     registrado no progresso.md.
+
+     Sobram para o JS exatamente duas coisas, e nenhuma delas move nada depois
+     que a cena assenta — o pedido é "depois da entrada, tudo permanece
+     estável", então NÃO há paralaxe aqui (a /polen tem; a /bee não).
+       1. a largura cheia, que precisa de medição;
+       2. a rolagem suave do CTA até a escolha da cor.
+     Nada aqui toca em iniciarFileira() nem em variável dela. */
+  function iniciarHeroBee() {
+    var hero = document.querySelector('[data-mel="bee-hero"]');
+    if (!hero || hero.hasAttribute('data-mel-ligado')) return;
+    hero.setAttribute('data-mel-ligado', '1');
+
+    /* LARGURA CHEIA, MEDIDA — mesma técnica da /polen, mesmo motivo.
+       O hero nasce dentro do container do template, que em 1440 tem 983px:
+       sobrariam calhas de papel de 228px de cada lado, e o plano de mel
+       pararia no meio da tela em vez de sangrar. Estender por 100vw seria
+       errado: 100vw INCLUI a barra de rolagem e criaria transbordo
+       horizontal. clientWidth não inclui.
+       Sem JS o hero fica na largura do container — mais estreito, nunca
+       quebrado, e o plano de mel continua fazendo sentido. */
+    function sangrar() {
+      hero.style.width = '';
+      hero.style.marginLeft = '';
+      var vw = document.documentElement.clientWidth;
+      /* A ORDEM IMPORTA: a largura vai PRIMEIRO. O pai é flex column com
+         align-items:center, então alargar o filho já o recentra sozinho —
+         medir a posição antes disso desloca em dobro. */
+      hero.style.width = vw + 'px';
+      var esq = hero.getBoundingClientRect().left;
+      hero.style.marginLeft = (-esq) + 'px';
+    }
+    sangrar();
+    window.addEventListener('resize', sangrar, { passive: true });
+    /* De novo no load: antes das imagens a página pode não ter barra de
+       rolagem, e o clientWidth medido ali fica maior que o real. */
+    window.addEventListener('load', sangrar);
+
+    /* CTA: rola suave até a escolha da cor. Com movimento reduzido salta
+       direto — a preferência vale para rolagem também, não só para animação. */
+    var cta = hero.querySelector('[data-mel="bee-hero-cta"]');
+    if (!cta) return;
+    cta.addEventListener('click', function (ev) {
+      var id = (cta.getAttribute('href') || '').replace('#', '');
+      var alvo = id && document.getElementById(id);
+      if (!alvo) return;
+      ev.preventDefault();
+      alvo.scrollIntoView({
+        behavior: menosMovimento.matches ? 'auto' : 'smooth',
+        block: 'start'
+      });
+    });
+  }
+
+
   function iniciar() {
     document.querySelectorAll('[data-mel="carrossel"]').forEach(iniciarCarrossel);
     iniciarFileira();
@@ -1211,6 +1273,9 @@
     iniciarHeroPolen();
     iniciarScrollytellingPolen();
     iniciarSeletorPolen();
+    /* Só faz algo em /bee: [data-mel="bee-hero"] não existe em nenhuma outra
+       página, então sai na primeira linha. */
+    iniciarHeroBee();
     iniciarFiltros();
     iniciarFaq();
     iniciarSacola();

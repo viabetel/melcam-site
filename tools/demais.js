@@ -165,6 +165,10 @@ function css() {
   border:1px solid rgba(251,247,238,.22); background:#2B251C; color:${P.papel};
   font-family:"Area",sans-serif; font-size:.9rem;
 }
+/* O placeholder tem de ser declarado. Sem regra, o campo cai no cinza padrao
+   do navegador (#757575 medido no Edge), que da 3,29:1 sobre a superficie e
+   reprova AA. O secundario da marca da 4,83:1 no mesmo fundo. */
+.mel-aviso-linha input::placeholder{ color:#9A9083; opacity:1 }
 .mel-aviso-linha input:focus-visible{ outline:2px solid ${P.mel}; outline-offset:2px }
 .mel-aviso-msg{
   margin:.7rem 0 0; min-height:1.2em; color:${P.mel};

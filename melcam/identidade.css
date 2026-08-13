@@ -4,9 +4,41 @@
 
 @import url("/melcam/fonts/fontes.css");
 
-:root{
+/* O SELETOR PRECISA SER ":root,body" — auditoria de paleta, 13/08/2026.
+
+   Ate esta data o bloco declarava so :root, e a paleta MELCAM nunca chegou a
+   pintar nada. O template declara os NOVE tokens em "body", duas vezes:
+
+     body{ --token-3e6ec15f:#f5f5f5; --token-e5fd1d2d:#333; ... }
+     @media (prefers-color-scheme:dark){ body{ --token-3e6ec15f:#0d0d0d; ... } }
+
+   Custom property herda. Heranca perde para QUALQUER declaracao direta no
+   proprio elemento — nao e questao de especificidade nem de ordem. Entao o
+   valor MELCAM valia so para o <html>, e tudo dentro de <body> lia de volta o
+   legado do template: fundo #0d0d0d, texto #dedede, secundario #696969 (3,54:1
+   no rodape, reprova AA), superficie #1c1c1c, borda #ffffff0d.
+
+   Pior: com "prefers-color-scheme: light" no sistema, o site inteiro abria na
+   pele CLARA do template — fundo #f5f5f5, texto #333. Medido no navegador, nao
+   deduzido.
+
+   Declarando tambem em "body", a especificidade empata com a do template
+   (0,0,1) e vence por ordem de fonte: identidade.css entra depois do <style>
+   do export, em todas as paginas. O @media dark do template tambem perde, pelo
+   mesmo motivo — @media nao soma especificidade. E como os dois esquemas caem
+   no mesmo valor, a paleta passa a ser a mesma com o sistema claro ou escuro,
+   que e o que a marca pede.
+
+   :root fica junto de proposito: e o que pinta a area fora do wrapper de
+   1440px em telas largas, que e filha de <html>, nao de <body>. */
+:root,body{
+  /* os cinco da marca */
   --mel-carvao:#221E17; --mel-mel:#F2A900; --mel-papel:#FBF7EE;
   --mel-coral:#EE6A4D; --mel-verde:#5E8C7B;
+  /* as derivacoes neutras, declaradas em vez de repetidas como literal */
+  --mel-superficie:#2B251C; --mel-secundario:#9A9083;
+  --mel-papel-suave:#CFC6B8; --mel-borda:rgba(251,247,238,.07);
+  --mel-overlay:rgba(34,30,23,.35); --mel-mel-claro:#FFC22E;
   --token-3e6ec15f-2b75-4e3b-ad0b-168aa37f4237:#221E17;
   --token-9f5c7abb-959f-460d-bc9f-d2f6fbaa130d:#221E17;
   --token-ad4d2a8b-0add-4634-8710-f4704da278ff:#FBF7EE;
@@ -56,9 +88,17 @@ h1,h2,.framer-text h1,.framer-text h2{
    ancorar na tag, o selo e a regua eram desenhados tambem em cima do
    texto "Polen" e "Bee". Ancorar na tag "a" separa os dois. */
 
-/* Selo de novidade da Bee. O eyebrow ja existe no DOM do template. */
-[data-framer-name="Bee"] [data-framer-name="Eyebrow"],
-[data-framer-name="Bee"] .framer-text:first-child:not(h1):not(h2){
+/* Selo de novidade da Bee.
+
+   O SEGUNDO BRACO DO SELETOR SAIU — auditoria de paleta, 13/08/2026.
+   Era ".framer-text:first-child:not(h1):not(h2)", escrito para pintar um
+   eyebrow em carvao dentro da pilula de mel. So que o card da Bee nao tem
+   eyebrow: o primeiro .framer-text dele e o <h3> com o titulo "Bee", e h3 nao
+   estava na lista de excecoes. Resultado medido no navegador: o titulo do card
+   saia em carvao #221E17 sobre o card escuro — 1,17:1, texto fantasma.
+   A pilula "Novidade" nao dependia disso; ela pinta a propria cor no ::before
+   logo abaixo. O braco so fazia estrago. */
+[data-framer-name="Bee"] [data-framer-name="Eyebrow"]{
   color:#221E17;
 }
 a[data-framer-name="Bee"]::before{
@@ -328,9 +368,48 @@ body.mel-interna .mel-polen-eyebrow{ display:none !important }
 /* Placeholder honesto: onde a arte ainda nao existe, o site diz isso. */
 img[src$="a-decidir.svg"]{ background:#221E17; object-fit:contain }
 
+/* Pastilhas dos metodos de pagamento, no rodape — auditoria de 13/08/2026.
+   Seis retangulos em branco puro, escritos no atributo style do proprio no
+   pelo export. Eram a coisa mais clara da pagina inteira e destoavam do papel
+   em todas as rotas. Papel mantem o fundo claro que as marcas de cartao
+   precisam e para de brigar com o resto.
+   O !important e necessario: estilo inline so perde para ele. Nao alcanca as
+   marcas dentro das pastilhas — logo de terceiro nao se recolore. */
+[data-framer-name="Payment methods"] > div[data-border]{
+  background-color:#FBF7EE !important;
+}
+
 /* Acessibilidade: foco visivel que o template nao trazia. */
 a:focus-visible,button:focus-visible,[tabindex]:focus-visible{
   outline:2px solid #F2A900; outline-offset:3px; border-radius:2px;
+}
+
+/* --------------------------------------------------------------------
+   CAMPO DE NEWSLETTER DO TEMPLATE — auditoria de paleta, 13/08/2026
+
+   O campo "Seu e-mail" que fecha a home e um componente de formulario do
+   Framer. Fundo, borda e placeholder dele saem de token e ja entraram na
+   paleta junto com o resto. Sobravam tres coisas medidas no navegador:
+
+   1. cor do texto digitado e do icone em rgb(153,153,153) — cinza frio, e
+      escrito no atributo style do wrapper. Sobrescrever a custom property
+      perderia para o inline; o que vence e pintar a propriedade consumida
+      (.framer-form-input{color:var(--framer-input-font-color)}), com a
+      mesma especificidade e depois na ordem.
+   2. borda de foco em #09f, o azul padrao do Framer. Ela pinta de verdade,
+      pelo ::after de .framer-form-text-input:focus-within.
+   3. .framer-form-input:focus-visible{outline:none} no proprio template.
+      Nossa regra de foco acima nao alcanca <input>, entao o campo ficava
+      sem indicador nenhum para quem navega no teclado.
+   -------------------------------------------------------------------- */
+.framer-form-input{ color:#FBF7EE; caret-color:#FBF7EE }
+.framer-form-text-input:focus-within::after{ border-color:#F2A900 }
+.framer-form-text-input.framer-form-text-input{
+  --framer-input-focused-border-color:#F2A900;
+}
+.framer-form-input:focus-visible,
+input:focus-visible,textarea:focus-visible,select:focus-visible{
+  outline:2px solid #F2A900; outline-offset:2px;
 }
 
 /* Respeita quem pediu menos movimento.
@@ -572,7 +651,9 @@ body.mel-interna .mel-seguranca{ display:none !important }
 .mel-ab-alerta{
   max-width:520px; margin:0 auto clamp(28px,4vw,52px);
   padding:1.4rem 1.6rem; border-radius:14px;
-  background:#2B251C; box-shadow:0 24px 60px rgba(0,0,0,.42);
+  /* Sombra em carvao escurecido, nao em preto puro: a pagina e quente e o
+     preto cru joga um halo frio na borda do card. Mesma densidade. */
+  background:#2B251C; box-shadow:0 24px 60px rgba(14,12,9,.42);
   text-align:left;
 }
 .mel-ab-badge{
@@ -707,38 +788,16 @@ body.mel-interna .mel-seguranca{ display:none !important }
   color:#9A9083; font-family:"Area",sans-serif; font-size:.94rem; line-height:1.65;
 }
 
-/* ---- LP Bee: abertura, a opção 1 do briefing ---- */
-.mel-bee-l1{ text-align:center; color:#9A9083; font-size:1.05rem; margin:0 0 clamp(20px,3vw,34px) }
-.mel-bee-palco{
-  position:relative; max-width:460px; margin:0 auto clamp(24px,4vw,44px);
-  aspect-ratio:1;
-}
-.mel-bee-cam{
-  position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
-  transform-origin:50% 42%;
-}
-.mel-bee-branca{
-  animation:mel-bee-gira 5.2s cubic-bezier(.45,.05,.35,1) .4s infinite;
-}
-.mel-bee-amarela{
-  opacity:0;
-  animation:mel-bee-revela 5.2s cubic-bezier(.45,.05,.35,1) .4s infinite;
-}
-/* A branca balança da direita para a esquerda, gira e entrega o quadro para a
-   amarela na metade do giro — quando está de perfil e a troca não aparece. */
-@keyframes mel-bee-gira{
-  0%   { transform:rotateY(0) translateX(9%) }
-  26%  { transform:rotateY(0) translateX(-9%) }
-  46%  { transform:rotateY(0) translateX(0) }
-  50%  { transform:rotateY(90deg) }
-  50.1%,100%{ transform:rotateY(90deg); opacity:0 }
-}
-@keyframes mel-bee-revela{
-  0%,49.9%{ opacity:0; transform:rotateY(-90deg) }
-  50%  { opacity:1; transform:rotateY(-90deg) }
-  74%  { transform:rotateY(0) }
-  100% { opacity:1; transform:rotateY(0) }
-}
+/* ---- LP Bee: seleção de modelos ----
+   A ABERTURA ANTIGA SAIU EM 13/08/2026, com o hero novo da /bee.
+   Eram .mel-bee-l1, .mel-bee-palco, .mel-bee-cam, .mel-bee-branca,
+   .mel-bee-amarela e os keyframes mel-bee-gira / mel-bee-revela: a "opção 1"
+   do briefing, em que a Bee branca balançava, girava em rotateY e entregava o
+   quadro para a amarela, em loop infinito, sobre carvão.
+   O pedido novo proíbe por escrito loop infinito e falso giro 3D, e pede uma
+   página clara — nada daquilo sobreviveria a retoque, então foi removido em
+   vez de escondido. O que veio no lugar está em tools/bee-interacoes.js.
+   .mel-cores-2 e .mel-cor-bee FICAM: são da seção de modelos, que continua. */
 .mel-cores-2{ grid-template-columns:repeat(2,1fr); max-width:820px; margin-inline:auto }
 .mel-cor-bee{ text-align:center }
 .mel-cor-bee .mel-cor-nome{ margin:0 0 .8rem; font-size:1.3rem }
@@ -774,16 +833,10 @@ body.mel-interna .mel-seguranca{ display:none !important }
 .mel-dest-specs{ margin-top:clamp(20px,3vw,32px) }
 
 @media (max-width:809.98px){
-  .mel-bee-palco{ max-width:280px }
   .mel-dest{ grid-template-columns:1fr }
   .mel-dest-inv .mel-dest-img{ order:0 }
   .mel-dest-img img{ max-height:none }   /* uma coluna: sem vazio, retrato cheio */
   .mel-cores-2{ grid-template-columns:1fr }
-}
-@media (prefers-reduced-motion:reduce){
-  /* Sem giro: entrega direto a Bee amarela, que é o final da animação. */
-  .mel-bee-branca{ animation:none; opacity:0 }
-  .mel-bee-amarela{ animation:none; opacity:1; transform:none }
 }
 
 /* ---- CTA final ---- */
@@ -828,6 +881,10 @@ body.mel-interna .mel-seguranca{ display:none !important }
   border:1px solid rgba(251,247,238,.22); background:#2B251C; color:#FBF7EE;
   font-family:"Area",sans-serif; font-size:.9rem;
 }
+/* O placeholder tem de ser declarado. Sem regra, o campo cai no cinza padrao
+   do navegador (#757575 medido no Edge), que da 3,29:1 sobre a superficie e
+   reprova AA. O secundario da marca da 4,83:1 no mesmo fundo. */
+.mel-aviso-linha input::placeholder{ color:#9A9083; opacity:1 }
 .mel-aviso-linha input:focus-visible{ outline:2px solid #F2A900; outline-offset:2px }
 .mel-aviso-msg{
   margin:.7rem 0 0; min-height:1.2em; color:#F2A900;
@@ -940,8 +997,10 @@ body.mel-interna .mel-seguranca{ display:none !important }
   display:flex; align-items:center;
   /* Cor de base sob a foto, para o caso de ela ainda nao ter pintado. Nao ha
      mais gradiente de saida aqui: quem dissolve a emenda com a proxima secao e
-     a terceira camada do scrim, que fecha em #0d0d0d — o fundo da pagina,
-     cravado em .framer-vrbx7h pelo template. */
+     a terceira camada do scrim, que fecha no CARVAO — o fundo da pagina.
+     (Ate 13/08/2026 dizia #0d0d0d, o fundo do template. O .framer-vrbx7h le
+     esse fundo do --token-3e6ec15f, que a identidade traz para o carvao; a
+     emenda estava fechando numa cor que a pagina nao usa.) */
   background:#221E17;
   /* A largura cheia e escrita por JS (sangrar(), em interacoes.js), medida em
      document.documentElement.clientWidth — que NAO inclui a scrollbar. 100vw
@@ -986,8 +1045,12 @@ body.mel-interna .mel-seguranca{ display:none !important }
                limpo na direita, sem parar em carvao chapado como antes: nada
                aqui pode virar retangulo de novo.
      180deg  — assenta a navbar sobre a foto no topo.
-     0deg    — dissolve a base no #0d0d0d da pagina, para o hero terminar sem
-               linha reta e emendar na secao de produto. */
+     0deg    — dissolve a base no CARVAO da pagina, para o hero terminar sem
+               linha reta e emendar na secao de produto.
+               Ate 13/08/2026 fechava em #0d0d0d/rgb(13,13,13), o preto do
+               template: a base do hero morria numa cor mais fria e mais escura
+               que a secao logo abaixo, e a emenda que este gradiente existe
+               para esconder virava justamente uma faixa visivel. */
 .mel-ph-scrim{
   position:absolute; z-index:2; inset:0; pointer-events:none;
   background:
@@ -995,7 +1058,7 @@ body.mel-interna .mel-seguranca{ display:none !important }
       rgba(34,30,23,.94) 0%, rgba(34,30,23,.86) 28%,
       rgba(34,30,23,.62) 46%, rgba(34,30,23,.26) 68%, rgba(34,30,23,.08) 100%),
     linear-gradient(180deg, rgba(34,30,23,.70) 0%, rgba(34,30,23,.16) 18%, rgba(34,30,23,0) 38%),
-    linear-gradient(0deg, #0d0d0d 0%, rgba(13,13,13,.62) 7%, rgba(13,13,13,0) 20%);
+    linear-gradient(0deg, #221E17 0%, rgba(34,30,23,.62) 7%, rgba(34,30,23,0) 20%);
 }
 
 /* --- camada 3: o texto --- */
@@ -1087,13 +1150,13 @@ body.mel-interna .mel-seguranca{ display:none !important }
 
   /* Em retrato o texto ocupa a largura toda, entao o gradiente de leitura tem
      de vir de CIMA, nao da esquerda: horizontal ali escureceria a coluna
-     inteira e apagaria a foto. A base continua fechando em #0d0d0d. */
+     inteira e apagaria a foto. A base continua fechando no carvao. */
   .mel-ph-scrim{
     background:
       linear-gradient(180deg,
         rgba(34,30,23,.94) 0%, rgba(34,30,23,.88) 34%,
         rgba(34,30,23,.60) 56%, rgba(34,30,23,.18) 78%, rgba(34,30,23,.05) 100%),
-      linear-gradient(0deg, #0d0d0d 0%, rgba(13,13,13,.60) 8%, rgba(13,13,13,0) 24%);
+      linear-gradient(0deg, #221E17 0%, rgba(34,30,23,.60) 8%, rgba(34,30,23,0) 24%);
   }
 }
 
@@ -1125,7 +1188,8 @@ body.mel-interna .mel-seguranca{ display:none !important }
 .mel-pr-palco{
   position:relative; width:100%; aspect-ratio:1;
   border-radius:12px; overflow:hidden; background:#2B251C;
-  box-shadow:0 24px 60px rgba(0,0,0,.42), 0 0 0 1px rgba(251,247,238,.07);
+  /* carvao escurecido no lugar do preto puro — ver nota em tools/paginas.js */
+  box-shadow:0 24px 60px rgba(14,12,9,.42), 0 0 0 1px rgba(251,247,238,.07);
 }
 /* As duas camadas do crossfade. Em repouso so uma tem opacidade 1; o estado
    e mandado pela classe, escrita por um unico ponto do JS. */
@@ -1146,7 +1210,9 @@ body.mel-interna .mel-seguranca{ display:none !important }
   font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
   font-size:clamp(1.8rem,3.4vw,2.6rem); line-height:1.1;
 }
-.mel-pr-sub{ margin:.35rem 0 0; color:#C9BFB0; font-family:"Area",sans-serif; font-size:1rem }
+/* #CFC6B8, nao #C9BFB0: os dois eram o mesmo apoio claro escrito duas vezes,
+   com dois valores diferentes. Um so — auditoria de paleta, 13/08/2026. */
+.mel-pr-sub{ margin:.35rem 0 0; color:#CFC6B8; font-family:"Area",sans-serif; font-size:1rem }
 .mel-pr-preco{ margin:clamp(18px,2.4vw,28px) 0 0; font-family:"Area",sans-serif; color:#9A9083 }
 .mel-pr-preco strong{
   display:block; color:#FBF7EE; font-size:clamp(1.5rem,2.6vw,1.95rem);
@@ -1325,7 +1391,10 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
   padding:clamp(20px,4%,40px); gap:.35rem;
 }
 .mel-story-vaga-num{
-  margin:0; color:rgba(242,169,0,.5);
+  /* .60 e nao .50: em .50 o numero dava 2,97:1 sobre a superficie do
+     placeholder, abaixo dos 3:1 exigidos para texto grande. Em .60 sobe para
+     3,64:1 e continua sendo um numero de fundo, nao um titulo. */
+  margin:0; color:rgba(242,169,0,.6);
   font-family:"Iowan Old Style",Georgia,serif; font-size:clamp(2.4rem,5vw,3.6rem);
   line-height:1; font-variant-numeric:tabular-nums;
 }
@@ -1400,10 +1469,14 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
     /* 0,66 e nao 0,34. O apagado era bonito e REPROVAVA em contraste: medido no
        navegador, o numero em mel dava 2,06:1 contra os 4,5 exigidos e o titulo
        dava 2,94:1 contra 3. Capitulo inativo continua na tela, entao vale
-       WCAG igual. Em 0,66 o numero sobe para 4,66:1 e o titulo para 7,2:1, e a
-       diferenca para o capitulo ativo continua legivel — que era o pedido:
-       mudanca discreta, nao apagao. */
-    opacity:.66; transition:opacity 460ms cubic-bezier(.22,.61,.36,1);
+       WCAG igual.
+
+       Era 0,66, calibrado quando o fundo da pagina ainda era o #0d0d0d do
+       template. Com a paleta valendo de fato, o fundo virou carvao #221E17 —
+       mais claro — e o mesmo 0,66 caiu para 4,36:1. Em 0,70 o numero volta a
+       4,72:1 sobre carvao. A diferenca para o capitulo ativo continua legivel,
+       que era o pedido: mudanca discreta, nao apagao. */
+    opacity:.70; transition:opacity 460ms cubic-bezier(.22,.61,.36,1);
   }
   .mel-story-ligado .mel-story-passo[data-mel-story-ativa]{ opacity:1 }
 
@@ -1426,11 +1499,17 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
   .mel-story-ligado[data-lado-ativo="dir"] .mel-story-conta{ grid-column:2 }
   .mel-story-ligado .mel-story-conta-in{
     position:absolute; left:0; top:calc(100% + 16px);
-    color:#7C7365; font-family:"Area",sans-serif; font-size:.78rem;
+    /* #7C7365 ate 13/08/2026: 3,54:1 sobre o carvao, reprova AA para 12,5px.
+       O secundario oficial da 5,28:1 e continua recuado ao lado do numero
+       ativo, que e mel. */
+    color:#9A9083; font-family:"Area",sans-serif; font-size:.78rem;
     letter-spacing:.16em; font-variant-numeric:tabular-nums; white-space:nowrap;
   }
   .mel-story-conta [data-mel-story-atual]{ color:#F2A900 }
-  .mel-story-conta-de{ margin:0 .45rem; opacity:.6 }
+  /* Sem opacity. O .6 sobre o secundario dava 2,77:1 — o separador continua
+     sendo texto e vale WCAG. A hierarquia ja e feita pela cor: o numero atual
+     e mel, o resto e secundario. Apagar mais nao acrescentava leitura. */
+  .mel-story-conta-de{ margin:0 .45rem }
 }
 
 /* Em janela baixa o palco de 3:2 mais a navbar não cabem: encolhe o palco em
@@ -1461,3 +1540,331 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
   .mel-pr-foto{ transition:none }
   .mel-pr-swatch{ transition:none }
 }
+
+/* ================== /bee — hero premium e claro ==================
+   Conceito: "uma câmera para levar junto". A Bee não é a Polen em amarelo —
+   é acessório antes de ser equipamento, e a página abre clara por isso.
+
+   A MEDIÇÃO QUE DEFINIU A COMPOSIÇÃO (13/08/2026, amostrando os PNG):
+   o corpo da Bee amarela é #CDBA29 e o da branca é #B5B5B4. Contra o mel
+   #F2A900 os dois dão 1,02:1 — luminância praticamente igual. Ou seja:
+   nenhuma das duas pode simplesmente deitar sobre o plano amarelo, porque
+   sumiria nele. Contra o papel dão 1,84 e 1,92:1, melhor mas ainda pouco.
+
+   Daí as três decisões de arte, todas consequência do número:
+     1  cada Bee tem SOMBRA DE CONTATO própria (drop-shadow em marrom quente).
+        É o que separa objeto de fundo quando a luminância não separa. Não é
+        glow: tem deslocamento vertical e não circunda a peça.
+     2  a amarela — o foco — fica majoritariamente sobre o PAPEL, onde a
+        correntinha dela também desenha a linha de movimento do conjunto.
+     3  a branca ATRAVESSA a curva do plano de mel. Metade sobre mel, metade
+        sobre papel: a própria borda vira leitura, e o encontro das duas cores
+        de fundo passa a ser assunto da composição em vez de acidente.
+
+   O QUE ESTE HERO NÃO FAZ, de propósito, para não repetir a Polen:
+     - não é foto sangrando canto a canto com scrim por cima;
+     - não é divisão 50/50;
+     - não é escuro;
+     - não tem paralaxe. O pedido é "depois da entrada, tudo permanece
+       estável", então ao JS sobrou largura cheia e rolagem do CTA. Mais nada.
+
+   OS PACKSHOTS TÊM RECORTE DE VERDADE — e a Polen não tinha.
+   Medido: PNG RGBA de 8 bits, alfa 0 fora da peça, ~3% de borda parcial. Foi
+   isso que liberou a composição gráfica que a /polen não pôde ter (lá os 7
+   packshots são RGB sem alfa, com o fundo da variante embutido).
+   Ressalva honesta: a borda parcial carrega o verde do fundo de estúdio
+   original (rgb ~17,65,32), então sobra um fio escuro de 1 a 2 px em volta do
+   recorte. Sobre mel é imperceptível; sobre papel lê como contorno. Não foi
+   "corrigido" retocando o arquivo oficial. */
+.mel-bh{
+  position:relative; isolation:isolate; overflow:hidden;
+  background:#FBF7EE;
+  /* 80svh, não os 92 da Polen. Duas razões, as duas medidas em 1440x900:
+     a próxima seção aqui É a escolha da cor, destino do CTA, e com 80svh ela
+     começa em 799 — sobram 101px de dobra, o bastante para o eyebrow E parte
+     do título dela aparecerem, não só uma faixa; e o hero fica em 720px, o
+     que fecha o vazio de papel que sobrava embaixo da coluna de texto (o
+     mesmo defeito que a /polen levou três passadas para resolver). */
+  min-height:clamp(520px,80svh,820px);
+  display:flex; align-items:center;
+  /* A largura cheia é escrita por JS (sangrar(), em interacoes.js), medida em
+     document.documentElement.clientWidth — que NÃO inclui a barra de rolagem.
+     100vw incluiria e criaria transbordo horizontal. Sem JS o hero fica na
+     largura do container: mais estreito, nunca quebrado. */
+}
+
+/* --- camada 0: o grande plano de mel ---
+   Sangra no topo e na direita; o canto inferior esquerdo é um raio grande, e
+   é ele que faz a divisão entre papel e mel ser curva em vez de reta. A base
+   fica ACIMA do fim do hero de propósito: assim o hero termina em papel na
+   largura inteira e emenda sem degrau na seção de modelos, que também é
+   clara. */
+.mel-bh-forma{
+  position:absolute; z-index:0; top:0; right:0;
+  bottom:clamp(34px,6vh,88px);
+  width:min(56%,780px);
+  border-radius:0 0 0 clamp(150px,21vw,320px);
+  background-color:#F2A900;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='126' height='72.75' viewBox='0 0 126 72.75'%3E%3Cpath d='M42 0L21 36.37L-21 36.37L-42 0L-21 -36.37L21 -36.37ZM168 0L147 36.37L105 36.37L84 0L105 -36.37L147 -36.37ZM42 72.75L21 109.12L-21 109.12L-42 72.75L-21 36.38L21 36.38ZM168 72.75L147 109.12L105 109.12L84 72.75L105 36.38L147 36.38ZM105 36.37L84 72.74L42 72.74L21 36.37L42 0L84 0Z' fill='none' stroke='%23DE9E04' stroke-width='2'/%3E%3C/svg%3E");
+  background-size:126px 72.75px;
+  animation:melBhForma 900ms cubic-bezier(.22,.61,.36,1) both;
+}
+@keyframes melBhForma{
+  /* Só translateX e opacidade. Escalar a forma distorceria o raio de 320px do
+     canto, que é justamente o que dá a curva. */
+  from{ opacity:0; transform:translateX(72px) }
+  to  { opacity:1; transform:none }
+}
+
+/* --- camada 2: os dois packshots ---
+   O palco ocupa a faixa direita do hero e serve só de sistema de coordenadas:
+   não pinta nada e não recebe clique. */
+.mel-bh-palco{
+  position:absolute; z-index:2; inset:0 0 0 38%;
+  pointer-events:none;
+}
+.mel-bh-cam{
+  position:absolute; display:block; height:auto;
+  /* contain: o packshot é recorte, nunca pode ser cortado nem deformado */
+  object-fit:contain;
+  /* A sombra de contato. Dois passos: um longo, que assenta a peça no plano,
+     e um curto, que dá a aresta. Marrom quente derivado do carvão — preto
+     puro joga halo frio numa página quente (auditoria de paleta). */
+  filter:drop-shadow(0 20px 26px rgba(74,52,10,.26)) drop-shadow(0 3px 5px rgba(74,52,10,.16));
+}
+/* A branca ATRAVESSA a curva: parte sobre mel, parte sobre papel. */
+.mel-bh-branca{
+  left:8%; top:6%; width:34%;
+  transform:rotate(-8deg);
+  animation:melBhBranca 780ms cubic-bezier(.22,.61,.36,1) 200ms both;
+}
+/* A amarela é o foco: maior, à frente, e majoritariamente sobre o papel. A
+   correntinha dela sai pela esquerda e é a linha de movimento da composição —
+   asset oficial, não enfeite desenhado. */
+.mel-bh-amarela{
+  left:3%; bottom:7%; width:80%;
+  transform:rotate(-2deg);
+  animation:melBhAmarela 860ms cubic-bezier(.22,.61,.36,1) 320ms both;
+}
+@keyframes melBhBranca{
+  from{ opacity:0; transform:translate(-22px,16px) rotate(-15deg) }
+  to  { opacity:1; transform:rotate(-8deg) }
+}
+@keyframes melBhAmarela{
+  from{ opacity:0; transform:translate(34px,24px) rotate(2.5deg) scale(.965) }
+  to  { opacity:1; transform:rotate(-2deg) }
+}
+
+/* As duas indicações de cor, junto do produto.
+   NÃO é seletor: o seletor funcional são os dois cards de "Escolha sua Bee",
+   logo abaixo. Aqui é legenda, e por isso o nome vem escrito — a informação
+   não pode viajar só na cor da bolinha. */
+.mel-bh-cores{
+  position:absolute; z-index:3; right:6%; bottom:2%;
+  margin:0; display:flex; align-items:center; gap:.5rem;
+  color:#221E17; font-family:"Area",sans-serif;
+  font-size:.74rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+  animation:melBhCopy 620ms cubic-bezier(.22,.61,.36,1) 520ms both;
+}
+.mel-bh-cor{
+  width:11px; height:11px; border-radius:50%; display:inline-block;
+  box-shadow:inset 0 0 0 1px rgba(34,30,23,.12);
+}
+.mel-bh-cor-amarela{ background:#F2A900 }
+.mel-bh-cor-branca { background:#FBF7EE }
+.mel-bh-cores i{ font-style:normal; opacity:.42; margin:0 .1rem }
+
+/* --- camada 3: o texto --- */
+.mel-bh-in{
+  position:relative; z-index:3;
+  width:100%; max-width:1240px; margin:0 auto;
+  padding:clamp(48px,6vw,84px) 24px;
+}
+.mel-bh-copy{ max-width:min(46%,33rem) }
+.mel-bh-eyebrow{
+  margin:0 0 1rem; color:#221E17;
+  font-family:"Area",sans-serif; font-size:.74rem; font-weight:700;
+  letter-spacing:.28em; text-transform:uppercase;
+}
+.mel-bh-tit{
+  margin:0; color:#221E17;
+  font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
+  /* 3rem, e não os 3,4rem da /polen. Medido: em 54,4px "Pequena o bastante"
+     ocupa ~520px; em 48px, ~460px. A quebra pedida é em DUAS linhas
+     ("Pequena o bastante / para ir junto."), e com a coluna estreita a
+     manchete caía em três, com "junto." órfão sozinho na última.
+     A correção veio dos dois lados: a fonte desceu para 48px E a coluna subiu
+     para 33rem — só baixar a fonte deixaria a manchete pequena demais para um
+     hero, e só alargar a coluna empurraria o texto para debaixo da Bee
+     branca. Foi por isso que a branca também andou para a direita. */
+  font-size:clamp(2rem,3.6vw,3rem); line-height:1.06; letter-spacing:-.015em;
+  /* 20ch é o teto que garante a quebra: cabe "Pequena o bastante" e não cabe
+     "Pequena o bastante para". text-wrap:balance fica FORA de propósito — na
+     /polen ele reequilibrava as linhas e devolvia a quebra em três. */
+  max-width:20ch;
+}
+.mel-bh-txt{
+  margin:clamp(18px,2.4vw,26px) 0 0; max-width:42ch;
+  color:#4A4236; font-family:"Area",sans-serif;
+  font-size:clamp(1rem,1.15vw,1.08rem); line-height:1.66;
+}
+/* CTA em carvão, não em mel: numa página cuja assinatura já é um grande
+   plano amarelo, o botão de mel se dissolveria no assunto. Carvão sobre
+   papel dá 15,51:1 e é o elemento mais escuro da dobra, que é onde o olho
+   precisa parar. O mel continua sendo a cor da marca aqui — ele é o fundo. */
+.mel-bh-cta{
+  margin-top:clamp(24px,3vw,34px); min-height:44px; line-height:1.6;
+  background:#221E17; color:#FBF7EE;
+  letter-spacing:.06em; text-transform:uppercase; font-size:.86rem;
+}
+.mel-bh-cta:hover{ background:#332C22; color:#FBF7EE }
+.mel-bh-apoio{
+  margin:1.1rem 0 0; color:#6B6254;
+  font-family:"Area",sans-serif; font-size:.82rem; letter-spacing:.06em;
+}
+
+/* Entrada do texto: keyframes de CSS com "both", sem depender de JS. Se o
+   script falhar, o conteúdo aparece do mesmo jeito — é a lição do "hero em
+   branco" registrada no progresso.md. Cada peça tem classe e atraso próprios;
+   nada de nth-child. Ordem total da cena: forma 0-900, branca 200-980,
+   amarela 320-1180, texto 80-1060. Fecha em 1.180 ms. */
+@keyframes melBhCopy{ from{ opacity:0; transform:translateY(16px) } to{ opacity:1; transform:none } }
+.mel-bh-eyebrow,
+.mel-bh-tit,
+.mel-bh-txt,
+.mel-bh-cta,
+.mel-bh-apoio{ animation:melBhCopy 620ms cubic-bezier(.22,.61,.36,1) both }
+.mel-bh-eyebrow{ animation-delay:80ms }
+.mel-bh-tit    { animation-delay:170ms }
+.mel-bh-txt    { animation-delay:270ms }
+.mel-bh-cta    { animation-delay:360ms }
+.mel-bh-apoio  { animation-delay:440ms }
+
+/* --- tablet: menos sobreposição, as duas Bees ainda reconhecíveis --- */
+@media (max-width:1024px){
+  .mel-bh-copy{ max-width:min(52%,24rem) }
+  .mel-bh-tit{ font-size:clamp(1.9rem,4.4vw,2.7rem) }
+  .mel-bh-palco{ inset:0 0 0 30% }
+  .mel-bh-forma{ width:min(62%,560px); border-radius:0 0 0 clamp(120px,20vw,220px) }
+  .mel-bh-branca{ left:2%; top:9%; width:38% }
+  .mel-bh-amarela{ left:4%; bottom:9%; width:88% }
+}
+
+/* --- retrato: uma coluna, texto primeiro ---
+   Texto antes do produto porque a manchete é o que explica a página, e no
+   celular a primeira tela é curta. Duas imagens, as mesmas duas — nenhuma
+   camada decorativa a mais. O plano de mel vira uma faixa embaixo do texto,
+   com o mesmo canto arredondado, e as Bees se assentam nela sem corte. */
+@media (max-width:809.98px){
+  .mel-bh{
+    display:block; min-height:0;
+    /* A navbar tem 81px e fica POR CIMA do topo da página. Com padding menor
+       que isso o eyebrow entra debaixo dela — foi o defeito medido na /polen
+       em 390. */
+    padding:104px 0 0;
+  }
+  .mel-bh-in{ padding:0 20px clamp(22px,6vw,32px) }
+  .mel-bh-copy{ max-width:none }
+  .mel-bh-tit{ max-width:14ch; font-size:clamp(1.95rem,8.4vw,2.5rem) }
+  .mel-bh-txt{ max-width:46ch }
+
+  /* O palco deixa de ser sobreposição e passa a ser bloco no fluxo. */
+  .mel-bh-palco{
+    position:relative; inset:auto; width:100%;
+    height:clamp(230px,62vw,320px); margin-top:clamp(18px,4vw,26px);
+  }
+  .mel-bh-forma{
+    top:auto; bottom:0; right:0; height:78%;
+    width:min(82%,420px); border-radius:clamp(90px,26vw,150px) 0 0 0;
+  }
+  .mel-bh-branca{ left:2%; top:2%; width:44% }
+  .mel-bh-amarela{ left:6%; bottom:6%; width:86% }
+  .mel-bh-cores{ right:auto; left:20px; bottom:-6px }
+}
+
+/* Emenda com a seção de modelos.
+   As duas são claras, então não há degrau de cor nenhum — o que separa é
+   espaço. E o padding cheio de .mel-sec (até 110px) NÃO serve aqui: com ele o
+   eyebrow de "Escolha sua Bee" cairia abaixo da dobra em 1440x900 e o que
+   espiaria seria uma faixa vazia, que é pior do que não espiar. Mesmo defeito
+   medido na /polen em 13/08. */
+.mel-bh + .mel-sec{ padding-top:clamp(30px,3.2vw,46px) }
+
+@media (prefers-reduced-motion:reduce){
+  /* Estado final direto: nada escondido, nada escalonado, layout igual.
+     As duas rotações de repouso FICAM — elas são composição, não movimento. */
+  .mel-bh-forma,
+  .mel-bh-cores,
+  .mel-bh-eyebrow, .mel-bh-tit, .mel-bh-txt, .mel-bh-cta, .mel-bh-apoio{
+    animation:none;
+  }
+  .mel-bh-branca { animation:none; transform:rotate(-8deg) }
+  .mel-bh-amarela{ animation:none; transform:rotate(-2deg) }
+}
+
+/* ============ /bee — a página clara continua na escolha da cor ============
+   O pedido é passagem contínua: o hero termina em papel, então a seção
+   seguinte não pode abrir em carvão. Só a faixa de MODELOS muda de pele; de
+   "Destaques" em diante a página volta ao editorial escuro do site, e essa
+   volta é uma divisão declarada, não um acidente.
+
+   Tudo aqui é escopado em body.mel-pagina-bee: a /polen, a home e as demais
+   internas não enxergam uma linha disto. */
+body.mel-pagina-bee #modelos{
+  position:relative;
+  background:#FBF7EE;
+  padding-bottom:clamp(52px,6vw,88px);
+}
+/* A COSTURA DE 10 px — medida, não suposta.
+   O stack do template (header.framer-vrbx7h) é flex column com gap:10px e
+   fundo carvão. Esse vão existe entre TODAS as seções do site e nunca se viu
+   porque os dois lados sempre foram carvão. Entre o hero de papel e esta
+   seção de papel ele virou uma linha escura atravessando a página, exatamente
+   a "mudança brusca para preto" que o pedido proíbe.
+   O vão é pintado, não fechado: nada de margem negativa: puxar a seção para
+   cima mudaria a geometria de toda a página por causa de um problema de cor. */
+body.mel-pagina-bee #modelos::before{
+  content:""; position:absolute; left:0; right:0; top:-10px; height:10px;
+  background:#FBF7EE; pointer-events:none;
+}
+body.mel-pagina-bee #modelos .mel-eyebrow{ color:#8A6A12 }   /* 4,73:1 no papel */
+body.mel-pagina-bee #modelos .mel-tit{ color:#221E17 }
+body.mel-pagina-bee #modelos .mel-nota{ color:#6B6254 }
+body.mel-pagina-bee #modelos .mel-cor{
+  background:#F3EDE0;
+  box-shadow:inset 0 0 0 1px rgba(34,30,23,.12);
+}
+body.mel-pagina-bee #modelos .mel-cor-img{ background:#FBF7EE }
+body.mel-pagina-bee #modelos .mel-cor-nome{ color:#221E17 }
+body.mel-pagina-bee #modelos .mel-preco-linha{ color:#6B6254 }
+body.mel-pagina-bee #modelos .mel-preco-linha strong{ color:#221E17 }
+/* O botão de mel volta a ser o certo aqui: o fundo é papel, não amarelo, e
+   este É o passo de compra. Carvão sobre mel dá 8,25:1. */
+body.mel-pagina-bee #modelos .mel-bt-mel{ background:#F2A900; color:#221E17 }
+
+/* Foco de teclado nas zonas claras.
+   A regra global desenha o anel em mel, calibrado contra o carvão (9,67:1 na
+   auditoria). Sobre papel o mel dá 1,88:1 e o anel praticamente some. Nas
+   duas zonas claras da Bee ele passa a carvão. */
+body.mel-pagina-bee .mel-bh a:focus-visible,
+body.mel-pagina-bee .mel-bh button:focus-visible,
+body.mel-pagina-bee #modelos a:focus-visible,
+body.mel-pagina-bee #modelos button:focus-visible{
+  outline:2px solid #221E17; outline-offset:3px;
+}
+
+/* A barra da Bee acompanha a pele clara.
+   Ela NÃO foi removida: na /polen a barra equivalente saiu em 13/08 por
+   duplicar a navbar e por o "Comprar" dela competir com o CTA do hero — os
+   dois problemas existem aqui igual, mas remover exige pedido, e o pedido
+   não veio. Fica registrado em progresso.md para decisão.
+   O que não podia ficar era uma faixa carvão translúcida colada em cima de
+   um hero de papel: aí o defeito seria só meu. */
+body.mel-pagina-bee .mel-barra{
+  background:rgba(251,247,238,.86);
+  border-bottom:1px solid rgba(34,30,23,.12);
+}
+body.mel-pagina-bee .mel-barra-nome{ color:#221E17 }
+body.mel-pagina-bee .mel-barra-anc a{ color:#6B6254 }
+body.mel-pagina-bee .mel-barra-anc a:hover{ color:#221E17 }
+body.mel-pagina-bee .mel-barra-preco{ color:#6B6254 }

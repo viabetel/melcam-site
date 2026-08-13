@@ -4083,3 +4083,750 @@ descrições usados são os mesmos de `paginas.aplicar()` — divergir ali virar
 SEO diferente do build oficial.
 
 **Nenhum commit.**
+
+---
+
+## 🎨 AUDITORIA DE PALETA — 13/08/2026
+
+Relatório completo em **`AUDITORIA_PALETA.md`**. Aqui fica o resumo e o que o
+próximo precisa saber.
+
+### Escopo
+
+Todo o site, contra a paleta aprovada: código-fonte, arquivos gerados, estados
+interativos, responsividade, acessibilidade, SVG e ícones, e as 9 rotas de
+`serve.js` (`/`, `/polen`, `/bee`, `/acessorios`, `/sobre`, `/sacola`, `/404`,
+`/privacidade`, `/termos`) em 1440×900, 768×1024 e 390×844 — **e nos dois
+esquemas de cor do sistema**, que era justamente onde estava o pior defeito.
+
+### 🔴 O achado que explica todos os outros
+
+**A paleta MELCAM nunca chegou a pintar nada abaixo de `<body>`.**
+
+`tools/identidade.js` sobrescrevia os nove tokens em `:root`. O template
+declara os mesmos nove em **`body`** — duas vezes, uma por esquema de cor:
+
+```css
+body{ --token-3e6ec15f:#f5f5f5; --token-e5fd1d2d:#333; ... }
+@media (prefers-color-scheme:dark){ body{ --token-3e6ec15f:#0d0d0d; ... } }
+```
+
+Custom property herda, e **herança perde para qualquer declaração direta no
+próprio elemento** — não é especificidade nem ordem. Então o valor MELCAM valia
+para o `<html>` e para mais nada; tudo dentro de `<body>` lia o legado de volta.
+
+Isso corrige o que este arquivo afirmava desde a FASE 6: a tabela dos "9 tokens
+sobrescritos" descrevia a intenção, não o que o navegador fazia. Medido:
+
+| token | dizia | pintava (escuro) | pintava (claro) |
+|---|---|---|---|
+| fundo | `#221E17` | `#0d0d0d` | `#f5f5f5` |
+| texto | `#FBF7EE` | `#dedede` | `#333` |
+| secundário | `#9A9083` | `#696969` | `#555` |
+| superfície | `#2B251C` | `#1c1c1c` | `#eaeaea` |
+| borda | `rgba(251,247,238,.07)` | `#ffffff0d` | `#0000000d` |
+
+Com `prefers-color-scheme: light` no sistema, o site abria **inteiro na pele
+clara do template**. Capturado em `tools/shots-paleta/antes-home-desktop-CLARO.png`.
+
+A correção é `:root` → `:root,body`. Empata em especificidade (0,0,1) com o
+template e vence por ordem de fonte, porque `identidade.css` entra depois do
+`<style>` do export em todas as páginas. O `@media` do template perde pelo mesmo
+motivo — `@media` não soma especificidade.
+
+### Principais legados
+
+Além do acima, que resolveu `#0D0D0D`, `#DEDEDE`, `#696969`, `#1C1C1C`,
+`#131314`, `#FFFFFF` e `#FFFFFF@.05` de uma vez:
+
+- **Título "BEE" da grade da home invisível.** A regra do selo da Bee em
+  `identidade.js` tinha um braço `.framer-text:first-child:not(h1):not(h2)`,
+  escrito para um eyebrow que aquele card não tem. O primeiro `.framer-text`
+  dele é o `<h3>` do título — e `h3` não estava nas exceções. Saía em carvão
+  sobre card escuro: **1,17:1**. O braço saiu; a pílula "Novidade" nunca
+  dependeu dele (ela pinta a própria cor no `::before`).
+- **Campo de newsletter sem foco visível e com borda de foco azul.** O template
+  traz `.framer-form-input:focus-visible{outline:none}` e
+  `--framer-input-focused-border-color:#09f`. Nossa regra de foco só alcançava
+  `a`, `button` e `[tabindex]`.
+- **Base do hero da /polen fechando em `#0d0d0d`.** O comentário no código
+  afirmava que esse era "o fundo da página, cravado em `.framer-vrbx7h` pelo
+  template" — e não era: aquele nó lê o fundo do token. O gradiente que existia
+  para esconder a emenda estava criando uma.
+- **Placeholder do form da /acessorios** no cinza padrão do navegador `#757575`.
+- **Seis pastilhas de método de pagamento em branco puro**, escritas inline pelo
+  export.
+
+### Correções
+
+Todas na fonte **e** no build. `tools/aplicar.js` não foi executado.
+
+| fonte | build |
+|---|---|
+| `tools/identidade.js` | `melcam/identidade.css` |
+| `tools/polen-interacoes.js` | `melcam/identidade.css` |
+| `tools/demais.js` | `melcam/identidade.css` |
+| `tools/paginas.js` | `melcam/identidade.css` |
+| `tools/hero-carrossel.js` | `melcam/interacoes.js` |
+
+Além do token: seletor da Bee corrigido; campo de newsletter em papel com anel
+de foco em mel; pastilhas de pagamento em papel; scrim da /polen em carvão nos
+dois layouts; `#C9BFB0` unificado em `#CFC6B8`; `#7C7365` → `#9A9083`;
+`opacity:.6` do separador removida; capítulo inativo `.66` → `.70`; número do
+placeholder editorial `.5` → `.6`; `::placeholder` declarado na /acessorios;
+sombras autorais de preto puro para `rgba(14,12,9,α)`.
+
+Entraram também os **tokens de derivação** (`--mel-superficie`,
+`--mel-secundario`, `--mel-papel-suave`, `--mel-borda`, `--mel-overlay`,
+`--mel-mel-claro`), gerados da mesma constante que alimenta o `MAPA_TOKEN` — um
+vocabulário, não dois.
+
+### Contraste
+
+**De 67 nós reprovando para 0**, nas 9 rotas × 3 breakpoints, medido com o
+fundo efetivo (subindo a árvore e compondo alfas), não estimado.
+
+Uma sutileza que vale guardar: **corrigir a cascata criou uma falha nova**. O
+`opacity:.66` do capítulo inativo do scrollytelling fora calibrado contra
+`#0d0d0d` e dava 4,70:1. Com o fundo virando carvão — mais claro — o mesmo
+`.66` caiu para 4,36:1. Por isso tudo foi remedido depois da correção, em vez de
+confiar nos números das sessões anteriores. Está em `.70`, dando 4,72:1.
+
+O foco de teclado foi medido com **Tab de verdade pelo protocolo**, não com
+`el.focus()`: `el.focus()` não liga `:focus-visible` em link e botão, e a
+primeira passagem acusou 489 focos invisíveis que não existiam. Com Tab real:
+anel de mel 2px, offset 3px, **9,67:1**.
+
+### Rotas testadas
+
+As 9. Todas com 1 `<h1>`, navbar, rodapé, 0 imagens quebradas, 0 transbordo
+horizontal e 0 erros de console — **exceto `/privacidade` e `/termos`**, que
+estão em branco (ver pendências).
+
+Altura do documento **idêntica antes e depois em todas as rotas**, que é a prova
+de que a auditoria de cor não mexeu em geometria.
+
+### QA da home
+
+`node tools/medir.js "http://localhost:3030/" pos-auditoria-paleta` —
+**4980×720 · 3593×512 · 2993×422**, `overflow:hidden`, escala 0,5 → 1,
+translateY 150 → 0, **0 erros de console**, **0 diferenças** contra
+`medidas/medida-desfile-mobile-13ago.json` nos 21 pontos. `index.html` com o
+mesmo SHA-256 (`26606fb8d572eaee`) — nenhum HTML foi tocado.
+
+Também conferidos: menu suspenso aberto (fundo carvão, item atual em mel),
+sacola vazia e cheia, seletor das 7 cores, scrollytelling nos 9 capítulos, e
+`prefers-reduced-motion: reduce` (fileira em estado final, vídeo pausado e
+visível).
+
+### Ferramentas novas
+
+| arquivo | o que faz |
+|---|---|
+| `tools/auditoria-cores.js` | inventário do código-fonte, separando literal de **fallback** de `var(--token-…)` — sem isso o relatório vira 472 falsos positivos de `#2e2e2e` |
+| `tools/qa-paleta.js` | varredura de estilo **computado** no navegador: 9 rotas × 3 breakpoints, contraste com fundo efetivo, regras de estado no CSSOM, foco, saúde da rota |
+| `tools/resumo-paleta.js` | resume o JSON: cor fora da paleta **que pinta**, contraste, foco, saúde |
+| `tools/inspecionar.js` | avalia uma expressão numa rota. `--tab N` (teclado real), `--shot`, `ESQUEMA=light\|dark`, `MOVIMENTO=reduce` |
+
+Duas armadilhas de medição que custaram tempo e valem para quem continuar:
+
+1. **`CSSRuleList` não é iterável neste motor.** `for..of` devolve lista vazia
+   *sem erro* — a varredura dizia "0 regras de estado" num site que tem 40. Use
+   índice.
+2. **Em SVG quem pinta `<text>` é `fill`, não `color`.** Ler `color` acusou
+   1,27:1 nas cotas do diagrama de dimensões da /polen, que estão em papel. Quase
+   "consertei" o que estava certo.
+
+### Pendências
+
+1. 🔴 **`/privacidade` e `/termos` renderizam em branco.** `#main` com 0 filhos,
+   0 `<h1>`, sem navbar e sem rodapé, nos três breakpoints. São páginas Framer
+   que dependem da hidratação React, desligada por decisão de arquitetura. Não é
+   defeito de cor, mas é defeito — e os textos jurídicos estão em `PENDENTES`,
+   então não dá para inventá-los. **Precisa de decisão.**
+2. **Logo da Stripe no rodapé** (`#6772E5`, 21 ocorrências em 7 rotas). O
+   `melcam.config.json` diz que o gateway está a decidir e o checkout é
+   demonstrativo. Mantido: recolorir marca de terceiro não se faz, e removê-la é
+   mudança de conteúdo.
+3. **CTA "Quero entrar na Colméia" em papel, não em mel.** Está dentro da paleta
+   e passa contraste com folga, então não é defeito — é decisão de design.
+   Deixado como estava de propósito.
+4. `drop-shadow(rgb(0,0,0) …)` nos packshots da home: mantido. São cinco
+   deslocamentos diferentes em classes hasheadas, e sobre carvão é
+   imperceptível.
+5. `.mel-menu` herda `color:#000` do user-agent. Hoje não pinta nada porque todo
+   filho declara a própria cor, mas qualquer texto solto ali sai preto.
+6. **Divergência de posição fonte↔build**: `identidade.js` emite as regras de
+   ordenação da Colméia, e o build as traz mais adiante no arquivo, postas por
+   outro gerador. Anterior a esta auditoria, sem efeito visual. As 52 regras que
+   a fonte emite existem todas no build — conferido.
+7. **`tools/edge-cdp-*`**: 17 mil arquivos de perfil do Edge que `tools/cdp.js`
+   deixa dentro de `tools/`. Afogam qualquer varredura da árvore. Valem uma
+   linha no `.gitignore` e uma limpeza.
+
+**Nenhum commit.**
+
+---
+
+## 🖼️ IMAGENS AUSENTES NO DEPLOY DA VERCEL — 13/08/2026
+
+### Sintoma
+
+No local, tudo carregava. No deploy da Vercel, a hero da `/polen` abria sem a
+fotografia, e os cards de cabeçalho das sete páginas apareciam com buracos.
+Parecia defeito de código — o CSS, o HTML e o caminho estavam idênticos nos dois
+ambientes.
+
+### Causa
+
+`.vercelignore` excluía a pasta inteira:
+
+```
+# 9,4 MB de assets preparados para subir no canvas do Framer.
+# Não são usados por nenhuma página; só pesariam o build.
+melcam/img/header-fileira/
+```
+
+**O comentário estava errado.** Três arquivos daquela pasta são referenciados
+pelas sete páginas publicadas. O arquivo existia, estava versionado, o caminho
+estava certo e a caixa batia — ele simplesmente nunca era enviado.
+
+Nada no `tools/preflight.js` pegava isso: todas as verificações olhavam o disco
+e o `localhost`, e nos dois o arquivo estava perfeito. Faltava conferir o que o
+**deploy** recebe.
+
+### Assets afetados
+
+| URL | tamanho | onde é usada | citada em |
+|---|---|---|---|
+| `/melcam/img/header-fileira/polen-lp-1.jpg` | 682.897 B | **hero da `/polen`** | 7 páginas (59 ocorrências) |
+| `/melcam/img/header-fileira/bee-lp-06.jpg` | 653.411 B | card do cabeçalho | 7 páginas (57 ocorrências) |
+| `/melcam/img/header-fileira/bee-lp-1237.jpg` | 474.721 B | card do cabeçalho | 7 páginas (57 ocorrências) |
+
+**Correção factual do enunciado do pedido:** a *fileira* da home **não** usa
+esta pasta, apesar do nome dela. As 10 fotos do desfile vêm de `card-*.jpg`,
+`bee-lifestyle-*`, `polen-gallery-*` e `lifestyle-*` — medido em
+`tools/shots/medida-pos-assets-vercel.json`. Quem usa `header-fileira/` é a hero
+da Polen e os dois cards de cabeçalho.
+
+Dos 16 arquivos da pasta, **3 são usados**. Os outros 13 (~7,5 MB) continuam sem
+referência.
+
+### Correção
+
+A regra saiu, e o comentário falso foi substituído por um que explica por que
+ela não pode voltar.
+
+A **pasta inteira** sobe, e não só os três arquivos. Exceção parcial
+(`!melcam/img/header-fileira/polen-lp-1.jpg`) quebraria de novo no dia em que um
+quarto arquivo fosse usado, e o custo de mandar os 13 restantes são 9,5 MB num
+deploy estático. Se um dia valer a pena podar, o certo é apagar os arquivos não
+usados da pasta — não recriar a regra.
+
+Deploy antes: 223 arquivos, 36,0 MB. Depois: **239 arquivos, 45,2 MB**.
+
+### Validação automática criada
+
+**`tools/verificar-assets-deploy.js`** — extrai toda URL de asset do HTML, CSS e
+JS *publicados* e, para cada uma, confere quatro coisas:
+
+1. existe no disco;
+2. **a caixa bate segmento a segmento** — a Vercel é case-sensitive e o Windows
+   não é, então um `Polen-LP-1.jpg` abriria local e daria 404 no ar. `existsSync`
+   não serve aqui: só listar o diretório e comparar o nome resolve;
+3. está versionado (`git ls-files`);
+4. **não é excluído por `.vercelignore`** — implementa o subconjunto das regras
+   do gitignore que a Vercel aplica, com negação, curinga e prefixo de
+   diretório.
+
+Ignora, de propósito: URL externa, `data:`, `blob:`, âncora e rota de página
+(sem extensão, ou `.html`, que aqui são páginas servidas por rota).
+
+Sai com código != 0 e não edita nada.
+
+O parser do `.vercelignore` foi testado contra 21 casos conhecidos (11 que devem
+subir, 10 que devem ficar de fora): **21/21**. A checagem de caixa foi testada
+com `Polen-LP-1.jpg` e `melcam/IMG/...`, os dois com `existsSync=true` no Windows
+e reprovados corretamente.
+
+**Integrado ao `tools/preflight.js`** como verificação nº 7. Provado que reprova:
+reintroduzindo a regra antiga, o pré-voo sai com código 1 e nomeia os três
+arquivos e a regra que os exclui.
+
+**`tools/qa-rede.js`** — complemento dinâmico: abre cada rota no Edge headless e
+registra **toda** requisição que falhou, não só imagem. Fonte que dá 404 não
+deixa imagem quebrada nenhuma; sem isto passaria despercebida.
+
+### Testes locais
+
+`node tools/verificar-assets-deploy.js`:
+
+| grupo | antes | depois |
+|---|---|---|
+| OK | 90 | **93** |
+| ignorado pela Vercel | **3** | 0 |
+| arquivo ausente | 0 | 0 |
+| diferença de caixa | 0 | 0 |
+| não versionado | 0 | 0 |
+| referência inválida | 0 | 0 |
+
+`node tools/qa-rede.js` nas 7 rotas: **0 requisições falhas, 0 imagens
+quebradas, 0 erros de console**, 95 fontes carregadas, vídeo presente, 1 `<h1>`
+por página. (A `/404` registra um 404 de console: é o próprio documento
+respondendo HTTP 404, por projeto do `serve.js`.)
+
+### Simulação do deploy — o teste que fecha o argumento
+
+Não bastava conferir que o arquivo existe no disco. Foi montada uma cópia com
+**exatamente** o que a Vercel receberia (`git ls-files` menos `.vercelignore`) e
+servida numa porta separada, com o mesmo `cleanUrls` do `vercel.json`.
+
+| | cópia com a regra ANTIGA | cópia com a correção |
+|---|---|---|
+| arquivos | 223 (36,0 MB) | **239 (45,2 MB)** |
+| `/melcam/img/header-fileira/polen-lp-1.jpg` | **HTTP 404** | **200 · image/jpeg · 682.897 B** |
+| home | **3 imagens quebradas**, 3 req-falhas | 0 e 0 |
+| /polen | **hero quebrada**, 1 req-falha | 0 e 0 |
+
+A cópia com a regra antiga **reproduz o sintoma relatado exatamente**. É a prova
+de que a causa era o `.vercelignore` e não o código.
+
+### Testes no deploy
+
+O deploy foi feito em duas etapas, e a segunda precisou de autorização
+explícita. Fica o registro da sequência, porque ela explica por que a produção
+carregou mais coisa do que o assunto desta seção.
+
+**1. Preview.** `npx vercel deploy --yes` →
+`https://melcam-site-5sorhrojj-viabetels-projects.vercel.app`
+(`dpl_DwT5cyJGQJfP3Byzm8JStVFu7WUf`, `target: preview`), 241 arquivos enviados.
+
+**2. Proteção da Vercel barrou o QA.** Toda URL do preview respondeu **302 para
+`vercel.com/sso-api`**, inclusive os assets. A proteção **não foi desativada** —
+desligar proteção de projeto não estava autorizado.
+
+**3. O defeito, confirmado no ar.** A produção (`melcam-site.vercel.app`) é
+pública — a proteção vale só para preview. Medido ANTES da promoção, na produção
+então vigente:
+
+| URL | resposta |
+|---|---|
+| `/` e `/polen` | 200 |
+| `/melcam/img/card-polen.jpg` | 200 · image/jpeg · 1149×1600 |
+| `/melcam/img/header-fileira/polen-lp-1.jpg` | **404, devolvendo o HTML da 404** |
+
+Ou seja: o sintoma relatado estava vivo em produção, e os demais assets
+funcionavam. Prova final de que a causa era o `.vercelignore`.
+
+**4. Promoção a produção — autorizada explicitamente.** `vercel deploy --prod`
+→ `dpl_BUAFJj4MzpzJqw2NZHB7XqjJtVYS`, `target: production`, servida em
+**`https://melcam-site.vercel.app`**.
+
+> ⚠️ **A promoção levou junto a auditoria de paleta.** A produção anterior era
+> de antes dela (`identidade.css` com 67.082 B e sem `:root,body{`, contra
+> 73.449 B locais). Isso foi dito ao cliente antes de promover e autorizado por
+> ele. Consequência: a paleta corrigida está no ar **sem ter passado pela
+> revisão do Codex**. Se a revisão pedir mudança, ela volta por um novo deploy.
+
+### URL validada — `https://melcam-site.vercel.app`
+
+| URL | status | content-type | bytes | dimensões |
+|---|---|---|---|---|
+| `/melcam/img/header-fileira/polen-lp-1.jpg` | **200** | image/jpeg | 682.897 | **1600×2400** |
+| `/melcam/img/header-fileira/bee-lp-06.jpg` | **200** | image/jpeg | 653.411 | 1600×2400 |
+| `/melcam/img/header-fileira/bee-lp-1237.jpg` | **200** | image/jpeg | 474.721 | 1600×2400 |
+| `/melcam/identidade.css` | 200 | text/css | 73.844 | — |
+| `/melcam/interacoes.js` | 200 | application/javascript | 54.523 | — |
+| `/melcam/video/hero.mp4` | 200 | video/mp4 | 5.062.856 | — |
+| `/melcam/fonts/area/51683.otf` | 200 | font/otf | 189.896 | — |
+| `/melcam/logo/symbol-preto.svg` | 200 | image/svg+xml | 5.960 | — |
+| `/` `/polen` `/bee` `/acessorios` `/sobre` `/sacola` `/404` | 200 | text/html | — | — |
+
+As dimensões não foram deduzidas do `content-type`: são lidas do marcador SOF do
+próprio JPEG recebido. É o que separa "200 com a foto" de "200 com HTML de
+login" — o teste que a produção anterior reprovava.
+
+`node tools/qa-rede.js --base https://melcam-site.vercel.app` nas 7 rotas:
+**0 requisições falhas, 0 imagens quebradas, 0 erros de console**, 95 fontes,
+vídeo presente, 1 `<h1>` por página.
+
+Conferido no navegador contra a produção: hero da `/polen` completa
+(`1440×828`, foto nativa `1600×2400`) e grade da home inteira, com os cards em
+superfície `#2B251C` e os títulos em papel — as duas correções, a de asset e a
+de paleta, no ar. Capturas em `tools/shots-paleta/producao-polen-hero.png` e
+`producao-home-grade.png`.
+
+**Divergência anotada, fora do escopo desta tarefa:** na Vercel a rota `/404`
+responde **HTTP 200**, enquanto o `serve.js` local responde 404. É o `cleanUrls`
+servindo `404.html` como rota comum. Já era assim antes desta correção. Para
+alinhar seria preciso configurar `routes`/`notFound` no `vercel.json` — não
+mexi, porque não foi pedido e mexer em roteamento de produção sem pedido é
+maior que o problema.
+
+### Regressão da home
+
+`node tools/medir.js "http://localhost:3030/" pos-assets-vercel` —
+**4980×720 · 3593×512 · 2993×422**, `overflow:hidden`, escala 0,5 → 1,
+translateY 150 → 0, **0 erros de console**, **0 diferenças** contra
+`medidas/medida-desfile-mobile-13ago.json` nos 21 pontos. `index.html` com o
+mesmo SHA-256 (`26606fb8d572eaee`).
+
+Nenhum HTML, CSS, JS de site, imagem ou caminho foi alterado. A única mudança de
+comportamento está em `.vercelignore`.
+
+### Arquivos
+
+`.vercelignore` · `tools/preflight.js` · novos `tools/verificar-assets-deploy.js`
+e `tools/qa-rede.js`.
+
+`AUDITORIA_PALETA.md` entrou na lista de exclusão junto com `progresso.md` e
+`MOTION_SPEC.md` — é documento de trabalho, não conteúdo do site.
+
+**Nenhum commit.**
+
+---
+
+## 🐝 HERO NOVO DA /bee — EM ANDAMENTO, INTERROMPIDO — 13/08/2026
+
+> **LEIA ESTE BLOCO INTEIRO ANTES DE TOCAR EM QUALQUER ARQUIVO.**
+> A sessão foi interrompida com as **fontes à frente dos builds**. O site
+> servido em `localhost:3030` mostra a penúltima versão do hero, não a que
+> está em `tools/`. O primeiro passo de quem continuar está em
+> "RETOMAR POR AQUI", mais abaixo.
+
+### O pedido
+
+Hero nova, criativa e premium para `/bee`, **clara**, com personalidade
+própria em relação à Polen: mais leve, mais jovem, portátil, ligada a moda e
+acessório, marcada pelo mel. Escopo restrito à abertura da `/bee`, à transição
+para a seção seguinte e à animação do hero. Sem commit.
+
+Direção confirmada pelo cliente na abertura da tarefa: **papel como base, uma
+grande forma em mel, e as Bees branca e amarela em camadas.**
+
+### 🔴 A MEDIÇÃO QUE DEFINIU A COMPOSIÇÃO
+
+Antes de compor, os oito PNG de `melcam/img/bee/` foram decodificados (zlib +
+desfiltragem, sem dependência, mesma técnica do `corDoTile()` da Polen). Dois
+achados mudaram tudo:
+
+**1. Os packshots da Bee têm recorte de verdade — e os da Polen não tinham.**
+
+| arquivo | dimensões | tipo | alfa=0 | alfa parcial |
+|---|---|---|---|---|
+| `bee-amarela-frente.png` | 683×339 | RGBA 8 | 27,4% | 3,3% |
+| `bee-branca-frente.png` | 685×340 | RGBA 8 | 27,6% | 3,3% |
+| `bee-amarela-angulo-corrente.png` | 1072×620 | RGBA 8 | 71,7% | 2,3% |
+| `bee-branca-angulo-corrente.png` | 1090×550 | RGBA 8 | 69,1% | 2,6% |
+| `bee-*-caixa.png` | ~745×595 | RGBA 8 | ~15,6% | 2,3% |
+
+Isso liberou a composição gráfica que a `/polen` não pôde ter — lá os 7
+packshots são RGB **sem** canal alfa, com o fundo da variante embutido, e por
+isso o palco quadrado virou a solução. Aqui a câmera flutua de verdade.
+
+> **Ressalva registrada, não corrigida:** a borda parcial carrega o verde do
+> fundo de estúdio original (rgb ~17,65,32; 19% a 26% dos pixels de borda são
+> distintamente esverdeados). Sobra um fio escuro de 1–2 px em volta do
+> recorte. Sobre mel é imperceptível; sobre papel lê como contorno fino, e no
+> tamanho usado não incomoda. **O arquivo oficial não foi retocado** — isso
+> seria gerar asset, que o pedido proíbe.
+
+**2. Nenhuma das duas Bees pode deitar sobre o mel.**
+
+Cor dominante do corpo, amostrada por moda quantizada dos pixels opacos:
+
+| | corpo | vs papel | vs mel | vs carvão |
+|---|---|---|---|---|
+| Bee amarela (frente) | `#CDBA29` | 1,84:1 | **1,02:1** | 8,41:1 |
+| Bee branca (frente) | `#B5B5B4` | 1,92:1 | **1,02:1** | 8,08:1 |
+| Bee amarela (ângulo) | `#B9AA0A` | 2,23:1 | **1,19:1** | 6,96:1 |
+| Bee branca (ângulo) | `#ADB4B4` | 1,97:1 | **1,05:1** | 7,87:1 |
+
+Luminância praticamente igual à do mel. A composição óbvia — produto grande
+sobre o plano amarelo — sumiria. Daí as três decisões de arte, todas
+consequência do número e todas registradas no cabeçalho do CSS:
+
+1. cada Bee tem **sombra de contato própria** (`drop-shadow` duplo em marrom
+   quente derivado do carvão, nunca preto puro). É o que separa objeto de
+   fundo quando a luminância não separa. Não é glow: tem deslocamento
+   vertical e não circunda a peça;
+2. a **amarela** — o foco — fica majoritariamente sobre o papel, e a
+   correntinha dela desenha a linha de movimento do conjunto;
+3. a **branca** atravessa a curva do plano de mel: o encontro das duas cores
+   de fundo vira assunto da composição em vez de acidente.
+
+### Conceito visual
+
+"Uma câmera para levar junto." Papel `#FBF7EE` de base; um grande plano em
+`#F2A900` sangrando no topo e na direita, com o **canto inferior esquerdo
+arredondado** — é esse raio que faz a divisão papel/mel ser curva e orgânica,
+não uma reta. Sobre o plano, o **pattern do favo tom sobre tom**, desenhado em
+SVG data-URI dentro do próprio CSS (hexágono de topo plano, a mesma orientação
+impressa na frente da câmera, conferida nas fotos; circunraio 42, ladrilho
+126×72,75, traço `#DE9E04`). Não é imagem: nada é baixado, nada vira asset.
+
+### Diferença intencional em relação à hero da Polen
+
+| | /polen | /bee |
+|---|---|---|
+| pele | carvão | papel e mel |
+| imagem | 1 fotografia sangrando canto a canto | 2 packshots recortados, em camadas |
+| leitura do texto | scrim de 3 gradientes por cima da foto | fundo chapado, sem véu nenhum |
+| divisão | tela cheia, texto sobreposto | assimétrica, curva, ~46/54 |
+| altura | 92svh | 80svh |
+| CTA | mel sobre carvão | **carvão sobre papel** |
+| scroll | paralaxe de −18px na foto | **nenhum** — nada se move depois da entrada |
+| eyebrow | mel | carvão |
+
+O CTA mudou de cor de propósito: numa página cuja assinatura já é um grande
+plano amarelo, o botão de mel se dissolveria no assunto. Carvão sobre papel dá
+15,51:1 e é o elemento mais escuro da dobra.
+
+### Copy — e a correção factual que ela exigiu
+
+- Eyebrow: **BEE**
+- Título (`<h1>`): **Pequena o bastante para ir junto.**
+- Texto: **"Sem peso, sem cerimônia. Uma câmera digital retrô feita para
+  fotografar e continuar vivendo o momento."**
+- CTA: **ESCOLHA SUA BEE** → `#modelos`, a seção real de seleção
+- Apoio: **2 cores · foto e vídeo · filtros retrô** — o "2" é
+  `BEE.cores.length`, derivado; "foto e vídeo" sai de `SPECS_BEE`
+  ("Fotos" e "Vídeo Full HD 1080p e 720p"); "filtros retrô" sai de
+  "Filtros criativos" mais o bloco "Filtros e estética retrô" da própria
+  página. Nenhum número novo, nenhuma spec nova.
+
+> 🔴 **O texto sugerido no pedido começava com "Sem tela, sem distrações" — e
+> isso é FALSO para a Bee.** A Bee tem tela: `SPECS_BEE` traz "Tela LCD TFT de
+> 0,96\"" nesta mesma página, e a tela aparece ligada, escrito "Goodbye", na
+> foto oficial `header-fileira/bee-lp-22.jpg`. "Sem tela" é argumento da
+> **Polen**, e lá está correto. A frase foi trocada preservando o ritmo
+> ("Sem X, sem Y.") e o resto do período pedido. "Sem peso" apoia-se em
+> "Aproximadamente 26 g", que é spec documentada.
+
+> 🟡 **Duplicação de manchete resolvida com uma troca de copy fora do hero.**
+> O `<h2>` de "Destaques" já era, palavra por palavra, "Pequena o bastante
+> para ir junto" — a mesma frase que o pedido escolheu para o `<h1>`. Manter
+> as duas repetiria a manchete na mesma página, o defeito que já foi corrigido
+> na `/polen`. O `<h2>` passou a **"O que cabe em 26 gramas"**, derivado de
+> spec aprovada logo abaixo dele. Está comentado no `tools/bee.js`.
+> **Se o cliente preferir a frase antiga em Destaques, quem muda é o hero.**
+
+### Assets escolhidos, todos abertos antes
+
+| uso | arquivo | por quê |
+|---|---|---|
+| foco | `bee/bee-amarela-angulo-corrente.png` | único par do acervo com a **correntinha e o mosquetão** — a alça é a linha de movimento pedida, sem desenhar linha nenhuma |
+| segundo plano | `bee/bee-branca-frente.png` | silhueta chapada, diferente da outra de propósito: duas câmeras no mesmo ângulo leriam como repetição |
+
+Descartados, e por quê:
+
+- `bee-branca-angulo-corrente.png` — espelha a amarela: mesma pose, mesma
+  direção de corrente. Juntas viravam duas fotos iguais em cores diferentes.
+- `bee-lifestyle-acessorio.jpg` — a melhor foto de "acessório" do acervo (Bee
+  amarela pendurada na passante do jeans), mas **já é** a imagem do bloco
+  "Câmera como acessório" desta mesma página. No hero seria a mesma foto duas
+  vezes em `/bee`.
+- `header-fileira/bee-lp-1169.jpg` — as duas Bees na mão contra o mar do Rio.
+  Solar e perfeita de conceito, mas azul de ponta a ponta: dominaria uma
+  página cuja assinatura é o mel, e azul não pertence à paleta.
+- `header-fileira/bee-lp-22.jpg` — as duas amarelas sobre musgo; fundo verde
+  escuro, o oposto de uma página clara.
+- `*-caixa.png` e `*-traseira.png` — embalagem e verso não abrem uma página.
+
+### Animação
+
+Só CSS, com `both`: roda sozinha e termina no estado final mesmo se o script
+não carregar — a lição do "hero em branco". Ao JS não sobrou animação nenhuma.
+
+| peça | de | duração · atraso |
+|---|---|---|
+| plano de mel | `opacity 0` · `translateX 72px` | 900 ms · 0 |
+| Bee branca | `opacity 0` · `translate(-22,16)` · `rotate(-15°)` | 780 ms · 200 ms |
+| Bee amarela | `opacity 0` · `translate(34,24)` · `rotate(2,5°)` · `scale .965` | 860 ms · 320 ms |
+| copy (5 peças) | `opacity 0` · `translateY 16px` | 620 ms · 80/170/270/360/440 ms |
+| legenda de cores | idem | 620 ms · 520 ms |
+
+Fecha em **1.180 ms**, dentro da faixa de 900–1300 pedida. Sem loop, sem
+partícula, sem animação por letra, sem botão de repetir, sem biblioteca, sem
+falso giro 3D. As rotações de repouso (−8° na branca, −2° na amarela) são
+composição, não movimento: continuam valendo em reduced-motion.
+
+Escalonar o plano de mel foi descartado — `scaleX` distorceria o raio de 320px
+do canto, que é justamente o que desenha a curva.
+
+### Transição para a seção seguinte
+
+O hero termina em **papel na largura inteira** (a base do plano de mel para
+antes do fim do hero, de propósito), e a seção `#modelos` da Bee passou a ser
+**clara** — papel, cards em `#F3EDE0`, títulos em carvão, botão de mel de
+volta porque ali o fundo é papel. De "Destaques" em diante a página volta ao
+editorial escuro do site; essa volta é uma divisão declarada.
+
+> 🔴 **A COSTURA DE 10 px — achado que vale para qualquer bloco claro futuro.**
+> O stack do template (`header.framer-vrbx7h`) é flex column com **`gap:10px`
+> e fundo carvão**. Esse vão existe entre TODAS as seções do site e nunca se
+> viu, porque os dois lados sempre foram carvão. Entre o hero de papel e a
+> seção de papel ele virou **uma linha escura atravessando a página** —
+> exatamente a "mudança brusca para preto" que o pedido proíbe.
+> Corrigido pintando o vão com `#modelos::before` (`top:-10px; height:10px`),
+> **não** com margem negativa: puxar a seção mudaria a geometria da página
+> inteira por causa de um problema de cor.
+
+### Acessibilidade
+
+- 1 `<h1>` por página, medido nos três breakpoints;
+- `alt` informativo nas duas imagens (58 e 102 caracteres), nenhuma `<img>`
+  sem `alt` na página;
+- a legenda de cores traz o **nome escrito** ("Amarela · Branca"), então a
+  informação não viaja só na cor da bolinha; as bolinhas são `aria-hidden`;
+- **não é seletor**: o seletor funcional são os dois cards logo abaixo, e o
+  pedido é explícito em não criar um segundo;
+- CTA de 44 px de altura nos três breakpoints;
+- foco de teclado em **carvão** nas duas zonas claras. A regra global desenha
+  o anel em mel, calibrado contra o carvão (9,67:1 na auditoria); sobre papel
+  o mel dá 1,88:1 e o anel praticamente some;
+- eyebrow de `#modelos` em `#8A6A12` (4,73:1 no papel) — mel puro sobre papel
+  reprova.
+
+### Resultados medidos — desktop 1440×900 (versão v3, a que está servida)
+
+| | valor |
+|---|---|
+| hero | 1440×720, x=0 (sangria cheia) |
+| `#modelos` começa em | y=799 · **101 px de dobra** |
+| título | **2 linhas**, 433 px e 289 px |
+| CTA | 44 px, destino `#modelos`, alvo existe |
+| transbordo horizontal | não |
+| imagens quebradas | 0 |
+| `<img>` sem alt | 0 |
+| `<h1>` | 1 |
+| animações rodando depois de assentar | **0** |
+| elementos com opacidade < 1 | **0** |
+| erros de console | **0** |
+
+### 🔴 RETOMAR POR AQUI
+
+**As fontes estão à frente dos builds.** O último ajuste (reordenar o DOM e
+mover a forma de mel para dentro do palco) foi gravado em `tools/` e **não**
+foi sincronizado. Estado conferido em disco:
+
+| build | estado |
+|---|---|
+| `melcam/interacoes.js` | ✅ sincronizado (idêntico a `hero-carrossel.js.js()`) |
+| `bee.html` | ⚠️ tem o hero, mas com a **ordem antiga do DOM** (palco antes do texto) |
+| `melcam/identidade.css` | ⚠️ tem o CSS da v3, sem a reestruturação do palco |
+
+**Passo 1 — consertar `tools/sincronizar-bee.js` antes de rodá-lo.**
+Ele localiza o trecho a trocar pela constante `ABRE`, que ainda aponta para a
+abertura ANTIGA (`<section class="mel-sec mel-abertura mel-bee-abertura"`).
+Essa string não existe mais em `bee.html`, então o script vai reprovar com
+"abertura antiga não encontrada". `ABRE` precisa aceitar também
+`\n<section class="mel-bh"`, que é o marcador atual. O `FIM`
+(`</ul>\n  </div>\n</section>`) continua válido. O script não grava nada se
+qualquer verificação falhar, então rodá-lo por engano é inofensivo.
+
+**Passo 2 — `node tools/sincronizar-bee.js`** e conferir as três linhas de
+saída mais o "bee.html contém conteudo() da fonte, 1x".
+
+**Passo 3 — `node tools/preflight.js`** (tem de sair limpo, CSS balanceado).
+
+**Passo 4 — `node tools/qa-bee.js`** e reler tablet e mobile: foi justamente
+o defeito do retrato que motivou a reestruturação, e **ele ainda não foi
+revalidado**. O que estava errado antes da correção, medido:
+
+- em 768 e 390 o plano de mel media a altura contra o hero inteiro e saía com
+  **633 px** (tablet) e **582 px** (mobile) onde cabiam ~190;
+- o palco vinha ANTES do texto no DOM, então o retrato abria pelo produto em
+  vez da manchete;
+- a manchete quebrava em **três linhas** nos dois retratos, com "junto."
+  órfão — causado por um `max-width:14ch` no bloco de retrato, já trocado por
+  `22ch`.
+
+### O que ainda NÃO foi feito
+
+1. **Revalidar tablet 768×1024 e mobile 390×844** depois da sincronia (é o
+   item mais importante e o motivo da interrupção).
+2. **`MOVIMENTO=reduce node tools/qa-bee.js`** — o CSS de reduced-motion está
+   escrito e desliga todas as `animation` mantendo as rotações de repouso, mas
+   **não foi medido no navegador**.
+3. **QA da home:** `node tools/medir.js "http://localhost:3030/" pos-hero-bee`.
+   Aceite: 4980×720 · 3593×512 · 2993×422, `overflow:hidden`, escala 0,5→1,
+   translateY 150→0, 0 erros de console, 0 diferenças contra
+   `medidas/medida-desfile-mobile-13ago.json`, e `index.html` com o mesmo
+   SHA-256 `26606fb8d572eaee`.
+4. **`node tools/verificar-assets-deploy.js`** — o hero trocou
+   `bee-amarela-frente.png` por `bee-amarela-angulo-corrente.png`. O pré-voo
+   seguiu marcando 93 assets publicáveis (um saiu, um entrou), mas a
+   verificação dedicada não foi rodada depois da última mudança.
+5. **Regressão da `/polen` e das demais internas** — nada foi tocado fora de
+   `body.mel-pagina-bee`, mas não foi medido.
+6. **Capturas de entrega** (desktop, tablet, mobile, transição, reduced-motion).
+   Há capturas parciais em `tools/shots-bee/`.
+7. **Sacola, navbar e menu** — não foram tocados, não foram reconferidos.
+
+### 🟡 DUAS DECISÕES QUE PRECISAM DO CLIENTE
+
+**1. A barra "Bee · Modelos · Destaques · R$ 299,00 · Comprar".**
+O pedido manda avaliar e **não remover sem confirmação**. A avaliação:
+ela repete os dois defeitos que tiraram a barra equivalente da `/polen` em
+13/08 — duplica a navbar logo abaixo dela, e o "Comprar" dela compete com o
+"Escolha sua Bee" do hero, que é o próximo passo certo. Medida: 555×59 px,
+`position:sticky`, começando em y=0, com o hero empurrado para y=69.
+
+Fica um agravante novo: ela é um bloco de largura de conteúdo (555 px)
+centralizado dentro da faixa carvão da navbar. Enquanto a página era escura
+isso não aparecia; contra um hero de papel, aparece.
+
+Foi **mantida**, e recebeu pele clara escopada em `body.mel-pagina-bee`
+(fundo papel a 86%, texto carvão) para não ficar uma faixa carvão translúcida
+colada em cima de um hero de papel. **Se a decisão for remover, é o mesmo
+procedimento da Polen:** tirar `barra()` de `conteudo()` e do arquivo em
+`tools/bee.js`, e nesse caso as regras `body.mel-pagina-bee .mel-barra*` em
+`tools/bee-interacoes.js` saem junto. O CSS `.mel-barra` em `tools/paginas.js`
+só é usado pela Bee — se ela sair, ele fica órfão.
+
+**2. O `<h2>` de Destaques**, descrito acima.
+
+### Arquivos
+
+**Fontes**
+
+| arquivo | o que mudou |
+|---|---|
+| `tools/bee-interacoes.js` | **novo** — `css()` e `js()` do hero, o pattern do favo, a pele clara de `#modelos`, o foco de teclado das zonas claras, a pele clara da barra |
+| `tools/bee.js` | `abertura()` → `hero()`; markup novo; `<h2>` de Destaques; `conteudo()` |
+| `tools/paginas.js` | saiu o CSS da abertura antiga (`.mel-bee-*` e os keyframes `mel-bee-gira` / `mel-bee-revela`); entrou a injeção do `css()` da Bee |
+| `tools/hero-carrossel.js` | injeta o `js()` da Bee e chama `iniciarHeroBee()` |
+
+**Ferramentas novas**
+
+| arquivo | o que faz |
+|---|---|
+| `tools/sincronizar-bee.js` | sincronia cirúrgica dos builds, com fronteiras verificadas, chaves balanceadas e `new Function` como guarda de sintaxe. Idempotente. Não grava nada se qualquer verificação falhar. **Precisa do conserto do Passo 1.** |
+| `tools/qa-bee.js` | QA do hero nos 3 breakpoints: altura, dobra, quebra do título por `Range` (linhas de verdade), CTA, transbordo, imagens, `<h1>`, animações vivas, opacidades, console. `MOVIMENTO=reduce` para o outro cenário. Grava JSON e capturas em `tools/shots-bee/`. |
+
+**Builds** — `bee.html`, `melcam/identidade.css`, `melcam/interacoes.js`
+(estado exato na tabela do "RETOMAR POR AQUI").
+
+### Armadilhas desta passagem, para o próximo não cair
+
+1. **`melcam/identidade.css` é 100% CRLF; os geradores emitem LF.** Todo texto
+   novo tem de entrar convertido, senão a folha vira mista e qualquer diff
+   futuro fica ilegível. `bee.html` é misto de propósito (CRLF do template,
+   LF no conteúdo injetado) e `melcam/interacoes.js` é 100% LF.
+2. **Guarda de varredura não pode casar com o próprio registro.** A checagem
+   "sobrou seletor da abertura antiga" reprovava o comentário que documenta a
+   remoção, porque ele cita `.mel-bee-l1, .mel-bee-palco, …` — com vírgula. A
+   varredura passou a rodar na folha **sem comentário**.
+3. **`getClientRects()` no elemento devolve a caixa, não as linhas.** Para
+   contar linhas de uma manchete é preciso `Range.selectNodeContents(el)` e
+   ler os rects do Range. Contar por `offsetHeight / line-height` erra quando
+   a fonte de display tem métrica própria.
+4. **`elementFromPoint` não enxerga pseudo-elemento.** Testar se o `::before`
+   fechou a costura de 10px por ali dá falso negativo; a prova é a captura.
+5. **Posicionamento absoluto resolve contra o ancestral posicionado mais
+   próximo.** Deixar a forma de mel filha do hero e as câmeras filhas do palco
+   funcionou no desktop e quebrou no retrato, onde as duas caixas passam a ter
+   alturas diferentes. Um sistema de coordenadas só.
+
+**Nenhum commit. Nenhum deploy.**

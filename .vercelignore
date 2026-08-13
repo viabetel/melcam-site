@@ -6,7 +6,23 @@ melcam.config.json
 progresso.md
 ASSETS_NECESSARIOS.md
 MOTION_SPEC.md
+AUDITORIA_PALETA.md
 medidas/
-# 9,4 MB de assets preparados para subir no canvas do Framer.
-# Não são usados por nenhuma página; só pesariam o build.
-melcam/img/header-fileira/
+
+# melcam/img/header-fileira/ NÃO PODE VOLTAR PARA CÁ — 13/08/2026.
+#
+# A regra existia com o comentário "não são usados por nenhuma página; só
+# pesariam o build". Estava errado. Três arquivos da pasta são referenciados
+# pelas SETE páginas publicadas:
+#
+#   polen-lp-1.jpg    hero da /polen
+#   bee-lp-06.jpg     card do cabeçalho, nas 7 páginas
+#   bee-lp-1237.jpg   card do cabeçalho, nas 7 páginas
+#
+# Resultado: local funcionava (o arquivo está no disco) e o deploy abria sem
+# as fotos. O sintoma parecia de código; a causa estava aqui.
+#
+# A pasta inteira sobe, e não só os três: exceção parcial quebra de novo no dia
+# em que um quarto arquivo for usado, e o custo são 9,5 MB num deploy estático.
+# `node tools/verificar-assets-deploy.js` agora reprova antes do deploy se
+# qualquer asset referenciado estiver excluído daqui.

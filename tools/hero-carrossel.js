@@ -545,7 +545,7 @@ function js() {
         + 'display:flex;flex-direction:column;gap:.1rem;'
         + 'padding:.75rem 2.5rem .9rem 1rem;background:#221E17;'
         + 'border:1px solid rgba(251,247,238,.14);border-radius:6px;'
-        + 'box-shadow:0 18px 40px -12px rgba(0,0,0,.7);'
+        + 'box-shadow:0 18px 40px -12px rgba(14,12,9,.7);'
         + 'opacity:0;transform:translateY(-6px);max-height:calc(100vh - '
         + Math.round(barra.bottom) + 'px - 1.5rem);overflow-y:auto';
 
@@ -1051,6 +1051,7 @@ function js() {
   }
 
 ${require('./polen-interacoes.js').js()}
+${require('./bee-interacoes.js').js()}
 
   function iniciar() {
     document.querySelectorAll('[data-mel="carrossel"]').forEach(iniciarCarrossel);
@@ -1060,6 +1061,9 @@ ${require('./polen-interacoes.js').js()}
     iniciarHeroPolen();
     iniciarScrollytellingPolen();
     iniciarSeletorPolen();
+    /* Só faz algo em /bee: [data-mel="bee-hero"] não existe em nenhuma outra
+       página, então sai na primeira linha. */
+    iniciarHeroBee();
     iniciarFiltros();
     iniciarFaq();
     iniciarSacola();

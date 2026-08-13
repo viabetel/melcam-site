@@ -396,20 +396,31 @@
     <a class="mel-bt mel-bt-mel" href="#modelos">Comprar</a>
   </div>
 </div>
-<section class="mel-sec mel-abertura mel-bee-abertura" aria-labelledby="mel-bee-tit">
-  <p class="mel-eyebrow">antes do mel</p>
-  <p class="mel-ab-l1 mel-bee-l1">Antes do mel, é só uma câmera.</p>
-  <div class="mel-bee-palco" data-mel-bee-palco>
-    <img class="mel-bee-cam mel-bee-branca" src="/melcam/img/bee/bee-branca-frente.png" alt="Câmera Bee branca">
-    <img class="mel-bee-cam mel-bee-amarela" src="/melcam/img/bee/bee-amarela-frente.png" alt="Câmera Bee amarela">
+<section class="mel-bh" data-mel="bee-hero" aria-labelledby="mel-bee-tit">
+  <div class="mel-bh-forma" aria-hidden="true"></div>
+  <div class="mel-bh-palco">
+    <img class="mel-bh-cam mel-bh-branca" data-mel="bee-hero-branca"
+         src="/melcam/img/bee/bee-branca-frente.png" width="685" height="340" decoding="async"
+         alt="A Bee branca, de frente, com a faixa colorida sob a lente.">
+    <img class="mel-bh-cam mel-bh-amarela" data-mel="bee-hero-amarela"
+         src="/melcam/img/bee/bee-amarela-angulo-corrente.png" width="1072" height="620" decoding="async"
+         alt="A Bee amarela vista de três quartos, presa a uma correntinha com mosquetão, do tamanho de um chaveiro.">
+    <p class="mel-bh-cores">
+      <span class="mel-bh-cor mel-bh-cor-amarela" aria-hidden="true"></span>Amarela
+      <i aria-hidden="true">·</i>
+      <span class="mel-bh-cor mel-bh-cor-branca" aria-hidden="true"></span>Branca
+    </p>
   </div>
-  <h1 id="mel-bee-tit" class="mel-tit">Abelhas fazem mel, essa faz memórias</h1>
-  <p class="mel-col-txt">Bee, a menor da colmeia</p>
-  <a class="mel-bt mel-bt-mel mel-ab-cta" href="#modelos">Comprar</a>
-  <p class="mel-nota">Render 3D final <strong>a decidir</strong>. A animação usa
-     os packshots oficiais: a Bee branca gira e vira amarela, que é a
-     <strong>opção 1</strong> do briefing. A opção 2 depende de animação ligada
-     ao scroll, que não sobrevive sem o runtime do Framer.</p>
+  <div class="mel-bh-in">
+    <div class="mel-bh-copy" data-mel="bee-hero-copy">
+      <p class="mel-bh-eyebrow">Bee</p>
+      <h1 id="mel-bee-tit" class="mel-bh-tit">Pequena o bastante para ir junto.</h1>
+      <p class="mel-bh-txt">Sem peso, sem cerimônia. Uma câmera digital retrô
+         feita para fotografar e continuar vivendo o momento.</p>
+      <a class="mel-bt mel-bh-cta" data-mel="bee-hero-cta" href="#modelos">Escolha sua Bee</a>
+      <p class="mel-bh-apoio">2 cores · foto e vídeo · filtros retrô</p>
+    </div>
+  </div>
 </section>
 <section class="mel-sec" id="modelos" aria-labelledby="mel-bmod-tit">
   <div class="mel-sec-topo">
@@ -435,7 +446,15 @@
 <section class="mel-sec" id="destaques" aria-labelledby="mel-dest-tit">
   <div class="mel-sec-topo">
     <p class="mel-eyebrow">destaques</p>
-    <h2 id="mel-dest-tit" class="mel-tit">Pequena o bastante para ir junto</h2>
+    <!-- 13/08/2026 — este <h2> era "Pequena o bastante para ir junto", que
+         passou a ser o <h1> do hero novo. Manter os dois deixaria a MESMA
+         manchete duas vezes na mesma página, palavra por palavra — o defeito
+         que já foi corrigido na /polen, onde o card do Header Grid repetia o
+         título da seção de produto. O texto novo é derivado de spec aprovada
+         ("Aproximadamente 26 g", logo abaixo nesta mesma seção): nada novo foi
+         afirmado. Se o cliente preferir a frase antiga aqui, o hero é que
+         precisa de outro título. -->
+    <h2 id="mel-dest-tit" class="mel-tit">O que cabe em 26 gramas</h2>
   </div>
 
   <div class="mel-dest">
