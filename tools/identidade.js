@@ -471,6 +471,13 @@ img[src$="a-decidir.svg"]{ background:${P.carvao}; object-fit:contain }
   background-color:${P.papel} !important;
 }
 
+/* O LOGO PINTA EM currentColor desde 13/08/2026 (ver tools/logo.js), então
+   quem decide a cor é esta regra. Sem ela o logo herdaria o color do <a>, que
+   é o azul de link padrão do navegador: os cinco <use> da página ficariam
+   azuis. Papel é o padrão porque o fundo padrão do logo é carvão — na navbar e
+   no rodapé. A /bee sobrescreve só a instância da navbar. */
+[data-framer-name="MELCAM"]{ color:${P.papel} }
+
 /* Acessibilidade: foco visivel que o template nao trazia. */
 a:focus-visible,button:focus-visible,[tabindex]:focus-visible{
   outline:2px solid ${P.mel}; outline-offset:3px; border-radius:2px;

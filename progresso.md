@@ -4865,3 +4865,423 @@ Antes de subir: raiz canônica conferida pelo `.melcam-project.json` e
 deploy, nenhum asset referenciado caindo no `.vercelignore`. Isso fecha o item 4
 da lista "O que ainda NÃO foi feito". Os itens 1, 2, 3, 5, 6 e 7 continuam
 abertos, e as duas decisões do cliente continuam pendentes.
+
+---
+
+## ✅ RETOMADA: SINCRONIA FECHADA, RETRATO REVALIDADO E A BARRA REMOVIDA — 13/08/2026, tarde
+
+Retomado exatamente pelo "RETOMAR POR AQUI" acima. As fontes deixaram de estar
+à frente dos builds, os itens 1, 2, 3, 5 e 7 da lista de pendências foram
+fechados, e a **decisão 1 do cliente chegou no meio da passagem: a barra sai.**
+
+### Passo 1 — o conserto do `tools/sincronizar-bee.js`
+
+A constante `ABRE` apontava só para a abertura pré-hero, que não existia mais em
+`bee.html`; o script reprovava sem gravar. Agora ela tem **três formas** e o
+script escolhe pela que está no arquivo:
+
+| forma | quando serve |
+|---|---|
+| `<div class="mel-barra" data-mel="barra-produto">` | a barra saiu da fonte e ainda está no build |
+| `<section class="mel-sec mel-abertura mel-bee-abertura"` | build anterior ao hero novo |
+| `<section class="mel-bh"` | build já com o hero |
+
+> 🔴 **A ordem das três importa, e é por isso que a barra vem primeiro.**
+> O corte antigo começava no hero e reinjetava `conteudo()` a partir do hero, de
+> propósito ("a barra fica onde está"). Com a barra fora da fonte, esse mesmo
+> corte gravaria um build **que ainda contém a barra** — e a prova final diria
+> `[OK]`, porque `conteudo()` estaria lá, inteiro e uma vez só, com a barra
+> sobrando por cima dele. Foi acrescentada uma segunda prova, lida do disco:
+> `[OK] bee.html sem a barra de produto`. Prova que só confirma o que você
+> espera achar não é prova.
+
+### Passo 2 — builds sincronizados
+
+| build | de → para |
+|---|---|
+| `melcam/interacoes.js` | 57.492 → 57.492 (já estava) |
+| `bee.html` | 424.977 → 425.223 |
+| `melcam/identidade.css` | 88.863 → 88.049 · chaves 437/437 |
+
+Finais de linha conferidos depois de gravar, que é a armadilha 1 da passagem
+anterior: `identidade.css` 100% CRLF, `interacoes.js` 100% LF, `bee.html` misto
+(412 CRLF do template, 105 LF do conteúdo injetado). Pré-voo limpo.
+
+### Passo 3 — o retrato, que era o motivo da interrupção
+
+Revalidado nos três breakpoints, com e sem `prefers-reduced-motion`:
+
+| | desktop 1440 | tablet 768 | mobile 390 |
+|---|---|---|---|
+| hero | 1440×720 | 768×721 | 390×674 |
+| `#modelos` começa em | y=730 | y=731 | y=684 |
+| dobra | 170 px | 293 px | 160 px |
+| título | 2 linhas | 2 linhas | 2 linhas |
+| plano de mel | 777×666 | **400×240** | **312×181** |
+| CTA | 44 px | 44 px | 44 px |
+| animações vivas · opacidade < 1 · console | 0 · 0 · 0 | 0 · 0 · 0 | 0 · 0 · 0 |
+
+Os três defeitos do retrato morreram: o plano de mel media **633 px** (tablet) e
+**582 px** (mobile) contra os 240 e 181 de agora; o palco vinha antes do texto no
+DOM e agora o retrato abre pela manchete; o título quebrava em três linhas com
+"junto." órfão e agora quebra em duas.
+
+**Reduced-motion medido, não deduzido:** geometria idêntica à do movimento
+normal, opacidade 1 em todas as peças, 0 animações em execução e as rotações de
+repouso preservadas (−8° na branca, −2° na amarela). Capturas em
+`tools/shots-bee/hero-*-reduzido.png`.
+
+### A BARRA DE PRODUTO SAIU — decisão do cliente, 13/08 à tarde
+
+O pedido foi direto: *"Bee / Modelos / Destaques / R$ 299,00 / Comprar tira
+isso"*. Removida pelo mesmo procedimento da Polen. Os dois motivos já
+registrados valiam (duplicava a navbar; o "Comprar" dela competia com o "Escolha
+sua Bee" do hero), e a medição desta passagem trouxe **um terceiro, que ninguém
+tinha visto**:
+
+> 🔴 **Em 390px a barra cobria o botão "Abrir menu" — no celular não havia como
+> abrir o menu do site a partir da /bee.**
+> A barra é `sticky`, `z-index:40`, e em 390 mede 366 px começando em x=12; o
+> abridor fica em x=24..48 · y=29..53, dentro dela. Teste de acerto na /bee em
+> 390: `document.elementFromPoint` no centro do abridor devolvia
+> `DIV.mel-barra-in`, não o abridor. Em 768 não colidia (a barra fica centrada,
+> em x=201) e nas outras rotas a barra não existe — o defeito era exclusivo da
+> /bee no retrato estreito. **Nenhuma captura mostrava isso**, porque a barra
+> parecia só mais uma faixa no topo, e nenhum console acusava: clique que cai no
+> elemento errado não é erro, é clique.
+
+O que saiu, em fonte e build:
+
+| arquivo | o que saiu |
+|---|---|
+| `tools/bee.js` | `barra()` e a chamada dela em `conteudo()` |
+| `tools/bee-interacoes.js` | as 5 regras `body.mel-pagina-bee .mel-barra*` (a pele clara) |
+| `tools/paginas.js` | o bloco `.mel-barra*` inteiro e as 3 linhas do breakpoint de retrato — **a Bee era o último usuário** |
+| `bee.html` · `melcam/identidade.css` | zero ocorrências de `mel-barra` nos dois |
+
+Duas referências ficaram apontando para um lugar que não existe mais, e foram
+corrigidas junto — não são cosméticas:
+
+- **`tools/mover-conteudo-interno.js`** ancorava a /bee em
+  `<div class="mel-barra" data-mel="barra-produto">`. Se ele rodasse depois da
+  remoção, não acharia a âncora da /bee. Passou a `<section class="mel-bh"
+  data-mel="bee-hero"`, a mesma troca que a Polen já tinha feito.
+- **`tools/qa-bee.js`** media `barraExiste`. Virou `barraSobrou`, com o sentido
+  invertido: se algum gerador trouxer a barra de volta, o QA acusa. Voltar não é
+  detalhe de composição, é o menu do celular de novo bloqueado.
+
+### Depois da remoção, remedido
+
+| | desktop | mobile |
+|---|---|---|
+| menu abre | sim | **sim** |
+| painel | 168×212 em (24,81), fundo `#221E17` opaco | idêntico |
+| pior contraste do painel | 8,25:1 | 8,25:1 |
+| fecha com Escape | sim | sim |
+| ícone do abridor | 15,51:1 | 15,51:1 |
+| console | 0 | 0 |
+
+`/sacola` conferida na mesma passagem: 1 `<h1>` ("Sacola", 15,51:1), sem
+transbordo, 0 imagens quebradas, abridor de menu presente.
+
+### Ferramenta nova
+
+**`tools/qa-navegacao-bee.js`** — navbar, menu e sacola medidos, que é o item 7
+do handoff. Ele nasceu errado três vezes, e as três estão comentadas dentro do
+arquivo porque qualquer sonda futura vai tropeçar nelas:
+
+1. **O abridor não é `<button>`.** É `div[role="button"]` com
+   `aria-label="Abrir menu"` e `data-framer-name="Meniu"` (a grafia é do
+   template). Procurar `nav button` acha só a lupa e conclui, errado, que a
+   página não tem menu.
+2. **`.click()` não abre.** O Framer escuta pointer events; o clique tem de ser
+   despachado por coordenada com `Input.dispatchMouseEvent`.
+3. **Existem DOIS abridores no DOM, um por variante do template.** Abaixo de
+   810px o primeiro colapsa para 0×0 e quem aparece é o segundo. `querySelector`
+   devolve o primeiro, então clicar nele no mobile clica em (0,0) e o painel não
+   abre. Isso quase virou o laudo "no mobile não há como sair da /bee" — que
+   estava certo no efeito e errado na causa. Medido em 7 larguras × 6 rotas: o
+   abridor visível existe sempre. A sonda escolhe o que **tem caixa**.
+
+E uma quarta, sobre medir contraste em vez de olhar: **pular fundo translúcido e
+usar o do ancestral dá número falso.** A barra tinha papel a 86% sobre carvão;
+ignorar o alfa devolvia 1:1 (carvão sobre carvão) e acusava uma falha
+inexistente. A sonda **compõe** as camadas até o primeiro fundo opaco. Ícone sem
+texto é medido pelo desenho (o `background` das barrinhas), porque a lupa do
+template tem `color` com alfa 0 — medir `color` ali é medir nada.
+
+> 🟡 **Pisei na armadilha da crase que o próprio AGENTS.md documenta.** Um
+> comentário citando a propriedade `color` entre crases, dentro de um template
+> literal, quebrou o arquivo em `SyntaxError`. A guarda existe, o registro
+> existe, e ainda assim aconteceu. O comentário hoje escreve o nome da
+> propriedade por extenso, sem crase.
+
+### Home e demais rotas — sem regressão
+
+`node tools/medir.js "http://localhost:3030/" pos-hero-bee`, duas corridas,
+contra `medidas/medida-desfile-mobile-13ago.json`: **620 chaves comparadas, 2
+diferenças**, e nenhuma é regressão:
+
+- `rotulo` — é o nome da medição.
+- `telas.mobile.filhos.3.imgNatural` — `914x685` → `565x423`, mesma
+  `polen-gallery-01.jpg`, mesmo `layoutW`, `telaW`, `proporcao`, `objectFit` e
+  `radius`. É **qual candidato do `srcset` o navegador escolheu**, não o que a
+  página desenha: o arquivo em disco tem 1200×900 e as duas entradas do
+  `srcset` (512w e 828w) apontam para ele. `naturalWidth` vem corrigido pela
+  densidade — 1200 ÷ (512/390) = 914; 1200 ÷ (828/390) = 565. Os dois números
+  descrevem o mesmo pixel na tela. `index.html` continua com o SHA-256
+  `26606fb8d572eaee`, o valor de aceite.
+
+`node tools/qa-polen.js`: 6 cenários ok. `node tools/qa-story.js`: 9 capítulos,
+subida e descida casadas, 0 erros. `node tools/qa-rede.js`: 7 rotas, 0 imagens
+quebradas, 0 falhas de requisição (o único console é o 404 esperado da /404).
+`node tools/verificar-assets-deploy.js`: 93 publicáveis, 241 arquivos.
+
+> 🟡 **Tons da /bee fora da lista oficial, de propósito e ainda não registrados
+> em `AUDITORIA_PALETA.md`:** `#8A6A12` (eyebrow, 4,73:1 no papel), `#F3EDE0`
+> (card), `#6B6254`, `#4A4236`, `#4A340A`. Todos derivados para dar contraste
+> sobre papel, todos escopados em `body.mel-pagina-bee`. O `qa-paleta.js` os
+> lista como "não oficiais" porque a lista não os conhece — não porque estejam
+> errados. **Quem for mexer na paleta registra os cinco antes**, senão a próxima
+> auditoria vai "corrigir" o que foi decidido aqui.
+
+### O que continua aberto
+
+1. **Capturas de entrega** — há `tools/shots-bee/hero-{desktop,tablet,mobile}
+   [-reduzido].png`, `nav-menu-{desktop,mobile}.png` e `sacola-desktop.png`.
+   Falta a captura dedicada da transição hero → `#modelos`.
+2. **O `<h2>` de Destaques** — a decisão 2 do cliente segue pendente. Hoje é
+   "O que cabe em 26 gramas"; a frase antiga ("Pequena o bastante para ir
+   junto") é o `<h1>` do hero, e as duas não podem coexistir na mesma página.
+3. **Registrar os cinco tons da Bee** em `AUDITORIA_PALETA.md`.
+
+**Nenhum commit. Nenhum deploy.** Lembrando o que já está escrito acima: o
+repositório está conectado à Vercel e **push em `main` publica em produção
+sozinho**.
+
+---
+
+## 👤 CONTA NA NAVBAR, ACESSO LOCAL E A NAVBAR DA /bee — 13/08/2026, noite
+
+Quatro pedidos numa passagem: menu de perfil retrátil, login e criação de conta,
+ligar o "Carrinho" ao que já existe, e achar a causa real do defeito da navbar
+no mobile da /bee. Nada de reformulação visual: tudo reusa a paleta, as fontes,
+as curvas de movimento e os padrões que já estavam no projeto.
+
+### 1. O QUE JÁ EXISTIA, e por isso não foi reinventado
+
+Antes de escrever qualquer coisa, a varredura respondeu três perguntas:
+
+| pergunta | resposta encontrada |
+|---|---|
+| há autenticação (Supabase, Firebase, API)? | **não.** Site 100% estático, sem servidor. O próprio `melcam.config.json` lista em PENDENTES que nem o gateway de pagamento existe |
+| há carrinho? | **sim, inteiro.** `iniciarSacola()` em `tools/hero-carrossel.js`: chave `melcam:sacola` no localStorage, página `/sacola` com lista, quantidade, subtotal e `aria-live`, e um checkout que declara não estar integrado |
+| como se abre um menu neste projeto? | `iniciarMenu()`: painel criado no clique, entrada por smoothstep de 400 ms (MOTION_SPEC §7), Escape, clique fora, fecha no resize, foco devolvido ao botão |
+
+Então: o carrinho **não foi criado**, foi **ligado**. E o menu de perfil nasceu
+com a mesma curva, a mesma âncora e o mesmo vocabulário do menu que já havia —
+dois painéis vizinhos com entradas diferentes se notam na hora.
+
+### 2. Menu de perfil
+
+`tools/perfil.js` (novo), `css()` + `js()`, injetado por `paginas.js` e
+`hero-carrossel.js` como os módulos de página. Um botão de 44×44 na ponta
+direita da navbar, ícone Phosphor de 24px — a mesma família da lupa que o
+template já trazia, não biblioteca nova.
+
+| estado | o que o painel mostra |
+|---|---|
+| desconectado | Entrar · Criar conta · Carrinho |
+| conectado | nome e e-mail no topo · Carrinho · Sair |
+
+O pedido pedia "Entrar, Carrinho, Sair". **"Sair" só aparece conectado**, como o
+próprio pedido autorizou: sair sem sessão é um botão que não faz nada.
+
+Teclado: `aria-haspopup`, `aria-expanded`, `role="menu"`/`menuitem`, seta para
+baixo abre, setas andam, Home e End vão às pontas, Escape fecha e devolve o foco
+ao botão, Tab fecha em vez de deixar foco preso em painel invisível. Hover,
+focus e active têm estados próprios; todo item tem 44px de altura.
+
+> 🔴 **OS DOIS MENUS NÃO PODEM CONVIVER, e a coordenação é por evento.**
+> O hambúrguer e o perfil ficam a 44px um do outro. Abertos juntos em 320px,
+> cobrem a tela inteira. Quem abre emite `mel:fechar-menus` com o próprio nome;
+> quem escuta e não é o autor, fecha. São 4 ocorrências no build (2 emissores +
+> 2 ouvintes) e o `sincronizar-perfil.js` conta as quatro — se alguém apagar um
+> lado, a sincronia reprova.
+
+### 3. Acesso: o que é, e o que está escrito na tela
+
+Sem servidor, isto é **demonstração local** — e o código foi escrito para não
+mentir sobre isso em lugar nenhum:
+
+- **senha nunca é guardada.** Fica PBKDF2-SHA-256, 210.000 iterações, sal
+  aleatório de 16 bytes por conta, pelo WebCrypto. O QA prova por busca literal:
+  a senha digitada não aparece em nenhum byte do `localStorage`;
+- **sem WebCrypto, o cadastro é recusado** com a razão na tela. Guardar senha
+  fraca "só para funcionar" seria pior do que não funcionar;
+- **o rodapé do cartão diz** que a conta vale só naquele navegador, que nada é
+  enviado a lugar nenhum e que a senha não pode ser recuperada do que ficou;
+- **e-mail inexistente e senha errada dizem a MESMA frase.** Diferenciar entrega
+  quais e-mails têm conta.
+
+Validação: nome, e-mail (regex com @ e domínio), senha (8+, letras e números),
+confirmação. Erro por campo com `aria-invalid` e `aria-describedby`, mais um
+aviso `role="alert"` no topo. Validação no `blur`, nunca a cada tecla: acusar
+e-mail inválido na terceira letra é hostil com quem ainda digita. Estado de
+carregamento com giro e texto, trava dupla contra envio repetido (`enviando` +
+`disabled`), `autocomplete` que muda com o modo (`new-password` ao criar,
+`current-password` ao entrar), foco preso no cartão, Escape e clique fora
+fechando, rolagem travada em `<html>` e devolvida ao fechar. Sessão em
+`melcam:sessao`, que sobrevive ao recarregar; Sair limpa e a interface reage na
+hora, sem recarregar — e **não apaga a sacola**.
+
+**O que falta para virar autenticação de verdade** está no cabeçalho de
+`tools/perfil.js`, em cinco itens: contas no servidor, hash no servidor, sessão
+em cookie httpOnly+Secure+SameSite, limite de tentativas, verificação de e-mail
+e recuperação de senha. As duas portas de dados (`Contas` e `Sessao`) são as
+únicas a reescrever quando houver backend.
+
+### 4. 🔴 A NAVBAR DA /bee NO MOBILE — a causa real
+
+**Causa.** A navbar do template é `position:fixed` com 81px de altura, portanto
+**fora do fluxo**. Nas páginas internas o primeiro bloco começa em y=0 — na
+/bee, `section.mel-bh`, o hero. Medido: `navFixa y=0 h=81` e `mel-bh y=0`. Na
+home isso não acontece porque o stack começa em y=844, depois do vídeo. Na
+/polen acontece igual e **ninguém vê: carvão sobre carvão**. Na /bee, cujo hero
+é papel, a mesma faixa vira uma tarja escura atravessando uma composição clara.
+
+Não é ordem de pilha: `z-index` não tem nada a ver, e empilhar z-index aqui
+esconderia o sintoma sem tocar na causa. Também não é `transform` em ancestral
+— a sonda procurou containing block de `fixed` (transform, filter, perspective,
+will-change, contain, opacity) acima da faixa e **não achou nenhum**, nas cinco
+larguras.
+
+**Solução.** A faixa veste a pele da página, escopada em `body.mel-pagina-bee`:
+papel no fundo, carvão no desenho. Os 81px deixam de ser tarja e passam a ser o
+alto do hero. Empurrar o hero para baixo com `padding-top:81px` foi descartado:
+resolveria a sobreposição criando uma tira de papel morta sob a faixa, um hero
+81px mais alto e a dobra medida fora do lugar.
+
+**Por que funciona.** O problema nunca foi a sobreposição em si — barra fixa
+sobrepõe conteúdo por definição, e o hero não perde nada visível por baixo de
+uma faixa opaca. O problema era a faixa ser de outra página. Vestindo papel, ela
+passa a pertencer à composição, e o hero lê como uma folha só.
+
+> 🔴 **SÃO DUAS `<nav>`, COM NOMES DIFERENTES — e a primeira tentativa da
+> correção falhou exatamente aí.** O template traz
+> `data-framer-name="Navigation Color"` (desktop) e `"Navigation Mobile Coor"`
+> (mobile, truncado assim mesmo no export). Escopei pela primeira: no mobile a
+> faixa continuou carvão **e as barrinhas do ícone já tinham virado carvão**.
+> Resultado pior que o defeito original: hambúrguer e perfil invisíveis em
+> 390px, ainda clicáveis. Um QA que só medisse clique passaria — foi a captura
+> que mostrou. O seletor agora casa pelo **prefixo** do nome.
+
+> 🔴 **O LOGO É UM SÍMBOLO SÓ, COM CINCO `<use>` NA MESMA PÁGINA.**
+> Com a faixa clara, o logo sumiu: ele tinha `fill="#FBF7EE"` cravado pelo
+> `tools/logo.js`, papel sobre papel. Recolorir o símbolo apagaria o logo do
+> rodapé, que segue em carvão. A saída foi `fill="currentColor"`: cada `<use>`
+> pinta com a cor do seu contexto. Papel é o padrão (`tools/identidade.js`),
+> carvão só na navbar da /bee. **Sem a regra de `color`, o logo herda o azul de
+> link do navegador** — foi o que apareceu na home antes de a regra entrar na
+> folha construída.
+
+**Validação em mobile.** `tools/qa-navbar-mobile.js` (novo) mede /bee, /polen e
+/ em **320, 375, 390, 430 e 768**: posição e altura da faixa, containing block
+de `fixed` em todos os ancestrais, transbordo horizontal, quem recebe o clique
+no centro de cada controle, alvo de toque, conteúdo coberto pela faixa, o painel
+abrindo na frente do conteúdo e dentro da tela, comportamento ao rolar para
+baixo e a volta ao rolar para cima, e erros de console.
+
+### 5. Três defeitos que a medição achou de quebra
+
+> 🔴 **Em 320px o botão de perfil nascia com o centro FORA DA TELA — meu.**
+> O slot de ícones do template (`Section Icon`) tem largura fixa de 136px vinda
+> do Framer: em 320 ele começa em x=226 e termina em 362. Um botão anexado ali
+> nascia em x=318, com o centro em 340 numa tela de 320. Não havia transbordo
+> horizontal para denunciar, porque a faixa recorta. Corrigido ancorando o botão
+> na **linha** da navbar (o pai do slot), que é flex com `space-between` e
+> respeita o padding de 24px em qualquer largura.
+
+> 🟡 **A lupa do template é um botão invisível que recebia foco de teclado.**
+> `color:rgba(51,51,51,0)`, 20×20, sem ação nenhuma — quem navega por Tab parava
+> num controle que não existe na tela. Agora leva `aria-hidden`, `tabindex="-1"`
+> e `pointer-events:none`. Continua no DOM, como manda a casa.
+
+> 🟡 **O link da marca era `aria-hidden="true"` e focável ao mesmo tempo.**
+> Achado por acidente: depois de filtrar controles inertes, a contagem da sonda
+> caiu de 4 para 2 e o link do logo foi junto — ele carregava `aria-hidden` no
+> export. A combinação é proibida: o leitor de tela não anuncia nada e o Tab
+> para ali mesmo assim, num link anônimo. Como ele **é** o caminho para a home,
+> a correção foi dar nome ("MELCAM, ir para a página inicial") e tirar o
+> `aria-hidden` — não esconder mais.
+
+### 6. Arquivos
+
+**Novos** — `tools/perfil.js` (menu, acesso e sessão), `tools/qa-perfil.js`
+(33 verificações por largura), `tools/qa-navbar-mobile.js` (5 larguras × 3
+rotas), `tools/qa-navegacao-bee.js`, `tools/sincronizar-perfil.js`,
+`tools/sincronizar-logo.js`.
+
+**Alterados** — `tools/paginas.js` e `tools/hero-carrossel.js` (injeção +
+`iniciarPerfil()` + coordenação dos menus + evento `mel:sacola-mudou`),
+`tools/bee-interacoes.js` (pele clara da navbar da /bee),
+`tools/identidade.js` (cor do logo), `tools/logo.js` (`currentColor`).
+
+**Builds** — `melcam/interacoes.js`, `melcam/identidade.css` e os sete HTML que
+carregam o símbolo do logo.
+
+> 🔴 **ORDEM DENTRO DA FOLHA É REQUISITO, NÃO ESTÉTICA.**
+> `sincronizar-bee.js` corta do marcador da Bee até o **fim do arquivo** e
+> reescreve. Qualquer bloco depois dele seria apagado na próxima sincronia da
+> Bee, em silêncio, com o script ainda dizendo `[OK]`. Por isso o bloco do
+> perfil entra **antes** do bloco da /polen, e `sincronizar-perfil.js` prova a
+> posição no fim: `[OK] bloco do perfil antes de /polen e /bee`.
+
+### 7. Testes
+
+| comando | resultado |
+|---|---|
+| `node tools/preflight.js` | limpo, CSS balanceado (507/507), SHA-256 do que a porta serve conferindo com o disco |
+| `node tools/qa-perfil.js` | **66/66** (33 verificações × 1440 e 390) |
+| `LARGURAS=320 node tools/qa-perfil.js` | **33/33** |
+| `node tools/qa-navbar-mobile.js` | 3 rotas × 5 larguras (320·375·390·430·768): 3/3 controles recebendo clique, 0 transbordo, 0 erro de console, nenhuma falha |
+| `node tools/qa-bee.js` (+ `MOVIMENTO=reduce`) | 3 breakpoints × 2 cenários, 0 animação viva, 0 opacidade < 1, `barraSobrou:false` |
+| `node tools/qa-navegacao-bee.js` | menu abre nos dois tamanhos, pior contraste 8,25:1, Escape fecha, `/sacola` íntegra |
+| `node tools/qa-polen.js` | 6 cenários ok |
+| `node tools/qa-rede.js` | 7 rotas, 0 imagem quebrada, 0 falha de requisição |
+| `node tools/qa-story.js` | 9 capítulos, subida e descida casadas, 0 erro |
+| `node tools/medir.js` (home) | 620 chaves, 2 diferenças, nenhuma real |
+| `node tools/verificar-assets-deploy.js` | 93 publicáveis, 241 arquivos |
+
+Não há suíte de testes nem lint no projeto (site estático, sem build): o que faz
+esse papel são os `tools/qa-*.js` e o `preflight.js`, e todos foram rodados.
+
+> 🟡 **O SHA-256 de aceite da `index.html` MUDOU, e é esperado.**
+> Era `26606fb8d572eaee`, agora é `259a2fc52065f2f7`. A causa é única e
+> conhecida: o símbolo do logo passou a `fill="currentColor"` nos sete HTML que
+> o carregam. A medição da home continua batendo com
+> `medidas/medida-desfile-mobile-13ago.json` em 620 chaves — o layout não se
+> moveu. **Quem for conferir a home daqui para a frente usa o SHA novo.**
+
+### 8. Limitações que ficam
+
+1. **Não há backend.** A conta vale por navegador. Os cinco passos para
+   autenticação real estão no cabeçalho de `tools/perfil.js`.
+2. **Não há recuperação de senha nem verificação de e-mail** — as duas exigem
+   servidor de e-mail.
+3. **O checkout continua declarando que não está integrado**, como já estava.
+4. **Sem limite de tentativas**: qualquer trava feita no cliente o usuário
+   remove pelo console. Fica para o servidor.
+5. `:has()` é usado numa regra de conveniência (o recorte do realce do botão).
+   Em navegador sem `:has()` o botão continua clicável, só perde o arredondado
+   do hover nas bordas.
+6. **As páginas jurídicas e as de contato/FAQ não têm navbar** —
+   `privacidade`, `termos`, `privacy-policy`, `terms-and-conditions`, `contact`
+   e `faq` são documentos próprios (`tools/rotas.js`), carregam a
+   `identidade.css` mas não a `interacoes.js` e nunca tiveram nav, logo nem
+   menu. Então também não têm o controle de conta. Isso é anterior a esta
+   passagem e não foi alterado; se o cliente quiser navegação nelas, é um
+   pedido separado, e o `iniciarPerfil()` já sai limpo quando não acha navbar.
+
+**Nenhum commit. Nenhum deploy.** O repositório está ligado à Vercel: push em
+`main` publica em produção sozinho.

@@ -491,6 +491,10 @@
         if (ultimoFoco && ultimoFoco.focus) ultimoFoco.focus();
         return;
       }
+      /* Avisa o menu de perfil, que mora 44px ao lado: dois paineis abertos ao
+         mesmo tempo em 320px cobririam a tela inteira. Quem abre avisa; quem
+         escuta fecha. */
+      document.dispatchEvent(new CustomEvent('mel:fechar-menus', { detail: { quem: 'nav' } }));
       ultimoFoco = document.activeElement;
       // ancora no botao que foi clicado — cada breakpoint tem o seu
       var visivel = botoes.filter(function (b) { return b.offsetHeight > 0; })[0] || botoes[0];
@@ -529,6 +533,12 @@
     /* A ancoragem e calculada na abertura; se a janela mudar de tamanho com o
        menu aberto, o menu fecha em vez de ficar solto no lugar errado. */
     window.addEventListener('resize', function () { if (painel) alternar(); });
+
+    /* O outro lado do acordo: o menu de perfil abriu, este fecha. */
+    document.addEventListener('mel:fechar-menus', function (e) {
+      if (e.detail && e.detail.quem === 'nav') return;
+      if (painel) alternar();
+    });
   }
 
   /* ---------------- troca de filtro (LP Polen) ----------------
@@ -599,6 +609,10 @@
     function contar() {
       var n = ler().reduce(function (a, i) { return a + i.qtd; }, 0);
       document.querySelectorAll('[data-mel-contador]').forEach(function (e) { e.textContent = String(n); });
+      /* O selo da navbar (iniciarPerfil) escuta isto. A sacola continua dona da
+         chave e da conta; quem quiser mostrar o número se inscreve no evento em
+         vez de reler o localStorage no seu proprio ritmo. */
+      document.dispatchEvent(new CustomEvent('mel:sacola-mudou', { detail: { total: n } }));
       return n;
     }
 
@@ -887,6 +901,665 @@
     /* As fotos entram depois e empurram o layout: sem remedir, o topo fica
        velho e a curva dispara na hora errada. */
     window.addEventListener('load', function () { medirTopo(); pintar(); });
+  }
+
+
+  /* ====== conta, sessão e sacola no topo ======
+     Ver o cabeçalho de tools/perfil.js para o que esta autenticação é (uma
+     demonstração local honesta) e o que falta para virar autenticação de
+     verdade. Aqui embaixo estão só as decisões de comportamento. */
+
+  var PERFIL_ICONES = {"usuario":"M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z","entrar":"M141.66,133.66l-40,40A8,8,0,0,1,88,168V136H24a8,8,0,0,1,0-16H88V88a8,8,0,0,1,13.66-5.66l40,40A8,8,0,0,1,141.66,133.66ZM192,32H136a8,8,0,0,0,0,16h48V208H136a8,8,0,0,0,0,16h56a8,8,0,0,0,8-8V40A8,8,0,0,0,192,32Z","criar":"M256,136a8,8,0,0,1-8,8H232v16a8,8,0,0,1-16,0V144H200a8,8,0,0,1,0-16h16V112a8,8,0,0,1,16,0v16h16A8,8,0,0,1,256,136Zm-57.87,58.85a8,8,0,0,1-12.26,10.3C165.75,181.19,138.09,168,108,168s-57.75,13.19-77.87,37.15a8,8,0,0,1-12.25-10.3c14.94-17.78,33.52-30.41,54.17-37.17a68,68,0,1,1,71.9,0C164.6,164.44,183.18,177.07,198.13,194.85ZM108,152a52,52,0,1,0-52-52A52.06,52.06,0,0,0,108,152Z","sacola":"M216,64H176a48,48,0,0,0-96,0H40A16,16,0,0,0,24,80V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V80A16,16,0,0,0,216,64ZM128,32a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm88,168H40V80H216V200Z","sair":"M112,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h56a8,8,0,0,1,0,16H56V208h48A8,8,0,0,1,112,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L196.69,120H112a8,8,0,0,0,0,16h84.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,221.66,122.34Z","fechar":"M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"};
+
+  function perfilSvg(nome, tam) {
+    return '<svg viewBox="0 0 256 256" width="' + tam + '" height="' + tam
+      + '" aria-hidden="true" focusable="false"><path d="' + PERFIL_ICONES[nome]
+      + '" fill="currentColor"/></svg>';
+  }
+
+  /* ---- porta de dados 1: contas ----
+     Troque esta e a Sessao por chamadas ao backend, e nada mais muda. */
+  var Contas = {
+    CHAVE: 'melcam:contas',
+    todas: function () {
+      try { return JSON.parse(localStorage.getItem(this.CHAVE)) || []; } catch (e) { return []; }
+    },
+    gravar: function (v) {
+      try { localStorage.setItem(this.CHAVE, JSON.stringify(v)); return true; } catch (e) { return false; }
+    },
+    achar: function (email) {
+      var e = String(email).trim().toLowerCase();
+      return this.todas().filter(function (c) { return c.email === e; })[0] || null;
+    },
+  };
+
+  /* ---- porta de dados 2: sessão ----
+     localStorage e não sessionStorage porque o pedido é explícito: a sessão
+     sobrevive ao recarregar. Com backend isto vira cookie httpOnly. */
+  var Sessao = {
+    CHAVE: 'melcam:sessao',
+    atual: function () {
+      try { return JSON.parse(localStorage.getItem(this.CHAVE)) || null; } catch (e) { return null; }
+    },
+    abrir: function (conta) {
+      try {
+        localStorage.setItem(this.CHAVE, JSON.stringify({
+          email: conta.email, nome: conta.nome, desde: Date.now(),
+        }));
+      } catch (e) {}
+    },
+    fechar: function () { try { localStorage.removeItem(this.CHAVE); } catch (e) {} },
+  };
+
+  /* ---- senha: PBKDF2-SHA-256, 210.000 iterações, sal de 16 bytes ----
+     Nunca a senha. Se o WebCrypto não estiver disponível o cadastro é recusado
+     com a razão na tela: guardar senha fraca para "funcionar mesmo assim" é o
+     tipo de atalho que vira manchete. */
+  var ITERACOES = 210000;
+  function temCripto() {
+    return !!(window.crypto && window.crypto.subtle && window.crypto.getRandomValues);
+  }
+  function hex(buf) {
+    return Array.prototype.map.call(new Uint8Array(buf), function (b) {
+      return ('0' + b.toString(16)).slice(-2);
+    }).join('');
+  }
+  function derivar(senha, salHex) {
+    var sal = new Uint8Array((salHex.match(/../g) || []).map(function (h) { return parseInt(h, 16); }));
+    return crypto.subtle.importKey('raw', new TextEncoder().encode(senha), 'PBKDF2', false, ['deriveBits'])
+      .then(function (k) {
+        return crypto.subtle.deriveBits(
+          { name: 'PBKDF2', salt: sal, iterations: ITERACOES, hash: 'SHA-256' }, k, 256);
+      }).then(hex);
+  }
+  function salNovo() {
+    var a = new Uint8Array(16);
+    crypto.getRandomValues(a);
+    return hex(a.buffer);
+  }
+  /* Comparação em tempo constante. No cliente isto é quase teatro — quem tem o
+     console tem o hash —, mas o hábito viaja para o servidor, onde importa. */
+  function iguais(a, b) {
+    if (a.length !== b.length) return false;
+    var d = 0;
+    for (var i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return d === 0;
+  }
+
+  /* ---- validação ----
+     O mesmo texto de erro que a pessoa lê é o que o campo anuncia por
+     aria-describedby. Uma frase só, dizendo o que fazer. */
+  var RE_EMAIL = /^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/;
+  function validarNome(v) {
+    v = (v || '').trim();
+    if (!v) return 'Diga como quer ser chamada ou chamado.';
+    if (v.length < 2) return 'Nome muito curto.';
+    return '';
+  }
+  function validarEmail(v) {
+    v = (v || '').trim();
+    if (!v) return 'Digite seu e-mail.';
+    if (!RE_EMAIL.test(v)) return 'E-mail inválido. Confira o @ e o ponto do domínio.';
+    return '';
+  }
+  function validarSenha(v) {
+    v = v || '';
+    if (!v) return 'Digite uma senha.';
+    if (v.length < 8) return 'Use pelo menos 8 caracteres.';
+    if (!/[a-zA-Z]/.test(v) || !/[0-9]/.test(v)) return 'Misture letras e números.';
+    return '';
+  }
+  function validarConfirma(a, b) {
+    if (!b) return 'Repita a senha.';
+    if (a !== b) return 'As senhas não são iguais.';
+    return '';
+  }
+
+  function iniciarPerfil() {
+    /* O template tem uma variante de navbar por breakpoint e só a do
+       breakpoint ativo renderiza — a mesma armadilha do menu hambúrguer, que
+       por isso liga em TODAS. Aqui é igual: um botão por variante. */
+    var slots = Array.prototype.slice.call(
+      document.querySelectorAll('nav [data-framer-name="Section Icon"]'));
+    if (!slots.length) return;
+
+    /* ---- higiene de acessibilidade da navbar do template ----
+       Duas coisas que estavam erradas no export e ninguém via, porque as duas
+       são invisíveis para quem usa mouse e olho.
+
+       1. A lupa é um botão de 20px com color rgba(51,51,51,0): invisível, sem
+          ação nenhuma, e mesmo assim recebia foco de teclado. Quem navega por
+          Tab parava num controle que não existe na tela. Fica no DOM, como
+          manda a casa, mas sai do caminho. */
+    document.querySelectorAll('nav [aria-label="Search Icon"]').forEach(function (b) {
+      b.setAttribute('tabindex', '-1');
+      b.setAttribute('aria-hidden', 'true');
+      b.style.pointerEvents = 'none';
+    });
+    /* 2. O link da marca vem com aria-hidden="true" E continua focável — é um
+          <a href="/">. A combinação é proibida: o leitor de tela não anuncia
+          nada, mas o Tab para ali mesmo assim, e a pessoa fica num link
+          anônimo. Como ele É o caminho para a home, a correção é dar nome e
+          tirar o aria-hidden, não esconder mais. */
+    document.querySelectorAll('nav a[data-framer-name="MELCAM"]').forEach(function (a) {
+      a.removeAttribute('aria-hidden');
+      if (!a.getAttribute('aria-label')) a.setAttribute('aria-label', 'MELCAM, ir para a página inicial');
+    });
+
+    var botoes = [];
+    slots.forEach(function (slot) {
+      /* O botão entra na LINHA da navbar, não dentro do slot de ícones.
+         Medido em 13/08: o slot ("Section Icon") tem largura fixa vinda do
+         Framer — 136px — e em 320px ele começa em x=226, ou seja, termina em
+         362 numa tela de 320. Um botão anexado ali nascia em x=318 e o centro
+         dele caía FORA da tela: aparecia recortado e não recebia clique. Não
+         havia transbordo horizontal para denunciar, porque a faixa recorta.
+         A linha (o pai do slot) é flex com space-between e respeita o padding
+         de 24px da navbar, então o último filho dela encosta na margem direita
+         em qualquer largura — que é onde o controle de conta tem de estar. */
+      var linha = slot.parentElement || slot;
+      if (linha.querySelector('[data-mel-perfil]')) return;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'mel-perfil-bt';
+      b.setAttribute('data-mel-perfil', '');
+      b.setAttribute('aria-haspopup', 'menu');
+      b.setAttribute('aria-expanded', 'false');
+      b.innerHTML = perfilSvg('usuario', 24)
+        + '<span class="mel-perfil-selo" data-mel-contador-selo aria-hidden="true">0</span>';
+      linha.appendChild(b);
+      botoes.push(b);
+
+      /* O SLOT VAZIO AINDA EMPURRAVA O BOTÃO PARA FORA EM 320px.
+         Medido: em 320 a linha tem 272px úteis (320 menos os 24 de cada lado) e
+         precisa acomodar hambúrguer (24) + marca (178, fixa) + slot (136, fixa)
+         + botão (44) = 382. O slot é o único que não carrega nada: sobrou nele
+         apenas a lupa inerte do template, invisível e sem ação. Com ele fora do
+         cálculo sobra 246, e o botão encosta na margem direita como deve.
+
+         Recolhido por medição, não por fé: só some se NÃO houver dentro dele
+         nenhum controle visível e ainda alcançável. Se o template um dia puser
+         algo de verdade ali, o slot fica. */
+      var util = Array.prototype.slice.call(slot.querySelectorAll('a,button,[role="button"],img,svg'))
+        .filter(function (e) {
+          var r = e.getBoundingClientRect(), s = getComputedStyle(e);
+          return r.width > 0 && r.height > 0 && s.visibility !== 'hidden'
+            && Number(s.opacity) > 0.05 && s.pointerEvents !== 'none'
+            && e.getAttribute('aria-hidden') !== 'true';
+        });
+      if (!util.length) slot.style.display = 'none';
+    });
+    if (!botoes.length) return;
+
+    var vivo = document.createElement('p');
+    vivo.className = 'mel-sr';
+    vivo.setAttribute('aria-live', 'polite');
+    document.body.appendChild(vivo);
+
+    var painel = null;
+    var ultimoFoco = null;
+
+    /* ---------- contagem da sacola ----------
+       Lê a mesma chave que iniciarSacola() grava. Não duplica a lógica do
+       carrinho: só mostra o que já existe, aqui em cima. */
+    function naSacola() {
+      try {
+        return (JSON.parse(localStorage.getItem('melcam:sacola')) || [])
+          .reduce(function (a, i) { return a + (i.qtd || 0); }, 0);
+      } catch (e) { return 0; }
+    }
+    function pintarSelo() {
+      var n = naSacola();
+      document.querySelectorAll('[data-mel-contador-selo]').forEach(function (s) {
+        s.textContent = n > 9 ? '9+' : String(n);
+        if (n > 0) s.setAttribute('data-tem', ''); else s.removeAttribute('data-tem');
+      });
+      botoes.forEach(function (b) { b.setAttribute('aria-label', rotuloBotao(n)); });
+      var item = painel && painel.querySelector('[data-mel-perfil-conta]');
+      if (item) item.textContent = n ? String(n) : '';
+    }
+    function rotuloBotao(n) {
+      var s = Sessao.atual();
+      var quem = s ? 'Conta de ' + s.nome : 'Entrar ou criar conta';
+      return quem + (n ? ', ' + n + ' na sacola' : '');
+    }
+
+    /* ---------- o painel ----------
+       Ancorado embaixo da faixa e alinhado pela DIREITA do botão: o controle
+       mora na ponta direita da navbar, e um painel crescendo para a direita
+       sairia da tela em 320px. */
+    function montar(botao) {
+      var fixo = botao;
+      while (fixo && getComputedStyle(fixo).position !== 'fixed') fixo = fixo.parentElement;
+      var faixa = fixo ? fixo.getBoundingClientRect() : { bottom: 64 };
+      var bt = botao.getBoundingClientRect();
+
+      var p = document.createElement('div');
+      p.className = 'mel-perfil-menu';
+      p.setAttribute('role', 'menu');
+      p.setAttribute('aria-label', 'Conta e sacola');
+      p.style.top = Math.round(faixa.bottom) + 'px';
+      p.style.right = Math.max(12, Math.round(innerWidth - bt.right)) + 'px';
+      p.style.maxHeight = 'calc(100vh - ' + Math.round(faixa.bottom) + 'px - 1.5rem)';
+      p.style.overflowY = 'auto';
+
+      var sessao = Sessao.atual();
+      if (sessao) {
+        var quem = document.createElement('div');
+        quem.className = 'mel-perfil-quem';
+        quem.innerHTML = '<b></b><span></span>';
+        quem.querySelector('b').textContent = sessao.nome;
+        quem.querySelector('span').textContent = sessao.email;
+        p.appendChild(quem);
+      }
+
+      function item(icone, texto, aoAtivar, extra) {
+        var e = document.createElement(aoAtivar ? 'button' : 'a');
+        if (aoAtivar) e.type = 'button'; else e.href = extra;
+        e.className = 'mel-perfil-item';
+        e.setAttribute('role', 'menuitem');
+        e.innerHTML = perfilSvg(icone, 19) + '<span></span>';
+        e.querySelector('span').textContent = texto;
+        if (aoAtivar) e.addEventListener('click', function () { fechar(); aoAtivar(); });
+        else e.addEventListener('click', fechar);
+        p.appendChild(e);
+        return e;
+      }
+
+      if (!sessao) {
+        item('entrar', 'Entrar', function () { abrirAcesso('entrar'); });
+        item('criar', 'Criar conta', function () { abrirAcesso('criar'); });
+      }
+      var sacola = item('sacola', 'Carrinho', null, '/sacola');
+      var conta = document.createElement('span');
+      conta.className = 'mel-perfil-conta';
+      conta.setAttribute('data-mel-perfil-conta', '');
+      var n = naSacola();
+      conta.textContent = n ? String(n) : '';
+      sacola.appendChild(conta);
+      /* O número tem de chegar a quem usa leitor de tela como frase, não como
+         algarismo solto grudado em "Carrinho". */
+      sacola.setAttribute('aria-label', n ? 'Carrinho, ' + n + ' ' + (n === 1 ? 'item' : 'itens') : 'Carrinho, vazio');
+
+      if (sessao) item('sair', 'Sair', sair);
+      return p;
+    }
+
+    /* A mesma curva do menu de navegação (MOTION_SPEC, seção 7): smoothstep em
+       400ms, não ease-out. Dois painéis vizinhos com entradas diferentes se
+       notam na hora. */
+    function surgir(el, aoFim) {
+      if (menosMovimento.matches) {
+        el.style.opacity = '1'; el.style.transform = 'none';
+        if (aoFim) aoFim();
+        return;
+      }
+      var t0 = 0;
+      function passo(t) {
+        if (!t0) t0 = t;
+        var k = Math.min((t - t0) / 400, 1);
+        var s = k * k * (3 - 2 * k);
+        el.style.opacity = String(s);
+        el.style.transform = 'translateY(' + (-6 * (1 - s)).toFixed(2) + 'px)';
+        if (k < 1) requestAnimationFrame(passo); else if (aoFim) aoFim();
+      }
+      requestAnimationFrame(passo);
+    }
+
+    function itens() {
+      return painel ? Array.prototype.slice.call(painel.querySelectorAll('[role="menuitem"]')) : [];
+    }
+
+    function fechar(devolverFoco) {
+      if (!painel) return;
+      painel.remove();
+      painel = null;
+      botoes.forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+      if (devolverFoco && ultimoFoco && ultimoFoco.focus) ultimoFoco.focus();
+    }
+
+    function abrir() {
+      /* Não conflita com o hambúrguer: quem abre avisa, e o outro fecha.
+         Dois painéis abertos ao mesmo tempo em 320px cobririam a tela toda. */
+      document.dispatchEvent(new CustomEvent('mel:fechar-menus', { detail: { quem: 'perfil' } }));
+      ultimoFoco = document.activeElement;
+      var visivel = botoes.filter(function (b) { return b.offsetHeight > 0; })[0] || botoes[0];
+      painel = montar(visivel);
+      document.body.appendChild(painel);
+      botoes.forEach(function (b) { b.setAttribute('aria-expanded', 'true'); });
+      surgir(painel, function () {
+        var p = itens()[0];
+        if (p) p.focus();
+      });
+    }
+
+    function alternar() { if (painel) fechar(true); else abrir(); }
+
+    botoes.forEach(function (b) {
+      b.addEventListener('click', function (e) { e.stopPropagation(); alternar(); });
+      b.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowDown' && !painel) { e.preventDefault(); abrir(); }
+      });
+    });
+
+    /* Teclado dentro do painel: setas andam, Home e End vão às pontas, Escape
+       fecha e devolve o foco ao botão, Tab sai fechando (não deixa foco preso
+       num painel invisível). */
+    document.addEventListener('keydown', function (e) {
+      if (!painel) return;
+      var lista = itens();
+      var i = lista.indexOf(document.activeElement);
+      if (e.key === 'Escape') { e.preventDefault(); fechar(true); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); (lista[(i + 1) % lista.length] || lista[0]).focus(); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); (lista[(i - 1 + lista.length) % lista.length] || lista[0]).focus(); return; }
+      if (e.key === 'Home') { e.preventDefault(); lista[0].focus(); return; }
+      if (e.key === 'End') { e.preventDefault(); lista[lista.length - 1].focus(); return; }
+      if (e.key === 'Tab') fechar(false);
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!painel) return;
+      if (painel.contains(e.target)) return;
+      for (var i = 0; i < botoes.length; i++) {
+        if (botoes[i] === e.target || botoes[i].contains(e.target)) return;
+      }
+      fechar(false);
+    }, true);
+
+    /* A âncora é calculada na abertura; se a janela mudar de tamanho o painel
+       fecha, em vez de flutuar no lugar errado. Mesma regra do menu. */
+    window.addEventListener('resize', function () { fechar(false); });
+    document.addEventListener('mel:fechar-menus', function (e) {
+      if (e.detail && e.detail.quem === 'perfil') return;
+      fechar(false);
+    });
+
+    /* ---------- sair ---------- */
+    function sair() {
+      var s = Sessao.atual();
+      Sessao.fechar();
+      pintarSelo();
+      vivo.textContent = s ? 'Sessão encerrada. Até logo, ' + s.nome + '.' : 'Sessão encerrada.';
+    }
+
+    /* ---------- modal de acesso ---------- */
+    var modal = null;
+
+    function abrirAcesso(modo) {
+      if (modal) return;
+      var focoAntes = document.activeElement;
+
+      var cortina = document.createElement('div');
+      cortina.className = 'mel-acesso-cortina';
+
+      var cartao = document.createElement('div');
+      cartao.className = 'mel-acesso';
+      cartao.setAttribute('role', 'dialog');
+      cartao.setAttribute('aria-modal', 'true');
+      cartao.setAttribute('aria-labelledby', 'mel-acesso-tit');
+
+      cartao.innerHTML =
+        '<button type="button" class="mel-acesso-x" aria-label="Fechar">' + perfilSvg('fechar', 20) + '</button>'
+        + '<h2 class="mel-acesso-tit" id="mel-acesso-tit"></h2>'
+        + '<p class="mel-acesso-sub"></p>'
+        + '<div class="mel-acesso-abas" role="tablist" aria-label="Entrar ou criar conta">'
+        +   '<button type="button" class="mel-acesso-aba" role="tab" data-modo="entrar">ENTRAR</button>'
+        +   '<button type="button" class="mel-acesso-aba" role="tab" data-modo="criar">CRIAR CONTA</button>'
+        + '</div>'
+        + '<p class="mel-acesso-aviso" role="alert" hidden></p>'
+        + '<form novalidate>'
+        +   '<div class="mel-campo" data-campo="nome">'
+        +     '<label for="mel-nome">Nome</label>'
+        +     '<input id="mel-nome" name="nome" type="text" autocomplete="name" placeholder="Como quer ser chamado">'
+        +     '<span class="mel-campo-erro" id="mel-nome-erro"></span>'
+        +   '</div>'
+        +   '<div class="mel-campo" data-campo="email">'
+        +     '<label for="mel-email">E-mail</label>'
+        +     '<input id="mel-email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="voce@exemplo.com">'
+        +     '<span class="mel-campo-erro" id="mel-email-erro"></span>'
+        +   '</div>'
+        +   '<div class="mel-campo" data-campo="senha">'
+        +     '<label for="mel-senha">Senha</label>'
+        +     '<input id="mel-senha" name="senha" type="password" placeholder="Sua senha">'
+        +     '<span class="mel-campo-erro" id="mel-senha-erro"></span>'
+        +     '<span class="mel-campo-dica" data-dica-senha>Pelo menos 8 caracteres, com letras e números.</span>'
+        +   '</div>'
+        +   '<div class="mel-campo" data-campo="confirma">'
+        +     '<label for="mel-confirma">Repita a senha</label>'
+        +     '<input id="mel-confirma" name="confirma" type="password" autocomplete="new-password" placeholder="A mesma senha">'
+        +     '<span class="mel-campo-erro" id="mel-confirma-erro"></span>'
+        +   '</div>'
+        +   '<button type="submit" class="mel-acesso-enviar"></button>'
+        + '</form>'
+        + '<p class="mel-acesso-nota">Esta conta vale <strong>só neste navegador</strong>: o site ainda não '
+        +   'tem servidor. Nada é enviado para lugar nenhum e nenhuma senha é guardada — fica apenas um '
+        +   'resumo criptográfico dela (PBKDF2), do qual a senha não pode ser recuperada.</p>';
+
+      cortina.appendChild(cartao);
+      document.body.appendChild(cortina);
+      modal = cortina;
+
+      var form = cartao.querySelector('form');
+      var aviso = cartao.querySelector('.mel-acesso-aviso');
+      var enviar = cartao.querySelector('.mel-acesso-enviar');
+      var abas = Array.prototype.slice.call(cartao.querySelectorAll('.mel-acesso-aba'));
+      var campos = {
+        nome: cartao.querySelector('#mel-nome'),
+        email: cartao.querySelector('#mel-email'),
+        senha: cartao.querySelector('#mel-senha'),
+        confirma: cartao.querySelector('#mel-confirma'),
+      };
+      var enviando = false;
+      var atual = modo;
+
+      /* Trava de rolagem em <html>, não no <body>: no body a página pula para o
+         topo ao reabrir. Mesma lição do menu do template. */
+      var travaAntes = document.documentElement.style.overflow;
+      document.documentElement.style.overflow = 'hidden';
+
+      function mostrarErro(nome, msg) {
+        var campo = campos[nome];
+        var alvo = cartao.querySelector('#mel-' + nome + '-erro');
+        if (!campo || !alvo) return;
+        alvo.textContent = msg || '';
+        if (msg) {
+          campo.setAttribute('aria-invalid', 'true');
+          campo.setAttribute('aria-describedby', 'mel-' + nome + '-erro');
+        } else {
+          campo.removeAttribute('aria-invalid');
+          campo.removeAttribute('aria-describedby');
+        }
+      }
+      function dizer(tipo, msg) {
+        aviso.hidden = !msg;
+        aviso.setAttribute('data-tipo', tipo);
+        aviso.textContent = msg || '';
+      }
+
+      function pintar() {
+        var criando = atual === 'criar';
+        cartao.querySelector('.mel-acesso-tit').textContent = criando ? 'Criar conta' : 'Entrar';
+        cartao.querySelector('.mel-acesso-sub').textContent = criando
+          ? 'Para guardar sua sacola e acompanhar seus pedidos.'
+          : 'Bem-vindo de volta à colmeia.';
+        enviar.textContent = criando ? 'CRIAR CONTA' : 'ENTRAR';
+        abas.forEach(function (a) {
+          a.setAttribute('aria-selected', String(a.getAttribute('data-modo') === atual));
+        });
+        cartao.querySelector('[data-campo="nome"]').hidden = !criando;
+        cartao.querySelector('[data-campo="confirma"]').hidden = !criando;
+        cartao.querySelector('[data-dica-senha]').hidden = !criando;
+        /* autocomplete muda com o modo, senão o gerenciador de senhas oferece
+           a senha salva na hora de criar uma nova. */
+        campos.senha.setAttribute('autocomplete', criando ? 'new-password' : 'current-password');
+        ['nome', 'email', 'senha', 'confirma'].forEach(function (n) { mostrarErro(n, ''); });
+        dizer('erro', '');
+      }
+
+      abas.forEach(function (a) {
+        a.addEventListener('click', function () {
+          if (enviando) return;
+          atual = a.getAttribute('data-modo');
+          pintar();
+          campos[atual === 'criar' ? 'nome' : 'email'].focus();
+        });
+      });
+
+      /* Valida ao sair do campo, nunca a cada tecla: acusar erro de e-mail na
+         terceira letra é hostil com quem ainda está digitando. */
+      campos.email.addEventListener('blur', function () {
+        if (campos.email.value) mostrarErro('email', validarEmail(campos.email.value));
+      });
+      campos.senha.addEventListener('blur', function () {
+        if (atual === 'criar' && campos.senha.value) mostrarErro('senha', validarSenha(campos.senha.value));
+      });
+      campos.confirma.addEventListener('blur', function () {
+        if (campos.confirma.value) mostrarErro('confirma', validarConfirma(campos.senha.value, campos.confirma.value));
+      });
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (enviando) return;             // trava de envio duplo, 1 de 2
+
+        var criando = atual === 'criar';
+        var erros = {
+          email: validarEmail(campos.email.value),
+          senha: criando ? validarSenha(campos.senha.value) : (campos.senha.value ? '' : 'Digite sua senha.'),
+        };
+        if (criando) {
+          erros.nome = validarNome(campos.nome.value);
+          erros.confirma = validarConfirma(campos.senha.value, campos.confirma.value);
+        }
+        var primeiro = null;
+        Object.keys(erros).forEach(function (n) {
+          mostrarErro(n, erros[n]);
+          if (erros[n] && !primeiro) primeiro = n;
+        });
+        if (primeiro) {
+          dizer('erro', 'Confira os campos marcados.');
+          campos[primeiro].focus();
+          return;
+        }
+
+        if (!temCripto()) {
+          dizer('erro', 'Este navegador não expõe o WebCrypto nesta origem, então a senha não pode '
+            + 'ser protegida. O acesso foi recusado de propósito: guardar senha sem proteção seria pior.');
+          return;
+        }
+
+        enviando = true;                  // trava de envio duplo, 2 de 2
+        enviar.disabled = true;
+        var texto = enviar.textContent;
+        enviar.innerHTML = '<span class="mel-acesso-giro"></span>' + (criando ? 'CRIANDO…' : 'ENTRANDO…');
+        dizer('erro', '');
+
+        var email = campos.email.value.trim().toLowerCase();
+
+        function falhou(msg, foco) {
+          enviando = false;
+          enviar.disabled = false;
+          enviar.textContent = texto;
+          dizer('erro', msg);
+          if (foco && campos[foco]) campos[foco].focus();
+        }
+
+        if (criando) {
+          if (Contas.achar(email)) {
+            falhou('Já existe uma conta com este e-mail neste navegador. Entre em vez de criar.', 'email');
+            return;
+          }
+          var sal = salNovo();
+          derivar(campos.senha.value, sal).then(function (h) {
+            var lista = Contas.todas();
+            var conta = { nome: campos.nome.value.trim(), email: email, sal: sal,
+                          hash: h, iteracoes: ITERACOES, criadaEm: Date.now() };
+            lista.push(conta);
+            if (!Contas.gravar(lista)) {
+              falhou('Não deu para guardar a conta neste navegador. O armazenamento local pode estar cheio ou bloqueado.');
+              return;
+            }
+            Sessao.abrir(conta);
+            concluir('Conta criada. Bem-vindo, ' + conta.nome + '.');
+          }).catch(function () {
+            falhou('Não foi possível proteger a senha neste navegador. Nada foi gravado.');
+          });
+        } else {
+          var conta = Contas.achar(email);
+          if (!conta) {
+            /* Mesma frase para e-mail inexistente e senha errada: dizer qual
+               dos dois falhou entrega quais e-mails têm conta. */
+            falhou('E-mail ou senha incorretos.', 'senha');
+            return;
+          }
+          derivar(campos.senha.value, conta.sal).then(function (h) {
+            if (!iguais(h, conta.hash)) { falhou('E-mail ou senha incorretos.', 'senha'); return; }
+            Sessao.abrir(conta);
+            concluir('Tudo certo. Olá de novo, ' + conta.nome + '.');
+          }).catch(function () {
+            falhou('Não foi possível verificar a senha neste navegador.');
+          });
+        }
+      });
+
+      function concluir(msg) {
+        enviar.innerHTML = '';
+        enviar.textContent = 'PRONTO';
+        dizer('ok', msg);
+        vivo.textContent = msg;
+        pintarSelo();
+        setTimeout(function () { fecharAcesso(true); }, 1100);
+      }
+
+      function fecharAcesso(devolverFoco) {
+        if (!modal) return;
+        document.documentElement.style.overflow = travaAntes;
+        modal.remove();
+        modal = null;
+        if (devolverFoco && focoAntes && focoAntes.focus) focoAntes.focus();
+      }
+
+      cartao.querySelector('.mel-acesso-x').addEventListener('click', function () { fecharAcesso(true); });
+      cortina.addEventListener('mousedown', function (e) { if (e.target === cortina) fecharAcesso(true); });
+      cortina.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { e.preventDefault(); fecharAcesso(true); return; }
+        if (e.key !== 'Tab') return;
+        /* Foco preso no cartão: sem isto o Tab passeia pela página atrás da
+           cortina, que é exatamente o que um diálogo modal não pode deixar. */
+        var focaveis = Array.prototype.slice.call(cartao.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+          .filter(function (el) { return el.offsetParent !== null && !el.disabled; });
+        if (!focaveis.length) return;
+        var pri = focaveis[0], ult = focaveis[focaveis.length - 1];
+        if (e.shiftKey && document.activeElement === pri) { e.preventDefault(); ult.focus(); }
+        else if (!e.shiftKey && document.activeElement === ult) { e.preventDefault(); pri.focus(); }
+      });
+
+      pintar();
+      if (menosMovimento.matches) {
+        cortina.style.opacity = '1';
+        cartao.style.transform = 'none';
+      } else {
+        var t0 = 0;
+        requestAnimationFrame(function passo(t) {
+          if (!t0) t0 = t;
+          var k = Math.min((t - t0) / 260, 1);
+          var s = k * k * (3 - 2 * k);
+          cortina.style.opacity = String(s);
+          cartao.style.transform = 'translateY(' + (8 * (1 - s)).toFixed(2) + 'px) scale('
+            + (0.985 + 0.015 * s).toFixed(4) + ')';
+          if (k < 1) requestAnimationFrame(passo);
+        });
+      }
+      (atual === 'criar' ? campos.nome : campos.email).focus();
+    }
+
+    /* A sacola muda em qualquer página e em qualquer aba: o selo escuta os dois
+       caminhos. O evento próprio cobre a mesma aba; o storage cobre as outras. */
+    document.addEventListener('mel:sacola-mudou', pintarSelo);
+    window.addEventListener('storage', function (e) {
+      if (e.key === 'melcam:sacola' || e.key === 'melcam:sessao') pintarSelo();
+    });
+    pintarSelo();
   }
 
 
@@ -1282,6 +1955,10 @@
     iniciarAviso();
     document.querySelectorAll('[data-framer-name="Our products"]').forEach(iniciarTicker);
     iniciarMenu();
+    /* Depois de iniciarMenu: o perfil escuta "mel:fechar-menus", e quem emite
+       o evento é quem abre. A ordem só importa para o botão nascer à direita
+       do que o template já tem na faixa. */
+    iniciarPerfil();
     iniciarNavRetratil();
 
     /* O vídeo pode ser bloqueado pelo navegador: nesse caso fica o poster,

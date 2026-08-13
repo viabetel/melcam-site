@@ -39,7 +39,9 @@ const PAGINAS = [
   // 13/08/2026: a barra fixa saiu da Polen, então a âncora passou a ser o hero,
   // que é o primeiro bloco da página agora.
   ['polen.html',      '<section class="mel-ph" data-mel="polen-hero"'],
-  ['bee.html',        '<div class="mel-barra" data-mel="barra-produto">'],
+  // e à tarde saiu também a da Bee, pelo mesmo motivo: a âncora dela virou o
+  // hero, que passou a ser o primeiro bloco da página.
+  ['bee.html',        '<section class="mel-bh" data-mel="bee-hero"'],
   ['acessorios.html', '<section class="mel-sec mel-embreve" aria-labelledby="mel-ac-tit">'],
   ['sobre.html',      '<section class="mel-sec" aria-labelledby="mel-sob-tit">'],
   ['sacola.html',     '<section class="mel-sec" aria-labelledby="mel-sac-tit">'],

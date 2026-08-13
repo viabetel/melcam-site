@@ -10,21 +10,22 @@ const listar = (rel, re) => {
   return fs.existsSync(d) ? fs.readdirSync(d).filter(f => re.test(f)).sort().map(f => `/melcam/img/${rel}/${f}`) : [];
 };
 
-function barra() {
-  return `
-<div class="mel-barra" data-mel="barra-produto">
-  <div class="mel-barra-in">
-    <span class="mel-barra-nome">${BEE.nome}</span>
-    <nav class="mel-barra-anc" aria-label="Seções da Bee">
-      <a href="#modelos">Modelos</a>
-      <a href="#destaques">Destaques</a>
-    </nav>
-    <span class="mel-barra-preco">${BEE.preco}</span>
-    <a class="mel-bt mel-bt-mel" href="#modelos">Comprar</a>
-  </div>
-</div>`;
-}
-
+// A BARRA "Bee · Modelos · Destaques · R$ 299,00 · Comprar" FOI REMOVIDA a
+// pedido, em 13/08/2026 — o mesmo destino da barra equivalente da /polen, pelos
+// mesmos dois motivos: ela duplicava a navbar logo abaixo dela, e o "Comprar"
+// dela competia com o "Escolha sua Bee" do hero, que é o próximo passo certo.
+//
+// Havia ainda um terceiro motivo, medido e não previsto: em 390px a barra
+// (sticky, z-index 40, 366px de largura sobre uma tela de 390) cobria o botão
+// "Abrir menu" da navbar, em x=24..48 · y=29..53. Teste de acerto na /bee em
+// 390: quem recebia o clique era `.mel-barra-in`, não o abridor. Ou seja, no
+// celular não havia como abrir o menu do site a partir desta página — nem a
+// captura mostrava isso, porque a barra parecia só mais uma faixa no topo.
+// Em 768 não colidia (a barra fica centrada, em x=201) e nas outras rotas a
+// barra não existe, então o defeito era exclusivo da /bee no retrato estreito.
+//
+// Com a remoção sai também todo o CSS de `.mel-barra*`: a Bee era a única
+// página que o usava. Ficou registrado em progresso.md.
 // HERO — "uma câmera para levar junto", 13/08/2026.
 //
 // SUBSTITUI a abertura anterior (a Bee branca girando e virando amarela, que
@@ -190,5 +191,5 @@ function destaques() {
 // (data-framer-name "Speed On"), outra implementação, e não foi pedida.
 // `cfg.colmeia` continua no config, com o texto aprovado intacto.
 module.exports = {
-  conteudo() { return barra() + hero() + modelos() + destaques(); },
+  conteudo() { return hero() + modelos() + destaques(); },
 };

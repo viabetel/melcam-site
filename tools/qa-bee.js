@@ -82,7 +82,10 @@ const SONDA = `(function(){
                  '.mel-bh-txt', '.mel-bh-cta', '.mel-bh-apoio', '.mel-bh-cores']
       .filter(function (s) { var e = h.querySelector(s);
         return !e || Number(getComputedStyle(e).opacity) < 0.99; }),
-    barraExiste: !!document.querySelector('.mel-barra'),
+    /* A barra saiu a pedido em 13/08. Continua medida, invertida: se algum
+       gerador a trouxer de volta, isto acusa. Ela cobria o abridor do menu em
+       390px, então voltar não é detalhe de composição. */
+    barraSobrou: !!document.querySelector('.mel-barra'),
     modelosFundo: mod ? getComputedStyle(mod).backgroundColor : null
   };
 })()`;

@@ -23,8 +23,8 @@ const listar = (rel, re) => {
 // primeira, e o CTA "Comprar" competia com o "Escolha sua cor" do hero, que é
 // o próximo passo certo. As âncoras não ficaram órfãs: #produto continua sendo
 // destino do CTA do hero e do CTA final, e #filtros e #faq seguem existindo.
-// A Bee NÃO foi afetada: ela tem a própria barra() em tools/bee.js, e o CSS
-// .mel-barra em tools/paginas.js continua no lugar porque é ela quem usa.
+// A Bee seguiu o mesmo caminho na tarde do mesmo dia, também a pedido, e com
+// ela foi embora o CSS .mel-barra de tools/paginas.js: não sobrou usuário.
 
 // ------------------------------------------------------------- 1. hero
 //

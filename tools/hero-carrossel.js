@@ -652,6 +652,10 @@ function js() {
         if (ultimoFoco && ultimoFoco.focus) ultimoFoco.focus();
         return;
       }
+      /* Avisa o menu de perfil, que mora 44px ao lado: dois paineis abertos ao
+         mesmo tempo em 320px cobririam a tela inteira. Quem abre avisa; quem
+         escuta fecha. */
+      document.dispatchEvent(new CustomEvent('mel:fechar-menus', { detail: { quem: 'nav' } }));
       ultimoFoco = document.activeElement;
       // ancora no botao que foi clicado — cada breakpoint tem o seu
       var visivel = botoes.filter(function (b) { return b.offsetHeight > 0; })[0] || botoes[0];
@@ -690,6 +694,12 @@ function js() {
     /* A ancoragem e calculada na abertura; se a janela mudar de tamanho com o
        menu aberto, o menu fecha em vez de ficar solto no lugar errado. */
     window.addEventListener('resize', function () { if (painel) alternar(); });
+
+    /* O outro lado do acordo: o menu de perfil abriu, este fecha. */
+    document.addEventListener('mel:fechar-menus', function (e) {
+      if (e.detail && e.detail.quem === 'nav') return;
+      if (painel) alternar();
+    });
   }
 
   /* ---------------- troca de filtro (LP Polen) ----------------
@@ -760,6 +770,10 @@ function js() {
     function contar() {
       var n = ler().reduce(function (a, i) { return a + i.qtd; }, 0);
       document.querySelectorAll('[data-mel-contador]').forEach(function (e) { e.textContent = String(n); });
+      /* O selo da navbar (iniciarPerfil) escuta isto. A sacola continua dona da
+         chave e da conta; quem quiser mostrar o número se inscreve no evento em
+         vez de reler o localStorage no seu proprio ritmo. */
+      document.dispatchEvent(new CustomEvent('mel:sacola-mudou', { detail: { total: n } }));
       return n;
     }
 
@@ -1050,6 +1064,7 @@ function js() {
     window.addEventListener('load', function () { medirTopo(); pintar(); });
   }
 
+${require('./perfil.js').js()}
 ${require('./polen-interacoes.js').js()}
 ${require('./bee-interacoes.js').js()}
 
@@ -1070,6 +1085,10 @@ ${require('./bee-interacoes.js').js()}
     iniciarAviso();
     document.querySelectorAll('[data-framer-name="Our products"]').forEach(iniciarTicker);
     iniciarMenu();
+    /* Depois de iniciarMenu: o perfil escuta "mel:fechar-menus", e quem emite
+       o evento é quem abre. A ordem só importa para o botão nascer à direita
+       do que o template já tem na faixa. */
+    iniciarPerfil();
     iniciarNavRetratil();
 
     /* O vídeo pode ser bloqueado pelo navegador: nesse caso fica o poster,

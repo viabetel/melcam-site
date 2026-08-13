@@ -40,29 +40,41 @@ passos.push({ arq: 'melcam/interacoes.js', de: jsVelho.length, para: jsNovo.leng
 const beeHtml = ler('bee.html');
 const beeNovo = require('./bee.js').conteudo();
 
-// Fronteiras do trecho antigo: da abertura antiga até o fim do conteudo().
+// Fronteiras do trecho antigo: da abertura até o fim do conteudo().
 // O fim é estável — o </section> que fecha "destaques", último do bloco.
-const ABRE = '\n<section class="mel-sec mel-abertura mel-bee-abertura" aria-labelledby="mel-bee-tit">';
+//
+// A abertura tem DUAS formas possíveis, e as duas precisam ser aceitas: quem
+// roda isto pela primeira vez encontra a abertura pré-hero; quem roda depois de
+// uma sincronia parcial (o caso de 13/08 — o hero já estava no build, com a
+// ordem antiga do DOM) encontra o marcador do hero. Fixar só a primeira fazia o
+// script reprovar com "abertura antiga não encontrada" e não gravar nada.
+// A BARRA é a terceira forma possível de abertura, e a mais importante das
+// três: quando ela sai da fonte (13/08, a pedido), o corte PRECISA começar
+// nela. Se começasse no hero, o script gravaria um build que ainda contém a
+// barra e mesmo assim passaria na prova final — conteudo() estaria lá, inteiro
+// e uma vez só, com a barra sobrando em cima. A prova extra no fim fecha isso.
+const ABRE_BARRA = '\n<div class="mel-barra" data-mel="barra-produto">';
+const ABRE_PRE_HERO = '\n<section class="mel-sec mel-abertura mel-bee-abertura" aria-labelledby="mel-bee-tit">';
+const ABRE_HERO = '\n<section class="mel-bh"';
 const FIM = '</ul>\n  </div>\n</section>';
 
+const fonteTemBarra = beeNovo.includes('mel-barra');
 let htmlSaida = beeHtml;
-if (beeHtml.includes(beeNovo)) {
+if (beeHtml.includes(beeNovo) && (fonteTemBarra || !beeHtml.includes('mel-barra'))) {
   passos.push({ arq: 'bee.html', de: beeHtml.length, para: beeHtml.length, escrever: () => {}, nota: 'já sincronizado' });
 } else {
+  const ABRE = (!fonteTemBarra && beeHtml.includes(ABRE_BARRA)) ? ABRE_BARRA
+    : beeHtml.includes(ABRE_PRE_HERO) ? ABRE_PRE_HERO : ABRE_HERO;
   const i0 = beeHtml.indexOf(ABRE);
   const i1 = beeHtml.indexOf(FIM, i0);
-  exigir(i0 > 0, 'bee.html: abertura antiga não encontrada');
+  exigir(i0 > 0, 'bee.html: abertura não encontrada (barra, pré-hero ou hero)');
   exigir(i1 > i0, 'bee.html: fim do conteudo() não encontrado');
-  exigir(conta(beeHtml, ABRE) === 1, 'bee.html: abertura antiga aparece mais de uma vez');
+  exigir(conta(beeHtml, ABRE) === 1, 'bee.html: abertura aparece mais de uma vez');
   if (i0 > 0 && i1 > i0) {
     const fim = i1 + FIM.length;
-    // A barra() é idêntica antes e depois; o trecho trocado vai da abertura
-    // ao fim, e a barra fica onde está. Por isso o corte começa em ABRE e o
-    // texto novo entra sem a barra.
-    const novoSemBarra = beeNovo.slice(beeNovo.indexOf(ABRE.slice(0, 20)) >= 0 ? 0 : 0);
-    const iHero = novoSemBarra.indexOf('\n<section class="mel-bh"');
-    exigir(iHero > 0, 'bee.js: hero novo não encontrado no conteudo()');
-    htmlSaida = beeHtml.slice(0, i0) + novoSemBarra.slice(iHero) + beeHtml.slice(fim);
+    // O trecho trocado vai da abertura ao fim, e o conteudo() da fonte entra
+    // inteiro no lugar: o que a fonte não tem mais, o build perde aqui.
+    htmlSaida = beeHtml.slice(0, i0) + beeNovo + beeHtml.slice(fim);
     passos.push({ arq: 'bee.html', de: beeHtml.length, para: htmlSaida.length, escrever: () => fs.writeFileSync(p('bee.html'), htmlSaida, 'utf8') });
   }
 }
@@ -110,6 +122,34 @@ if (css.includes(RM_VELHO)) {
   css = css.replace(RM_VELHO, '');
 }
 
+// 3b. o CSS órfão da barra de produto, que saiu com ela em 13/08. Duas
+//     regiões: o bloco de regras e as três linhas do breakpoint de retrato.
+//     O texto que entra no lugar vem da FONTE (paginas.js), não é escrito
+//     aqui: assim o registro do porquê existe em um lugar só.
+const BARRA_CSS_INI = '/* ---- barra de produto fixa, referência apple.com/ipad-air ---- */';
+const BARRA_CSS_FIM = '.mel-barra-preco{ color:#9A9083; font-family:"Area",sans-serif; font-size:.85rem }';
+if (css.includes(BARRA_CSS_INI)) {
+  const NOTA_INI = '/* A barra de produto fixa (referência apple.com/ipad-air) saiu do projeto em';
+  const NOTA_FIM = '   Não recriar sem pedido: a navbar já faz o trabalho. */';
+  const n0 = paginasNovo.indexOf(NOTA_INI);
+  const n1 = paginasNovo.indexOf(NOTA_FIM, n0);
+  exigir(n0 > 0 && n1 > n0, 'paginas.js: nota da barra removida não encontrada na fonte');
+  const d0 = css.indexOf(BARRA_CSS_INI);
+  const d1 = css.indexOf(BARRA_CSS_FIM, d0);
+  exigir(d1 > d0, 'identidade.css: fim do bloco da barra não encontrado');
+  exigir(conta(css, BARRA_CSS_INI) === 1, 'identidade.css: bloco da barra duplicado');
+  if (n0 > 0 && n1 > n0 && d1 > d0) {
+    css = css.slice(0, d0) + crlf(paginasNovo.slice(n0, n1 + NOTA_FIM.length)) + css.slice(d1 + BARRA_CSS_FIM.length);
+  }
+}
+const BARRA_MQ = '  .mel-barra-in{ padding:.55rem 16px; gap:10px; overflow-x:auto }\r\n'
+  + '  .mel-barra-anc{ gap:12px }\r\n'
+  + '  .mel-barra-preco{ display:none }\r\n';
+if (css.includes(BARRA_MQ)) {
+  exigir(conta(css, BARRA_MQ) === 1, 'identidade.css: media query da barra duplicado');
+  css = css.replace(BARRA_MQ, '');
+}
+
 // 4. o bloco novo, no fim — a mesma posição relativa da fonte (depois do
 //    bloco da /polen, que hoje é o último da folha).
 const beeCss = crlf(require('./bee-interacoes.js').css());
@@ -128,6 +168,7 @@ if (css.includes(MARCA_BEE)) {
 // sobrar é regra, não menção.
 const semComentario = css.replace(/\/\*[\s\S]*?\*\//g, '');
 exigir(!/\.mel-bee-(l1|palco|cam|branca|amarela)\s*[,{]/.test(semComentario), 'identidade.css: sobrou seletor da abertura antiga');
+exigir(!/\.mel-barra[\w-]*\s*[,{]/.test(semComentario), 'identidade.css: sobrou regra da barra de produto');
 exigir(!/@keyframes\s+mel-bee-(gira|revela)/.test(semComentario), 'identidade.css: sobrou keyframe da abertura antiga');
 {
   const abre = conta(css, '{'), fecha = conta(css, '}');
@@ -153,4 +194,9 @@ const conf = fs.readFileSync(p('bee.html'), 'utf8');
 const ok = conta(conf, require('./bee.js').conteudo()) === 1;
 console.log(ok ? '[OK] bee.html contém conteudo() da fonte, 1x'
   : '[FALHA] bee.html NÃO bate com conteudo() da fonte');
-process.exit(ok ? 0 : 1);
+// A prova de que a barra realmente saiu do BUILD. Sem ela, um corte começando
+// no hero deixaria a barra no HTML e esta linha ainda diria [OK] acima.
+const semBarra = fonteTemBarra || !/class="mel-barra/.test(conf);
+console.log(semBarra ? '[OK] bee.html sem a barra de produto'
+  : '[FALHA] bee.html ainda tem a barra que saiu da fonte');
+process.exit(ok && semBarra ? 0 : 1);

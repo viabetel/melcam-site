@@ -379,6 +379,12 @@ img[src$="a-decidir.svg"]{ background:#221E17; object-fit:contain }
   background-color:#FBF7EE !important;
 }
 
+/* O LOGO PINTA EM currentColor desde 13/08/2026 (ver tools/logo.js), entao
+   quem decide a cor e esta regra. Sem ela o logo herda o color do <a>, que
+   e o azul de link padrao do navegador. Papel e o padrao porque o fundo
+   padrao do logo e carvao; a /bee sobrescreve so a instancia da navbar. */
+[data-framer-name="MELCAM"]{ color:#FBF7EE }
+
 /* Acessibilidade: foco visivel que o template nao trazia. */
 a:focus-visible,button:focus-visible,[tabindex]:focus-visible{
   outline:2px solid #F2A900; outline-offset:3px; border-radius:2px;
@@ -611,28 +617,11 @@ body.mel-interna .mel-comunidade,
 body.mel-interna .mel-clipes,
 body.mel-interna .mel-seguranca{ display:none !important }
 
-/* ---- barra de produto fixa, referência apple.com/ipad-air ---- */
-.mel-barra{
-  position:sticky; top:0; z-index:40;
-  background:rgba(34,30,23,.82); backdrop-filter:saturate(180%) blur(18px);
-  border-bottom:1px solid rgba(251,247,238,.08);
-}
-.mel-barra-in{
-  max-width:1440px; margin:0 auto; padding:.7rem 24px;
-  display:flex; align-items:center; gap:clamp(12px,2.4vw,32px);
-}
-.mel-barra-nome{
-  font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
-  font-size:1.05rem; color:#FBF7EE;
-}
-.mel-barra-anc{ display:flex; gap:clamp(12px,1.8vw,26px); margin-right:auto }
-.mel-barra-anc a{
-  color:#9A9083; text-decoration:none;
-  font-family:"Area",sans-serif; font-size:.82rem; letter-spacing:.02em;
-  transition:color 200ms ease;
-}
-.mel-barra-anc a:hover{ color:#FBF7EE }
-.mel-barra-preco{ color:#9A9083; font-family:"Area",sans-serif; font-size:.85rem }
+/* A barra de produto fixa (referência apple.com/ipad-air) saiu do projeto em
+   13/08/2026. A /polen perdeu a dela mais cedo no mesmo dia; a /bee, a pedido,
+   à tarde — e com a /bee foi embora o último uso destas regras. O motivo e a
+   medição do defeito de sobreposição no mobile estão em tools/bee.js.
+   Não recriar sem pedido: a navbar já faz o trabalho. */
 
 .mel-bt{
   display:inline-block; border:0; cursor:pointer; text-decoration:none;
@@ -851,9 +840,6 @@ body.mel-interna .mel-seguranca{ display:none !important }
   .mel-specs{ grid-template-columns:repeat(2,1fr) }
 }
 @media (max-width:809.98px){
-  .mel-barra-in{ padding:.55rem 16px; gap:10px; overflow-x:auto }
-  .mel-barra-anc{ gap:12px }
-  .mel-barra-preco{ display:none }
   .mel-cores{ grid-template-columns:repeat(2,1fr) }
   .mel-galeria{ grid-template-columns:repeat(2,1fr); gap:8px }
   .mel-specs{ grid-template-columns:1fr }
@@ -962,6 +948,207 @@ body.mel-interna .mel-seguranca{ display:none !important }
 .framer-bx6rvt-container{ order:1 }
 .framer-8hdwjm-container > footer{ order:2 }
 
+/* ================== conta, sessão e sacola na navbar ==================
+   Duas peças: o controle na barra e o painel que desce dele. O painel
+   repete o vocabulário do menu de navegação (carvão, raio 6, a mesma
+   sombra), porque são vizinhos de 40px e ler como dois sistemas diferentes
+   seria o defeito. Tudo com prefixo mel-, nada tocando classe do Framer. */
+
+/* A linha da navbar tem 27px de altura e o botão precisa de 44px de alvo de
+   toque, então ele transborda ~8px para cada lado. Sem esta regra o transbordo
+   é RECORTADO onde houver overflow:hidden: o clique funciona (a área existe),
+   mas o realce redondo do hover aparece cortado em cima e embaixo. O :has
+   limita a exceção à linha que de fato recebeu o botão. */
+nav [data-framer-name="Section "]:has(.mel-perfil-bt),
+nav [data-framer-name="Section Icon"]:has(.mel-perfil-bt){ overflow:visible }
+
+.mel-perfil-bt{
+  flex:0 0 auto;   /* a linha é flex: sem isto o botão é espremido em 320px */
+  position:relative; display:inline-flex; align-items:center; justify-content:center;
+  width:44px; height:44px; margin:-10px 0;   /* 44px de alvo dentro de uma faixa de 24 */
+  padding:0; border:0; background:none; cursor:pointer;
+  color:#FBF7EE; border-radius:999px;
+  transition:color 200ms ease, background 200ms ease, transform 200ms ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.mel-perfil-bt:hover{ color:#F2A900; background:rgba(251,247,238,.08) }
+.mel-perfil-bt:active{ transform:scale(.94) }
+.mel-perfil-bt[aria-expanded="true"]{ color:#F2A900 }
+.mel-perfil-bt svg{ display:block; width:24px; height:24px }
+
+/* Contador da sacola: bolinha de mel no canto do ícone. Ela repete um número
+   que também está escrito no item "Carrinho" do painel — nunca é a única
+   fonte da informação, senão quem não enxerga cor perde o dado. */
+.mel-perfil-selo{
+  position:absolute; top:5px; right:4px; min-width:16px; height:16px; padding:0 4px;
+  display:none; align-items:center; justify-content:center;
+  background:#F2A900; color:#221E17; border-radius:999px;
+  font-family:"Area",sans-serif; font-size:.625rem; font-weight:700; line-height:1;
+  box-shadow:0 0 0 2px #221E17;
+}
+.mel-perfil-selo[data-tem]{ display:flex }
+
+.mel-perfil-menu{
+  position:fixed; z-index:2147483000;
+  min-width:212px; max-width:calc(100vw - 32px);
+  padding:.5rem; background:#221E17;
+  border:1px solid rgba(251,247,238,.14); border-radius:6px; box-shadow:0 18px 40px -12px rgba(14,12,9,.7);
+  opacity:0; transform:translateY(-6px);
+}
+.mel-perfil-quem{
+  padding:.5rem .625rem .625rem; margin-bottom:.25rem;
+  border-bottom:1px solid rgba(251,247,238,.14);
+}
+.mel-perfil-quem b{
+  display:block; color:#FBF7EE; font-family:"Area",sans-serif;
+  font-size:.9375rem; font-weight:700; line-height:1.25;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.mel-perfil-quem span{
+  display:block; margin-top:.15rem; color:#9A9083;
+  font-family:"Area",sans-serif; font-size:.75rem; line-height:1.3;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.mel-perfil-item{
+  display:flex; align-items:center; gap:.625rem; width:100%;
+  min-height:44px; padding:.5rem .625rem; box-sizing:border-box;
+  border:0; border-radius:4px; background:none; cursor:pointer; text-align:left;
+  color:#FBF7EE; text-decoration:none;
+  font-family:"Area",sans-serif; font-size:.9375rem; font-weight:600; line-height:1.3;
+  transition:background 180ms ease, color 180ms ease;
+}
+.mel-perfil-item svg{ flex:0 0 auto; width:19px; height:19px; color:#9A9083; transition:color 180ms ease }
+.mel-perfil-item:hover,.mel-perfil-item:focus-visible{ background:rgba(251,247,238,.08); color:#F2A900 }
+.mel-perfil-item:hover svg,.mel-perfil-item:focus-visible svg{ color:#F2A900 }
+.mel-perfil-item:active{ background:rgba(251,247,238,.14) }
+.mel-perfil-conta{ margin-left:auto; color:#9A9083; font-size:.8125rem; font-weight:700 }
+.mel-perfil-item:hover .mel-perfil-conta{ color:#F2A900 }
+
+/* ---- modal de acesso ----
+   Cartão de papel sobre cortina escura. A escolha não é decorativa: formulário
+   é a peça mais densa em texto do site, e papel dá 15,5:1 no carvão contra os
+   ~8:1 do inverso. Os blocos claros da /bee já abriram esse caminho. */
+.mel-acesso-cortina{
+  position:fixed; inset:0; z-index:2147483100;
+  display:flex; align-items:center; justify-content:center; padding:16px;
+  background:rgba(14,12,9,.72); opacity:0;
+  overflow-y:auto; overscroll-behavior:contain;
+}
+.mel-acesso{
+  position:relative; width:100%; max-width:404px; box-sizing:border-box;
+  padding:1.75rem 1.5rem 1.5rem; background:#FBF7EE;
+  border-radius:10px; box-shadow:0 30px 70px -20px rgba(14,12,9,.8);
+  transform:translateY(8px) scale(.985);
+}
+.mel-acesso-x{
+  position:absolute; top:8px; right:8px; width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center;
+  border:0; background:none; cursor:pointer; color:#6B6254; border-radius:999px;
+  transition:color 180ms ease, background 180ms ease;
+}
+.mel-acesso-x:hover{ color:#221E17; background:rgba(34,30,23,.06) }
+.mel-acesso-x svg{ width:20px; height:20px }
+.mel-acesso-tit{
+  margin:0 2rem .25rem 0; color:#221E17;
+  font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
+  font-size:1.5rem; line-height:1.15; letter-spacing:-.01em;
+}
+.mel-acesso-sub{
+  margin:0 0 1.125rem; color:#6B6254;
+  font-family:"Area",sans-serif; font-size:.875rem; line-height:1.45;
+}
+
+/* Alternância Entrar / Criar conta: dois botões numa trilha, o ativo em papel.
+   É radiogroup de verdade (role=tab), não dois links que trocam de cor. */
+.mel-acesso-abas{
+  display:flex; gap:4px; margin-bottom:1.125rem; padding:4px;
+  background:#F3EDE0; border-radius:999px;
+}
+.mel-acesso-aba{
+  flex:1; min-height:38px; padding:.5rem .75rem; border:0; border-radius:999px;
+  background:none; cursor:pointer; color:#6B6254;
+  font-family:"Area",sans-serif; font-size:.8125rem; font-weight:700;
+  letter-spacing:.02em; transition:background 200ms ease, color 200ms ease;
+}
+.mel-acesso-aba:hover{ color:#221E17 }
+.mel-acesso-aba[aria-selected="true"]{
+  background:#FBF7EE; color:#221E17; box-shadow:0 1px 3px rgba(34,30,23,.12);
+}
+
+.mel-campo{ margin-bottom:.875rem }
+.mel-campo label{
+  display:block; margin-bottom:.3rem; color:#221E17;
+  font-family:"Area",sans-serif; font-size:.8125rem; font-weight:700; letter-spacing:.01em;
+}
+.mel-campo input{
+  width:100%; box-sizing:border-box; min-height:46px; padding:.7rem .875rem;
+  background:#FFF; color:#221E17;
+  border:1px solid rgba(34,30,23,.12); border-radius:6px;
+  font-family:"Area",sans-serif; font-size:1rem; line-height:1.3;
+  transition:border-color 180ms ease, box-shadow 180ms ease;
+}
+.mel-campo input::placeholder{ color:#9A9083 }
+.mel-campo input:hover{ border-color:rgba(34,30,23,.24) }
+.mel-campo input:focus{
+  outline:none; border-color:#221E17; box-shadow:0 0 0 3px rgba(242,169,0,.28);
+}
+/* O anel global de foco é mel, calibrado contra carvão: sobre papel ele dá
+   1,88:1 e some. Nas zonas claras o anel é carvão — a mesma regra da /bee. */
+.mel-acesso :focus-visible{ outline:2px solid #221E17; outline-offset:2px }
+.mel-campo input[aria-invalid="true"]{ border-color:#B3341C }
+.mel-campo input[aria-invalid="true"]:focus{ box-shadow:0 0 0 3px rgba(179,52,28,.22) }
+.mel-campo-erro{
+  display:block; margin-top:.3rem; color:#B3341C;
+  font-family:"Area",sans-serif; font-size:.75rem; line-height:1.35;
+}
+.mel-campo-dica{
+  display:block; margin-top:.3rem; color:#6B6254;
+  font-family:"Area",sans-serif; font-size:.75rem; line-height:1.35;
+}
+
+.mel-acesso-aviso{
+  margin:0 0 .875rem; padding:.625rem .75rem; border-radius:6px;
+  font-family:"Area",sans-serif; font-size:.8125rem; line-height:1.4;
+}
+.mel-acesso-aviso[data-tipo="erro"]{ background:rgba(179,52,28,.1); color:#B3341C }
+.mel-acesso-aviso[data-tipo="ok"]{ background:rgba(63,107,88,.12); color:#3F6B58 }
+.mel-acesso-aviso[hidden]{ display:none }
+
+.mel-acesso-enviar{
+  display:flex; align-items:center; justify-content:center; gap:.5rem;
+  width:100%; min-height:48px; margin-top:.25rem;
+  border:0; border-radius:999px; cursor:pointer;
+  background:#F2A900; color:#221E17;
+  font-family:"Area",sans-serif; font-size:.9375rem; font-weight:700; letter-spacing:.02em;
+  transition:background 200ms ease, transform 200ms ease;
+}
+.mel-acesso-enviar:hover:not([disabled]){ background:#FFC22E }
+.mel-acesso-enviar:active:not([disabled]){ transform:translateY(1px) }
+.mel-acesso-enviar[disabled]{ opacity:.72; cursor:progress }
+.mel-acesso-giro{
+  width:15px; height:15px; border-radius:999px;
+  border:2px solid rgba(34,30,23,.3); border-top-color:#221E17;
+  animation:mel-giro 700ms linear infinite;
+}
+@keyframes mel-giro{ to{ transform:rotate(360deg) } }
+
+/* O rodapé do cartão é onde o site diz a verdade sobre o que esta conta é.
+   Sem servidor, prometer "sua conta Melcam" seria promessa falsa. */
+.mel-acesso-nota{
+  margin:1rem 0 0; padding-top:.875rem; border-top:1px solid rgba(34,30,23,.12);
+  color:#6B6254; font-family:"Area",sans-serif; font-size:.6875rem; line-height:1.5;
+}
+
+@media (max-width:400px){
+  .mel-acesso{ padding:1.5rem 1.125rem 1.25rem }
+  .mel-acesso-tit{ font-size:1.3125rem }
+  .mel-perfil-menu{ min-width:0; width:calc(100vw - 24px) }
+}
+@media (prefers-reduced-motion:reduce){
+  .mel-perfil-bt,.mel-perfil-item,.mel-acesso-aba,.mel-acesso-enviar,.mel-campo input{ transition:none }
+  .mel-perfil-bt:active,.mel-acesso-enviar:active:not([disabled]){ transform:none }
+  .mel-acesso-giro{ animation-duration:1800ms }
+}
 /* ================== /polen — hero premium ==================
    Direção da referência de 13/08: fundo escuro, texto editorial à esquerda,
    fotografia oficial grande à direita sangrando na borda.
@@ -1593,6 +1780,17 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
      largura do container: mais estreito, nunca quebrado. */
 }
 
+/* --- o palco ---
+   Faixa direita do hero. Não pinta nada e não recebe clique: existe para ser
+   o ÚNICO sistema de coordenadas do plano de mel e das duas câmeras. Enquanto
+   a forma ficou presa ao hero e as câmeras ao palco, o retrato media as duas
+   contra caixas diferentes e o plano amarelo saía com 582px de altura onde
+   cabiam 190. */
+.mel-bh-palco{
+  position:absolute; z-index:2; inset:0 0 0 38%;
+  pointer-events:none;
+}
+
 /* --- camada 0: o grande plano de mel ---
    Sangra no topo e na direita; o canto inferior esquerdo é um raio grande, e
    é ele que faz a divisão entre papel e mel ser curva em vez de reta. A base
@@ -1602,7 +1800,7 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
 .mel-bh-forma{
   position:absolute; z-index:0; top:0; right:0;
   bottom:clamp(34px,6vh,88px);
-  width:min(56%,780px);
+  width:87%;
   border-radius:0 0 0 clamp(150px,21vw,320px);
   background-color:#F2A900;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='126' height='72.75' viewBox='0 0 126 72.75'%3E%3Cpath d='M42 0L21 36.37L-21 36.37L-42 0L-21 -36.37L21 -36.37ZM168 0L147 36.37L105 36.37L84 0L105 -36.37L147 -36.37ZM42 72.75L21 109.12L-21 109.12L-42 72.75L-21 36.38L21 36.38ZM168 72.75L147 109.12L105 109.12L84 72.75L105 36.38L147 36.38ZM105 36.37L84 72.74L42 72.74L21 36.37L42 0L84 0Z' fill='none' stroke='%23DE9E04' stroke-width='2'/%3E%3C/svg%3E");
@@ -1616,15 +1814,9 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
   to  { opacity:1; transform:none }
 }
 
-/* --- camada 2: os dois packshots ---
-   O palco ocupa a faixa direita do hero e serve só de sistema de coordenadas:
-   não pinta nada e não recebe clique. */
-.mel-bh-palco{
-  position:absolute; z-index:2; inset:0 0 0 38%;
-  pointer-events:none;
-}
+/* --- camada 1: os dois packshots --- */
 .mel-bh-cam{
-  position:absolute; display:block; height:auto;
+  position:absolute; z-index:1; display:block; height:auto;
   /* contain: o packshot é recorte, nunca pode ser cortado nem deformado */
   object-fit:contain;
   /* A sombra de contato. Dois passos: um longo, que assenta a peça no plano,
@@ -1745,7 +1937,7 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
   .mel-bh-copy{ max-width:min(52%,24rem) }
   .mel-bh-tit{ font-size:clamp(1.9rem,4.4vw,2.7rem) }
   .mel-bh-palco{ inset:0 0 0 30% }
-  .mel-bh-forma{ width:min(62%,560px); border-radius:0 0 0 clamp(120px,20vw,220px) }
+  .mel-bh-forma{ width:90%; border-radius:0 0 0 clamp(120px,20vw,220px) }
   .mel-bh-branca{ left:2%; top:9%; width:38% }
   .mel-bh-amarela{ left:4%; bottom:9%; width:88% }
 }
@@ -1763,23 +1955,27 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
        em 390. */
     padding:104px 0 0;
   }
-  .mel-bh-in{ padding:0 20px clamp(22px,6vw,32px) }
+  .mel-bh-in{ padding:0 20px clamp(20px,5vw,30px) }
   .mel-bh-copy{ max-width:none }
-  .mel-bh-tit{ max-width:14ch; font-size:clamp(1.95rem,8.4vw,2.5rem) }
+  /* Sem teto em ch aqui: quem manda é a largura da coluna. Medido nos dois
+     retratos, a manchete fecha em duas linhas — 22ch cabe "Pequena o
+     bastante" e não cabe "…bastante para", que é a quebra pedida. */
+  .mel-bh-tit{ max-width:22ch; font-size:clamp(1.95rem,8.4vw,2.5rem) }
   .mel-bh-txt{ max-width:46ch }
 
-  /* O palco deixa de ser sobreposição e passa a ser bloco no fluxo. */
+  /* O palco deixa de ser sobreposição e passa a ser bloco no fluxo — e como
+     a forma agora mora dentro dele, o plano de mel acompanha sozinho. */
   .mel-bh-palco{
-    position:relative; inset:auto; width:100%;
-    height:clamp(230px,62vw,320px); margin-top:clamp(18px,4vw,26px);
+    position:relative; z-index:auto; inset:auto; width:100%;
+    height:clamp(226px,58vw,300px);
   }
   .mel-bh-forma{
-    top:auto; bottom:0; right:0; height:78%;
-    width:min(82%,420px); border-radius:clamp(90px,26vw,150px) 0 0 0;
+    top:auto; bottom:0; right:0; height:80%;
+    width:min(80%,400px); border-radius:clamp(80px,22vw,140px) 0 0 0;
   }
-  .mel-bh-branca{ left:2%; top:2%; width:44% }
-  .mel-bh-amarela{ left:6%; bottom:6%; width:86% }
-  .mel-bh-cores{ right:auto; left:20px; bottom:-6px }
+  .mel-bh-branca{ left:3%; top:0; width:42% }
+  .mel-bh-amarela{ left:5%; bottom:8%; width:84% }
+  .mel-bh-cores{ right:auto; left:20px; bottom:2px }
 }
 
 /* Emenda com a seção de modelos.
@@ -1853,18 +2049,68 @@ body.mel-pagina-bee #modelos button:focus-visible{
   outline:2px solid #221E17; outline-offset:3px;
 }
 
-/* A barra da Bee acompanha a pele clara.
-   Ela NÃO foi removida: na /polen a barra equivalente saiu em 13/08 por
-   duplicar a navbar e por o "Comprar" dela competir com o CTA do hero — os
-   dois problemas existem aqui igual, mas remover exige pedido, e o pedido
-   não veio. Fica registrado em progresso.md para decisão.
-   O que não podia ficar era uma faixa carvão translúcida colada em cima de
-   um hero de papel: aí o defeito seria só meu. */
-body.mel-pagina-bee .mel-barra{
-  background:rgba(251,247,238,.86);
-  border-bottom:1px solid rgba(34,30,23,.12);
+/* A pele clara da barra saiu junto com a barra, removida a pedido em 13/08.
+   O porquê está em tools/bee.js, onde a barra morava. */
+
+/* ---- A NAVBAR NA /bee, 13/08/2026 à noite ----
+   CAUSA MEDIDA, não impressão: a navbar do template é position:fixed com 81px
+   de altura, portanto FORA DO FLUXO. Nas páginas internas o primeiro bloco
+   começa em y=0 — na /bee, section.mel-bh (o hero) —, então os 81px de cima do
+   hero ficam ATRÁS da faixa. Na home isso não acontece porque o stack começa em
+   y=844, depois do vídeo. Na /polen acontece igual e ninguém vê: carvão sobre
+   carvão. Na /bee, cujo hero é papel, a mesma faixa vira uma tarja escura
+   atravessando uma composição clara — o mesmo defeito da costura de 10px, em
+   escala maior.
+
+   Não se resolve com z-index: não é ordem de pilha, é fluxo. Empurrar o hero
+   para baixo (padding-top de 81px) resolveria a sobreposição e criaria outra
+   coisa: uma tira de papel morta sob a faixa e um hero 81px mais alto, longe da
+   dobra medida. O que a página quer é a faixa fazendo parte do hero.
+
+   Então a faixa veste a pele da página, escopada em body.mel-pagina-bee: papel
+   no fundo, carvão no desenho. Os 81px deixam de ser tarja e passam a ser o
+   alto do hero. Nada global muda, e as outras oito páginas continuam de carvão.
+
+   O que precisa mudar de cor junto, e por quê:
+     - o container fixo E a nav: o fundo carvão vem do token no atributo style
+       da <nav>, então a folha só vence com !important;
+     - as três barrinhas do hambúrguer e o SVG da marca, que são papel;
+     - o botão de perfil, que herda color e já acompanha;
+     - o anel de foco, que em mel sobre papel dá 1,88:1.
+
+   🔴 SÃO DUAS <nav>, COM NOMES DIFERENTES, e é exatamente aqui que a primeira
+   tentativa desta correção falhou. O template traz
+   data-framer-name="Navigation Color" (desktop) e "Navigation Mobile Coor"
+   (mobile, com o nome truncado assim mesmo no export). Escopar pela primeira
+   deixou o mobile de fora — e como as barrinhas do ícone JÁ tinham virado
+   carvão, o resultado foi pior que o defeito original: faixa carvão com ícone
+   carvão, hambúrguer e perfil invisíveis em 390px, ainda clicáveis. Um QA que
+   só medisse clique passaria; foi a captura que mostrou.
+   Por isso o seletor casa pelo PREFIXO do nome, não pelo nome inteiro. */
+body.mel-pagina-bee nav[data-framer-name^="Navigation"],
+body.mel-pagina-bee .framer-1gfj5qd-container{
+  background-color:#FBF7EE !important;
 }
-body.mel-pagina-bee .mel-barra-nome{ color:#221E17 }
-body.mel-pagina-bee .mel-barra-anc a{ color:#6B6254 }
-body.mel-pagina-bee .mel-barra-anc a:hover{ color:#221E17 }
-body.mel-pagina-bee .mel-barra-preco{ color:#6B6254 }
+body.mel-pagina-bee nav[data-framer-name^="Navigation"]{
+  --border-color:rgba(34,30,23,.12);
+}
+/* As barrinhas do ícone: o template as pinta por token no style inline. */
+body.mel-pagina-bee [data-framer-name="Meniu"] [data-framer-name="1"],
+body.mel-pagina-bee [data-framer-name="Meniu"] [data-framer-name="2"],
+body.mel-pagina-bee [data-framer-name="Meniu"] [data-framer-name="3"]{
+  background-color:#221E17 !important;
+}
+body.mel-pagina-bee nav [data-framer-name="MELCAM"]{ color:#221E17 }
+body.mel-pagina-bee nav [data-framer-name="MELCAM"] svg{ fill:currentColor }
+body.mel-pagina-bee .mel-perfil-bt{ color:#221E17 }
+body.mel-pagina-bee .mel-perfil-bt:hover{ color:#8A6A12; background:rgba(34,30,23,.06) }
+body.mel-pagina-bee .mel-perfil-bt[aria-expanded="true"]{ color:#8A6A12 }
+/* O selo de mel some contra papel: sobre a faixa clara ele é carvão. */
+body.mel-pagina-bee .mel-perfil-selo{
+  background:#221E17; color:#FBF7EE; box-shadow:0 0 0 2px #FBF7EE;
+}
+body.mel-pagina-bee nav a:focus-visible,
+body.mel-pagina-bee nav button:focus-visible,
+body.mel-pagina-bee nav [tabindex]:focus-visible{
+  outline:2px solid #221E17; outline-offset:3px;
+}

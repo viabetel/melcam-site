@@ -21,8 +21,20 @@ function corpoDoLogo() {
   // conteudo entre <svg ...> e </svg>, sem o <defs><style> (a cor vai inline)
   let corpo = svg.slice(svg.indexOf('>', svg.indexOf('<svg')) + 1, svg.lastIndexOf('</svg>'));
   corpo = corpo.replace(/<defs>[\s\S]*?<\/defs>/g, '');
-  // a classe .cls-1 do arquivo vira fill explicito no token da marca
-  corpo = corpo.replace(/class="cls-\d+"/g, `fill="${cfg.paleta.papel}"`);
+  // A classe .cls-1 do arquivo vira fill="currentColor", nao a cor fixa.
+  //
+  // Era `fill="${cfg.paleta.papel}"`, papel cravado, e isso funcionou enquanto
+  // TODO fundo atras do logo era carvao. Em 13/08/2026 a navbar da /bee passou
+  // a vestir papel, e o logo sumiu: papel sobre papel. Recolorir o simbolo nao
+  // resolvia — ele e um so, referenciado por cinco <use> na mesma pagina (as
+  // duas variantes de navbar e o rodape), entao mudar a cor dele apagaria o
+  // logo do rodape, que segue em carvao.
+  //
+  // Com currentColor cada <use> pinta com a cor do SEU contexto. Quem manda e
+  // o CSS de [data-framer-name="MELCAM"]: papel por padrao (tools/identidade.js)
+  // e carvao na navbar da /bee (tools/bee-interacoes.js). Um logo, dois fundos,
+  // nenhuma copia.
+  corpo = corpo.replace(/class="cls-\d+"/g, 'fill="currentColor"');
   return { viewBox, corpo: corpo.replace(/\s+/g, ' ').trim() };
 }
 

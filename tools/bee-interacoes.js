@@ -371,21 +371,73 @@ body.mel-pagina-bee #modelos button:focus-visible{
   outline:2px solid ${P.carvao}; outline-offset:3px;
 }
 
-/* A barra da Bee acompanha a pele clara.
-   Ela NÃO foi removida: na /polen a barra equivalente saiu em 13/08 por
-   duplicar a navbar e por o "Comprar" dela competir com o CTA do hero — os
-   dois problemas existem aqui igual, mas remover exige pedido, e o pedido
-   não veio. Fica registrado em progresso.md para decisão.
-   O que não podia ficar era uma faixa carvão translúcida colada em cima de
-   um hero de papel: aí o defeito seria só meu. */
-body.mel-pagina-bee .mel-barra{
-  background:rgba(251,247,238,.86);
-  border-bottom:1px solid ${D.papelBorda};
+/* A pele clara da barra saiu junto com a barra, removida a pedido em 13/08.
+   O porquê está em tools/bee.js, onde a barra morava. */
+
+/* ---- A NAVBAR NA /bee, 13/08/2026 à noite ----
+   CAUSA MEDIDA, não impressão: a navbar do template é position:fixed com 81px
+   de altura, portanto FORA DO FLUXO. Nas páginas internas o primeiro bloco
+   começa em y=0 — na /bee, section.mel-bh (o hero) —, então os 81px de cima do
+   hero ficam ATRÁS da faixa. Na home isso não acontece porque o stack começa em
+   y=844, depois do vídeo. Na /polen acontece igual e ninguém vê: carvão sobre
+   carvão. Na /bee, cujo hero é papel, a mesma faixa vira uma tarja escura
+   atravessando uma composição clara — o mesmo defeito da costura de 10px, em
+   escala maior.
+
+   Não se resolve com z-index: não é ordem de pilha, é fluxo. Empurrar o hero
+   para baixo (padding-top de 81px) resolveria a sobreposição e criaria outra
+   coisa: uma tira de papel morta sob a faixa e um hero 81px mais alto, longe da
+   dobra medida. O que a página quer é a faixa fazendo parte do hero.
+
+   Então a faixa veste a pele da página, escopada em body.mel-pagina-bee: papel
+   no fundo, carvão no desenho. Os 81px deixam de ser tarja e passam a ser o
+   alto do hero. Nada global muda, e as outras oito páginas continuam de carvão.
+
+   O que precisa mudar de cor junto, e por quê:
+     - o container fixo E a nav: o fundo carvão vem do token no atributo style
+       da <nav>, então a folha só vence com !important;
+     - as três barrinhas do hambúrguer e o SVG da marca, que são papel;
+     - o botão de perfil, que herda color e já acompanha;
+     - o anel de foco, que em mel sobre papel dá 1,88:1.
+
+   🔴 SÃO DUAS <nav>, COM NOMES DIFERENTES, e é exatamente aqui que a primeira
+   tentativa desta correção falhou. O template traz
+   data-framer-name="Navigation Color" (desktop) e "Navigation Mobile Coor"
+   (mobile, com o nome truncado assim mesmo no export). Escopar pela primeira
+   deixou o mobile de fora — e como as barrinhas do ícone JÁ tinham virado
+   carvão, o resultado foi pior que o defeito original: faixa carvão com ícone
+   carvão, hambúrguer e perfil invisíveis em 390px, ainda clicáveis. Um QA que
+   só medisse clique passaria; foi a captura que mostrou.
+   Por isso o seletor casa pelo PREFIXO do nome, não pelo nome inteiro. */
+body.mel-pagina-bee nav[data-framer-name^="Navigation"],
+body.mel-pagina-bee .framer-1gfj5qd-container{
+  background-color:${P.papel} !important;
 }
-body.mel-pagina-bee .mel-barra-nome{ color:${P.carvao} }
-body.mel-pagina-bee .mel-barra-anc a{ color:#6B6254 }
-body.mel-pagina-bee .mel-barra-anc a:hover{ color:${P.carvao} }
-body.mel-pagina-bee .mel-barra-preco{ color:#6B6254 }
+body.mel-pagina-bee nav[data-framer-name^="Navigation"]{
+  --border-color:${D.papelBorda};
+}
+/* As barrinhas do ícone: o template as pinta por token no style inline. */
+body.mel-pagina-bee [data-framer-name="Meniu"] [data-framer-name="1"],
+body.mel-pagina-bee [data-framer-name="Meniu"] [data-framer-name="2"],
+body.mel-pagina-bee [data-framer-name="Meniu"] [data-framer-name="3"]{
+  background-color:${P.carvao} !important;
+}
+/* O logo é um <symbol> só, referenciado por cinco <use> na mesma página. Ele
+   pinta em currentColor (tools/logo.js), então basta trocar a cor AQUI, na
+   instância da navbar: o rodapé continua papel sobre carvão. */
+body.mel-pagina-bee nav [data-framer-name="MELCAM"]{ color:${P.carvao} }
+body.mel-pagina-bee .mel-perfil-bt{ color:${P.carvao} }
+body.mel-pagina-bee .mel-perfil-bt:hover{ color:#8A6A12; background:rgba(34,30,23,.06) }
+body.mel-pagina-bee .mel-perfil-bt[aria-expanded="true"]{ color:#8A6A12 }
+/* O selo de mel some contra papel: sobre a faixa clara ele é carvão. */
+body.mel-pagina-bee .mel-perfil-selo{
+  background:${P.carvao}; color:${P.papel}; box-shadow:0 0 0 2px ${P.papel};
+}
+body.mel-pagina-bee nav a:focus-visible,
+body.mel-pagina-bee nav button:focus-visible,
+body.mel-pagina-bee nav [tabindex]:focus-visible{
+  outline:2px solid ${P.carvao}; outline-offset:3px;
+}
 `;
 }
 

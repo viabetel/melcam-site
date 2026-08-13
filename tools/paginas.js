@@ -129,28 +129,11 @@ function css() {
    O que é só da home some nas internas. Nada é removido do DOM. */
 ${esconder}{ display:none !important }
 
-/* ---- barra de produto fixa, referência apple.com/ipad-air ---- */
-.mel-barra{
-  position:sticky; top:0; z-index:40;
-  background:rgba(34,30,23,.82); backdrop-filter:saturate(180%) blur(18px);
-  border-bottom:1px solid rgba(251,247,238,.08);
-}
-.mel-barra-in{
-  max-width:1440px; margin:0 auto; padding:.7rem 24px;
-  display:flex; align-items:center; gap:clamp(12px,2.4vw,32px);
-}
-.mel-barra-nome{
-  font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
-  font-size:1.05rem; color:${P.papel};
-}
-.mel-barra-anc{ display:flex; gap:clamp(12px,1.8vw,26px); margin-right:auto }
-.mel-barra-anc a{
-  color:#9A9083; text-decoration:none;
-  font-family:"Area",sans-serif; font-size:.82rem; letter-spacing:.02em;
-  transition:color 200ms ease;
-}
-.mel-barra-anc a:hover{ color:${P.papel} }
-.mel-barra-preco{ color:#9A9083; font-family:"Area",sans-serif; font-size:.85rem }
+/* A barra de produto fixa (referência apple.com/ipad-air) saiu do projeto em
+   13/08/2026. A /polen perdeu a dela mais cedo no mesmo dia; a /bee, a pedido,
+   à tarde — e com a /bee foi embora o último uso destas regras. O motivo e a
+   medição do defeito de sobreposição no mobile estão em tools/bee.js.
+   Não recriar sem pedido: a navbar já faz o trabalho. */
 
 .mel-bt{
   display:inline-block; border:0; cursor:pointer; text-decoration:none;
@@ -369,9 +352,6 @@ ${esconder}{ display:none !important }
   .mel-specs{ grid-template-columns:repeat(2,1fr) }
 }
 @media (max-width:809.98px){
-  .mel-barra-in{ padding:.55rem 16px; gap:10px; overflow-x:auto }
-  .mel-barra-anc{ gap:12px }
-  .mel-barra-preco{ display:none }
   .mel-cores{ grid-template-columns:repeat(2,1fr) }
   .mel-galeria{ grid-template-columns:repeat(2,1fr); gap:8px }
   .mel-specs{ grid-template-columns:1fr }
@@ -381,6 +361,7 @@ ${esconder}{ display:none !important }
   .mel-cor,.mel-gal-item img,.mel-filtro-palco img,.mel-faq-q svg{ transition:none }
   .mel-cor:hover,.mel-gal-item:hover img{ transform:none }
 }
+${require('./perfil.js').css()}
 ${require('./polen-interacoes.js').css()}
 ${require('./bee-interacoes.js').css()}
 `;
