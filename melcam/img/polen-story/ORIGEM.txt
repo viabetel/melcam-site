@@ -1,0 +1,35 @@
+Cenas do scrollytelling de "O diferencial" da /polen.
+Geradas por tools/polen-story-assets.js a partir do acervo oficial do
+cliente. Nenhuma imagem de banco, de internet ou gerada.
+
+cap 01  polen-01-fotografando.jpg
+     Acervo do cliente · Landing page Polen · DSCF0246 (4000x3000)
+     recorte: crop=4000:2667:0:170,scale=1440:960
+
+cap 02  polen-02-sem-tela.jpg
+     Catálogo oficial · Preto · Costas (1200x1200)
+     recorte: crop=892:327:154:345,scale=1338:490
+
+cap 04  polen-04-dimensoes.jpg
+     Catálogo oficial · Preto · Frente_Solo (1200x1200)
+     recorte: scale=900:900
+
+cap 05  polen-05-flash.jpg
+     Acervo do cliente · Landing page Polen · ASFOTOSDEJOAO-3 (3587x5380)
+     recorte: crop=2600:1733:500:1450,scale=1440:960
+
+cap 06  polen-06-doze-mp.jpg
+     Acervo do cliente · Landing page Polen · MAC de Niterói (1280x960)
+     recorte: crop=1280:853:0:54,scale=1440:960
+
+cap 07  polen-07-cartao.jpg
+     Catálogo oficial · Preto · Frente_Conjunto (1200x1200)
+     recorte: crop=300:190:850:690,scale=450:285
+
+cap 08  polen-08-usb-c.jpg
+     Catálogo oficial · Preto · Frente_Conjunto (1200x1200)
+     recorte: crop=720:180:120:700,scale=1080:270
+
+cap 09  polen-09-filtros.jpg
+     Acervo do cliente · Variedade dos filtros · f1 a f8, já tratadas no site
+     recorte: scale=360:480:force_original_aspect_ratio=increase,crop=360:480,tile=4x2

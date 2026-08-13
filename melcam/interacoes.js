@@ -989,6 +989,119 @@
   }
 
 
+  /* ====== /polen — scrollytelling de "O diferencial" ======
+     Roda so em body.mel-pagina-polen: [data-mel="polen-story"] nao existe em
+     nenhuma outra pagina. NAO toca em iniciarFileira nem em variavel dela —
+     tudo aqui e local a esta funcao.
+
+     O QUE ESTE SCRIPT FAZ: liga uma classe na secao e troca um atributo no
+     capitulo ativo. So isso. Quem anima e o CSS, por transition. Nao ha
+     requestAnimationFrame, nao ha escrita de transform e nao ha leitura de
+     layout dentro de listener de scroll — o unico calculo de geometria roda
+     UMA vez, na largada, para o caso de a pagina abrir no meio da secao.
+
+     O ESTADO SEM ESTE SCRIPT E VALIDO: sem a classe, o CSS deixa cada cena na
+     propria linha ao lado do passo, todas visiveis. Por isso o palco so
+     aparece depois que este codigo confirma que pode existir. */
+  function iniciarScrollytellingPolen() {
+    var raiz = document.querySelector('[data-mel="polen-story"]');
+    if (!raiz || raiz.hasAttribute('data-mel-ligado')) return;
+    raiz.setAttribute('data-mel-ligado', '1');
+
+    var cenas  = [].slice.call(raiz.querySelectorAll('[data-mel-story-scene]'));
+    var passos = [].slice.call(raiz.querySelectorAll('[data-mel-story-step]'));
+    var conta  = raiz.querySelector('[data-mel-story-atual]');
+    /* Descasou, nao liga nada: melhor a lista honesta de duas colunas do que
+       um palco apontando para o capitulo errado. */
+    if (!cenas.length || cenas.length !== passos.length) return;
+
+    /* A cena 1 ja nasce com src; as outras esperam aqui. Sem isso as nove
+       entrariam de uma vez, porque empilhadas elas contam como visiveis e
+       loading="lazy" nao segura. */
+    function carregar(i) {
+      var c = cenas[i];
+      if (!c) return;
+      var img = c.querySelector('img[data-src]');
+      if (!img) return;
+      img.src = img.getAttribute('data-src');
+      img.removeAttribute('data-src');
+    }
+
+    /* Movimento reduzido: nenhum palco, nenhuma troca automatica. O layout
+       sequencial do CSS ja e o estado final; falta so trazer as imagens, para
+       que nenhuma fique invisivel. */
+    if (menosMovimento.matches) {
+      for (var k = 0; k < cenas.length; k++) carregar(k);
+      return;
+    }
+
+    /* Sem IntersectionObserver, fica o layout de duas colunas com tudo
+       visivel. Nada de fallback com listener de scroll: seria pior que o
+       estado estatico, que ja e legivel. */
+    if (typeof IntersectionObserver !== 'function') {
+      for (var k2 = 0; k2 < cenas.length; k2++) carregar(k2);
+      return;
+    }
+
+    raiz.classList.add('mel-story-ligado');
+
+    var ativo = -1;
+
+    function ativar(i) {
+      if (i < 0 || i >= cenas.length || i === ativo) return;
+      if (ativo >= 0) {
+        cenas[ativo].removeAttribute('data-mel-story-ativa');
+        passos[ativo].removeAttribute('data-mel-story-ativa');
+      }
+      ativo = i;
+      cenas[i].setAttribute('data-mel-story-ativa', '');
+      passos[i].setAttribute('data-mel-story-ativa', '');
+      /* O contador muda de coluna junto com o painel. O lado nao e calculado
+         aqui: vem do data-lado que tools/polen.js escreveu na cena, entao ha
+         uma fonte de verdade so. */
+      raiz.setAttribute('data-lado-ativo', cenas[i].getAttribute('data-lado') || 'esq');
+      /* A cena de agora e a proxima. So elas: pre-carregar as nove seria o
+         mesmo que nao ter adiado nada. */
+      carregar(i);
+      carregar(i + 1);
+      if (conta) conta.textContent = (i + 1 < 10 ? '0' : '') + (i + 1);
+    }
+
+    /* Usada uma vez, na largada. Cobre abrir a pagina no meio da secao, onde
+       nenhum passo cruza a faixa central e o observer nao teria o que dizer. */
+    function maisProximoDoCentro() {
+      var meio = window.innerHeight / 2, melhor = 0, menor = Infinity;
+      for (var i = 0; i < passos.length; i++) {
+        var r = passos[i].getBoundingClientRect();
+        var d = Math.abs((r.top + r.bottom) / 2 - meio);
+        if (d < menor) { menor = d; melhor = i; }
+      }
+      return melhor;
+    }
+    ativar(maisProximoDoCentro());
+
+    /* Faixa de ativacao: os 4% centrais da viewport. Um capitulo entra quando
+       cruza o centro da tela, que e onde o olho esta. Como a faixa e estreita,
+       raramente ha dois passos dentro dela; quando ha (passo curto no fim da
+       secao), vence o de menor indice, o que mantem a ordem na descida e na
+       subida. */
+    var dentro = [];
+    var observador = new IntersectionObserver(function (entradas) {
+      for (var i = 0; i < entradas.length; i++) {
+        var idx = +entradas[i].target.getAttribute('data-story-index');
+        var p = dentro.indexOf(idx);
+        if (entradas[i].isIntersecting) { if (p < 0) dentro.push(idx); }
+        else if (p >= 0) dentro.splice(p, 1);
+      }
+      if (!dentro.length) return;   /* fora da faixa, segura o ultimo ativo */
+      dentro.sort(function (a, b) { return a - b; });
+      ativar(dentro[0]);
+    }, { rootMargin: '-48% 0px -48% 0px', threshold: 0 });
+
+    for (var j = 0; j < passos.length; j++) observador.observe(passos[j]);
+  }
+
+
   /* ============ /polen — seletor das 7 cores ============
      As cores NAO vivem aqui: cada botao carrega data-nome, data-sub e
      data-img, escritos por tools/polen.js a partir de melcam.config.json. */
@@ -1096,6 +1209,7 @@
     /* Só fazem algo em /polen: os alvos data-mel="polen-*" não existem em
        nenhuma outra página, então saem no primeiro if. */
     iniciarHeroPolen();
+    iniciarScrollytellingPolen();
     iniciarSeletorPolen();
     iniciarFiltros();
     iniciarFaq();

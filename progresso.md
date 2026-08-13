@@ -3701,3 +3701,385 @@ Capturas: `tools/shots-hero/final-{desktop,tablet,mobile}.png`.
 ### Arquivos
 
 `tools/polen-interacoes.js` · `melcam/identidade.css`. Nenhum commit.
+
+---
+
+## 🎬 SCROLLYTELLING DE "O DIFERENCIAL" — /polen — 13/08/2026
+
+Era uma `<ul>` de nove itens. Virou nove capítulos, cada um com a cena que
+comprova a vantagem. **As nove vantagens são as aprovadas, palavra por
+palavra**: o `<h3>` de cada capítulo é a string que já estava em `SPECS`.
+Nenhum número mexido, nenhuma especificação nova.
+
+### Inventário: de onde vieram as cenas
+
+Figma e Drive **não estavam disponíveis como fonte**. O MCP do Figma responde
+autenticado como `israel` num time pessoal *starter* com assento de leitura, o
+projeto não declara nenhum `fileKey` da Melcam em lugar nenhum
+(`melcam.config.json`, `.melcam-project.json`, `README`), e não há ferramenta
+de Drive nesta sessão. Sem chave de arquivo não há o que buscar, e inventar
+caminho estava proibido.
+
+A fonte usada foi o **acervo oficial entregue pelo cliente**, em
+`Downloads\melcam\IMAGENS` — o mesmo de onde saiu tudo que já está no site.
+Zero imagem de banco, de internet ou gerada.
+
+| cap | vantagem | cena | origem |
+|---|---|---|---|
+| 01 | Experiência analógica real | pessoa fotografando com a Polen | `Landing page Polen/DSCF0246` (4000×3000) |
+| 02 | Sem tela e sem distrações | traseira, superfície lisa | `Catalogo Polen/Preto/Costas` |
+| 03 | Bateria recarregável | **placeholder editorial** | — |
+| 04 | Dimensões 11,4 × 6,4 × 2,5 cm | packshot limpo + cotas em SVG | `Catalogo Polen/Preto/Frente_Solo` |
+| 05 | Flash LED integrado | close do topo em luz baixa | `Landing page Polen/ASFOTOSDEJOAO-3` (3587×5380) |
+| 06 | Resolução de 12 MP | foto feita com a Polen (MAC de Niterói) | `Landing page Polen/23c8db96…` |
+| 07 | Cartão de 4 GB | o microSD que acompanha | `Catalogo Polen/Preto/Frente_Conjunto` |
+| 08 | Carregamento por USB-C | o cabo oficial, duas pontas | `Catalogo Polen/Preto/Frente_Conjunto` |
+| 09 | Oito filtros | as 8 oficiais, mesma foto | `melcam/img/filtros/f1..f8` |
+
+07 e 08 saem do mesmo arquivo mas são **objetos e recortes diferentes** — não
+é a mesma imagem repetida para preencher.
+
+### O trabalho que os recortes deram
+
+As tomadas de catálogo do cliente têm **rótulo gravado no pixel**: "LIVRE DE
+TELAS", "FLASH", "ENTRADA USB-C", "CABO USB-C E CARTÃO SD INCLUSOS", com
+linhas de chamada. Num scrollytelling onde o texto é HTML, isso duplicaria a
+informação e derrubaria o tom para peça de marketplace.
+
+Os recortes foram **medidos**, sobrepondo uma grade de 100px ao original. Na
+`Costas`, por exemplo: corpo da câmera de x154 a x1046 e de y351 a y849, e a
+linha de chamada de baixo descendo a partir de **y677** em x561 — daí o corte
+fechar em y672. Tudo está em `tools/polen-story-assets.js`, com o porquê de
+cada número, e o gerador é reexecutável.
+
+Duas decisões de qualidade de imagem:
+
+- **Cartão e cabo não foram ampliados até encher o quadro.** O microSD ocupa
+  163px do original; esticar até 1440 entregaria borrão. Eles entram a 1,5x,
+  centrados, e o "4GB microSDHC" continua legível.
+- **O fundo é estendido com uma cópia desfocada da própria imagem**, não com
+  cor chapada. Chapado foi a primeira tentativa e deixou emenda retangular
+  visível: o fundo do catálogo tem vinheta e o padrão favo, então nenhuma cor
+  única casa com a borda.
+
+Todas as nove cenas saem em **3:2 (1440×960)**. Uniforme de propósito: cena
+com proporção diferente mudaria a altura do palco no meio do scroll — isso é
+layout shift. Medido: proporção **1,500** nas nove, e a altura da seção é
+**6425px antes e 6425px depois** de todas as fotos carregarem.
+
+### Arquitetura: uma cópia de cada cena, dois layouts
+
+O DOM intercala **cena, passo, cena, passo…**, uma cópia só. Não há imagem
+duplicada para o mobile. Quem muda é a grade:
+
+- **abaixo de 1025** — uma coluna. A ordem do DOM já entrega figura seguida do
+  texto dela. Sem sticky, sem nada absoluto.
+- **1025 pra cima, sem JS** — duas colunas, cada cena na sua linha ao lado do
+  passo. Lista honesta.
+- **1025 pra cima, com JS** — todas as cenas vão para a mesma área de grade
+  (coluna 1, todas as linhas), empilhadas e sticky. É a sobreposição que
+  permite o crossfade.
+
+Por isso **o estado sem JavaScript e o estado com movimento reduzido são o
+mesmo estado**, e nenhum deles esconde imagem: o palco só existe quando o
+script liga a classe.
+
+> **`grid-row:1/-1` exige linhas explícitas.** Com grid implícito o `-1` volta
+> para a linha 1 e a regra morre calada. Daí `--caps`, escrito no HTML com a
+> quantidade de capítulos.
+
+### O defeito que quase matou o sticky
+
+`position:sticky` não engata se **qualquer** ancestral tiver `overflow:hidden`
+— hidden cria caixa de rolagem e o elemento passa a grudar dentro dela, que
+não rola. O template do Framer embrulha a página em dois contêineres assim.
+Medido: o topo do palco ia a −546, −1230, −1914 em vez de ficar em 113.
+
+`overflow:clip` recorta igual e **não** cria caixa de rolagem. Aplicado
+escopado em `body.mel-pagina-polen`, então a home e as outras internas não são
+tocadas — e o QA da fileira segue medindo o mesmo `overflow:hidden` de sempre.
+
+### Carregamento adiado, e a rede de segurança
+
+A cena 1 nasce com a foto; as outras esperam em `data-src`. `loading="lazy"`
+sozinho não resolveria: empilhadas, as nove contam como visíveis e o navegador
+buscaria todas de uma vez.
+
+Três buracos foram fechados, cada um encontrado medindo:
+
+1. **`<img>` sem `src` é imagem quebrada.** A auditoria acusou "6 imagens
+   quebradas" e o mobile desenhou o ícone de quebrado com o texto do `alt` por
+   cima. Resolvido com um GIF transparente de 1×1 embutido, sem ida à rede.
+2. **A foto do `<noscript>` ficava cortada.** Com script desligado o
+   `<noscript>` vira DOM e a foto passa a ser a segunda `<img>` da moldura: em
+   fluxo caía embaixo do placeholder e o `overflow:hidden` a cortava. Nove
+   capítulos com caixa vazia. Resolvido com `position:absolute`.
+3. **Se `interacoes.js` não carregar, o `<noscript>` não ajuda** — o parser
+   teve o sinalizador de script ligado, então ele continua inerte, e oito
+   capítulos ficariam vazios. É a mesma armadilha do "hero em branco" já
+   registrada aqui. Resolvido com seis linhas inline logo após a seção: meio
+   segundo depois do `load`, se a seção não tiver sido ligada, elas trazem
+   todas as fotos.
+
+Provado nos dois cenários, com o navegador de verdade:
+
+| cenário | como foi forçado | resultado |
+|---|---|---|
+| JavaScript desligado | Edge com `--blink-settings=scriptEnabled=false` | 9 capítulos, **8 fotos visíveis**, 0 cenas vazias |
+| `interacoes.js` bloqueado | `Network.setBlockedURLs` | 9 capítulos, **8 fotos visíveis**, 0 pendentes |
+
+> `Emulation.setScriptExecutionDisabled` do CDP **não serve** para testar isso:
+> ele impede a execução mas não desliga o sinalizador de script do parser,
+> então o `<noscript>` continua sendo tratado como texto. Foi o que escondeu o
+> defeito 2 na primeira medição.
+
+### Contraste: o apagado bonito reprovava
+
+Capítulo inativo em `opacity:.34` ficava elegante e **reprovava em WCAG AA**.
+Medido no navegador, não estimado:
+
+| | .34 | exigido | .66 |
+|---|---|---|---|
+| número em mel | 2,06:1 | 4,5 | **4,70:1** |
+| título | 2,94:1 | 3 | **8,13:1** |
+| texto de apoio | — | 4,5 | **5,47:1** |
+
+Capítulo inativo continua na tela, então vale WCAG igual. Em 0,66 a diferença
+para o ativo continua legível — que era o pedido: mudança discreta, não apagão.
+
+### Comportamento
+
+Observer com faixa de ativação nos **4% centrais** da viewport
+(`rootMargin:-48% 0px -48%`), limiar 0. Empate resolve pelo menor índice, o
+que mantém a ordem na descida e na subida. O script **liga uma classe e troca
+um atributo** — quem anima é o CSS, por `transition` de 560 ms em
+`cubic-bezier(.22,.61,.36,1)`. Não há `requestAnimationFrame`, não há escrita
+de `transform` e não há leitura de layout dentro de listener de scroll: o
+único cálculo de geometria roda **uma vez**, na largada, para o caso de abrir
+a página no meio da seção. Nada de `iniciarFileira` foi tocado.
+
+### Resultados
+
+| | seção | página | capítulo ativo | descida | subida | console |
+|---|---|---|---|---|---|---|
+| 1440×900 | 6425 px | 12859 px | 1 por vez, palco fixo em y107 nos nove | ok | ok | 0 |
+| 768×1024 | 5993 px | 13899 px | fluxo sequencial | ok | ok | 0 |
+| 390×844 | 3638 px | 10099 px | fluxo sequencial | ok | ok | 0 |
+| 1440×900 reduzido | 5510 px | 11945 px | nenhum, por contrato | — | — | 0 |
+
+Também conferido: **9 vantagens · 9 cenas · relação 1:1** · 1 placeholder ·
+**0 elementos focáveis** dentro da seção (sticky não tem como cobrir foco) ·
+0 conteúdo essencial em `aria-hidden` · 0 transbordo horizontal · 1 `<h1>` ·
+0 imagens quebradas · 0 asset remoto (o único `https://` da página é o
+`preconnect` de `fonts.gstatic.com`, que já vinha do template).
+
+Seletor de cores: swatch 4→6, crossfade trocou para `polen-verde.png` e a
+sacola gravou `[{"nome":"Polen Verde","qtd":1}]`. FAQ com 7 itens e filtros
+com 8, intactos. **Hero inalterado**: 828px, de x0 a x1440, `object-position`
+`50% 57%`.
+
+### QA da home
+
+`node tools/medir.js "http://localhost:3030/" pos-scrollytelling-polen` —
+**4980×720 · 3593×512 · 2993×422**, `overflow:hidden`, escala **0,5 → 1**,
+translateY **150 → 0**, **0 erros de console** e **0 diferenças** contra
+`medidas/medida-desfile-mobile-13ago.json` nos 21 pontos de amostra.
+`index.html` com o mesmo SHA-256 (`26606fb8d572eaee`) — não foi tocado.
+
+### Pendências honestas
+
+1. **Foto de bateria** (capítulo 3). O placeholder pede exatamente: *câmera em
+   recarga pelo cabo USB-C, ou em uso com o cabo à vista*. Proporção 3:2, e a
+   substituição não mexe em uma linha de layout.
+2. **Cartão e cabo em close de verdade.** Hoje eles existem só dentro da
+   composição 1200×1200, ocupando 163px e 668px. Dá para melhorar com um close
+   dedicado.
+3. **Copy de apoio dos capítulos 3 a 7.** Quatro capítulos têm linha de apoio,
+   porque havia copy aprovado no FAQ e no hero desta página para reaproveitar
+   verbatim. Cinco ficaram só com o título: inventar frase para emparelhar
+   visualmente seria criar afirmação sobre o produto.
+4. **Nenhum acesso a Figma ou Drive.** Se houver um arquivo da Melcam no
+   Figma, basta a URL para eu buscar de lá.
+
+### Arquivos
+
+Fontes: `tools/polen.js` · `tools/polen-interacoes.js` · `tools/hero-carrossel.js`
+Novos: `tools/polen-story-assets.js` (gerador das cenas) · `tools/build-polen.js`
+(sincroniza os derivados sem rodar `aplicar()`) · `tools/qa-story.js`
+Assets: `melcam/img/polen-story/` — 8 JPEG, 739 KB, mais `ORIGEM.txt`
+Derivados: `polen.html` · `melcam/identidade.css` · `melcam/interacoes.js`
+Capturas: `tools/shots-story/`
+
+**Nenhum commit.**
+
+---
+
+## ↔️ LADO ALTERNADO NO SCROLLYTELLING — /polen — 13/08/2026
+
+A pedido: o painel parado num canto só deixava a descida estática. Agora o
+lado troca a cada capítulo — ímpar com a imagem à esquerda e o texto à
+direita, par ao contrário.
+
+O lado é **escrito no HTML** (`data-lado` em cada cena e em cada passo), não
+deduzido por `:nth-of-type` no CSS. A grade tem `figure`, `div` e um `p`
+misturados como irmãos, e contar por tipo ali é o caminho curto para o dia em
+que alguém acrescentar um elemento e a alternância inverter sozinha.
+
+### Colunas iguais, e o porquê
+
+`1fr 1fr` em vez do `55% / 1fr` anterior. É consequência direta da
+alternância: com colunas de larguras diferentes, o painel encolheria nos
+capítulos pares. Em colunas iguais ele fica com o mesmo tamanho dos dois
+lados — 677×451 no desktop, ou 48,6% da grade.
+
+> **Desvio assumido do pedido original**, que pedia 50–58%. Preferi 48,6%
+> simétrico a 55% que vira 45% em metade dos capítulos. Se os 50% forem
+> obrigatórios, o caminho é reduzir o gap de coluna e o padding lateral da
+> seção — não voltar a colunas desiguais.
+
+### O defeito que a alternância trouxe
+
+Quatro capítulos ficaram **inalcançáveis**: o observer ativava 1, 2, 4, 6, 8 e
+nunca 3, 5, 7, 9. A seção também encolheu de 6425 para 4337px.
+
+A causa é a auto-alocação do CSS Grid. Quando um item tem coluna definida
+**menor** que a do anterior, o algoritmo pula uma linha; quando tem coluna
+**maior**, ele cabe na mesma linha. Com a coluna alternando, os passos
+pareavam de dois em dois: 2 e 3 na linha 2, 4 e 5 na linha 3, e assim por
+diante. Dois passos com o mesmo centro vertical nunca podem estar sozinhos na
+faixa de ativação, e o desempate por menor índice sempre entregava o de cima.
+
+Corrigido cravando a linha: `--linha` sai de `tools/polen.js` com o número do
+capítulo, e tanto a cena quanto o passo usam `grid-row:var(--linha)`. Cada
+capítulo tem a sua linha, por construção. Seção de volta a 6425px e os nove
+capítulos ativando na descida e na subida.
+
+### Movimento
+
+A cena passa a entrar **vindo do próprio lado**: `translateX` de 22px, para
+fora, somado à escala curta de 1,025 que já existia. É o bastante para o olho
+ler a direção da troca e pouco o bastante para não virar carrossel. Mesma
+duração de 560 ms e mesmo easing.
+
+O contador acompanha o painel (`data-lado-ativo` na seção, escrito pelo script
+a partir do `data-lado` da cena que entrou). Sem isso ele ficaria órfão à
+esquerda nos capítulos em que a imagem está à direita.
+
+### Validação
+
+| | seção | capítulo ativo | descida | subida | console |
+|---|---|---|---|---|---|
+| 1440×900 | 6425 px | 1 por vez, palco em y108 nos nove | ok | ok | 0 |
+| 768×1024 | 5993 px | fluxo sequencial | ok | ok | 0 |
+| 390×844 | 3638 px | fluxo sequencial | ok | ok | 0 |
+| 1440×900 reduzido | 4877 px | nenhum, por contrato | — | — | 0 |
+
+A alternância vale também **sem JavaScript** e **sob movimento reduzido**: lá
+a grade não gruda nada, mas cada par continua na sua linha, trocando de lado.
+Reconferido nos dois cenários de degradação — script desligado no Blink e
+`interacoes.js` bloqueado: 9 capítulos, 8 fotos visíveis, 0 cenas vazias.
+
+Contraste dos capítulos inativos remedido depois da reescrita do bloco:
+número **4,70:1**, título **8,13:1**, texto **5,47:1**. Todos passam.
+
+> Nota de método: `captureBeyondViewport` com recorte lá embaixo devolve
+> moldura vazia mesmo com a imagem carregada — medido, `naturalWidth`
+> 1440×960, `position:absolute`, `visibility:visible`. É artefato de captura
+> de conteúdo que nunca foi pintado, não defeito. Para conferir a seção, rolar
+> até ela e capturar a viewport.
+
+### QA da home
+
+`node tools/medir.js "http://localhost:3030/" pos-alternancia` —
+**4980×720 · 3593×512 · 2993×422**, `overflow:hidden`, **0 erros de console**,
+**0 diferenças** contra `medidas/medida-desfile-mobile-13ago.json` nos 21
+pontos. `index.html` com o mesmo SHA-256 (`26606fb8d572eaee`).
+
+### Arquivos
+
+`tools/polen.js` · `tools/polen-interacoes.js` · derivados `polen.html`,
+`melcam/identidade.css`, `melcam/interacoes.js`.
+
+**Nenhum commit.**
+
+---
+
+## ✂️ A COLMÉIA SAIU DA /polen E DA /bee — 13/08/2026
+
+Removida a seção "o clube da marca / Entre para a Colméia" das duas páginas de
+produto: eyebrow, título, o parágrafo da comunidade, os três perks (Acesso
+antecipado · Encontros exclusivos · Desafios mensais), o CTA "Quero entrar na
+Colméia" e a nota de cadastro a decidir.
+
+### Onde ela estava, medido antes de mexer
+
+| página | situação |
+|---|---|
+| /polen | **visível**, gerada por `polen.js colmeia()` |
+| /bee | **visível**, gerada por `bee.js colmeia()` — mesmo bloco, mesmo código |
+| home | **visível**, mas é outra coisa: a seção do template Framer (`data-framer-name="Speed On"`), que `tools/identidade.js` reordena de propósito para fechar a home |
+| /sobre · /acessorios · /sacola · /404 | já estavam ocultas |
+
+**A home não foi tocada.** Lá é outra implementação e a remoção não foi
+pedida — o pedido de mais cedo neste mesmo dia foi explicitamente "não altere
+a home". Se ela também tiver de sair, é decisão à parte e sai por CSS.
+
+### O que sobrou de pé, e por quê
+
+- **`melcam.config.json`** — a chave `colmeia` continua lá, intacta. É
+  conteúdo aprovado do cliente; apagar dado do config por causa de uma remoção
+  de layout é perder o texto sem precisar.
+- **`tools/paginas.js`** — `.mel-colmeia` e `.mel-perks` continuam no CSS. São
+  regras de sistema, não casam com nada hoje e voltam a servir se o bloco
+  voltar.
+- **/sobre** — o card "Comunidade" cita a Colméia em texto corrido. Não é este
+  bloco e não foi pedido.
+- **Nenhum handler de JS ficou órfão**: `data-mel-colmeia` não era escutado em
+  lugar nenhum. Conferido.
+
+### Consequências, incluindo uma que vale saber
+
+`polen.js` agora fecha em `ctaFinal()` — "A última foto que você tirou valeu a
+pena?" com o botão "Quero minha Polen". É o passo certo para uma página de
+produto: o último bloco convida a comprar.
+
+> **A /bee ficou sem bloco de fechamento.** Ela nunca teve `ctaFinal()`; a
+> Colméia é que fazia esse papel, e agora a página termina na tabela de
+> especificações. Não ficou sem caminho de compra — restam **4 CTAs visíveis**
+> (a barra fixa com "Comprar" e os "Adicionar à sacola"), mas o fecho é fraco.
+> Não inventei um CTA final para ela: seria copy nova sem aprovação.
+
+| | antes | depois |
+|---|---|---|
+| /polen | 12859 px | **12313 px** |
+| /bee | — | termina em "Filmagem e fotografia" |
+
+### Validação
+
+`Entre para a Colméia`, `o clube da marca` e `Quero entrar na Colméia`:
+**0 ocorrências visíveis** na /polen e na /bee. `.mel-colmeia` e `.mel-perks`:
+**0 nós** nas duas. Na home continua **1**, como decidido.
+
+As duas páginas seguem íntegras: 1 `<h1>`, 0 transbordo horizontal, 0 imagens
+quebradas. QA da /polen nos três breakpoints e nos dois modos de movimento:
+tudo ok. Scrollytelling intacto — 9 capítulos, palco em y108, descida e subida
+certas, 0 erros de console.
+
+### QA da home
+
+`node tools/medir.js "http://localhost:3030/" pos-remocao-colmeia` —
+**4980×720 · 3593×512 · 2993×422**, `overflow:hidden`, **0 erros**, **0
+diferenças** contra `medidas/medida-desfile-mobile-13ago.json`. `index.html`
+com o mesmo SHA-256 (`26606fb8d572eaee`).
+
+### Arquivos
+
+`tools/polen.js` · `tools/bee.js` · derivados `polen.html` e `bee.html`.
+
+`tools/build-polen.js` virou **`tools/build-produtos.js`**: passou a regerar as
+duas páginas de produto, porque o bloco removido era o mesmo nas duas e
+sincronizar só uma deixaria a outra fora de passo com a fonte. Os títulos e
+descrições usados são os mesmos de `paginas.aplicar()` — divergir ali viraria
+SEO diferente do build oficial.
+
+**Nenhum commit.**

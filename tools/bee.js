@@ -119,20 +119,16 @@ function destaques() {
 </section>`;
 }
 
-function colmeia() {
-  const c = cfg.colmeia;
-  return `
-<section class="mel-sec mel-colmeia" aria-labelledby="mel-bcol-tit">
-  <p class="mel-eyebrow">${c.eyebrow}</p>
-  <h2 id="mel-bcol-tit" class="mel-tit">${c.titulo}</h2>
-  <p class="mel-col-txt">${c.texto}</p>
-  <ul class="mel-perks">${c.perks.map(p => `<li>${p}</li>`).join('')}</ul>
-  <a class="mel-bt mel-bt-mel" href="#" data-mel-colmeia>${c.cta}</a>
-  <p class="mel-nota">Cadastro da Colméia <strong>a decidir</strong>: sem backend
-     integrado, o site não afirma que o envio foi feito.</p>
-</section>`;
-}
-
+// A COLMÉIA SAIU EM 13/08/2026, a pedido, junto com a da /polen.
+//
+// Era a seção "o clube da marca / Entre para a Colméia" fechando a página, com
+// eyebrow, título, parágrafo, os três perks, o CTA "Quero entrar na Colméia" e
+// a nota de cadastro a decidir. As duas páginas de produto usavam o mesmo
+// bloco, então saíram na mesma passada — o pedido numa vale para a equivalente.
+//
+// A home NÃO foi tocada: lá o bloco é a seção do template Framer
+// (data-framer-name "Speed On"), outra implementação, e não foi pedida.
+// `cfg.colmeia` continua no config, com o texto aprovado intacto.
 module.exports = {
-  conteudo() { return barra() + abertura() + modelos() + destaques() + colmeia(); },
+  conteudo() { return barra() + abertura() + modelos() + destaques(); },
 };

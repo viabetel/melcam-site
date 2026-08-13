@@ -1058,6 +1058,7 @@ ${require('./polen-interacoes.js').js()}
     /* Só fazem algo em /polen: os alvos data-mel="polen-*" não existem em
        nenhuma outra página, então saem no primeiro if. */
     iniciarHeroPolen();
+    iniciarScrollytellingPolen();
     iniciarSeletorPolen();
     iniciarFiltros();
     iniciarFaq();

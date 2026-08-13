@@ -216,38 +216,264 @@ function filtros() {
 }
 
 // ----------------------------------------------------------- 6. diferencial
-const SPECS = [
-  'Experiência analógica real', 'Sem tela e sem distrações',
-  'Bateria recarregável para até 1000 fotos, dependendo do uso do flash',
-  'Dimensões 11,4 × 6,4 × 2,5 cm', 'Flash LED integrado', 'Resolução de 12 MP',
-  'Cartão de 4 GB para até 1000 fotos', 'Carregamento e transferência por USB-C',
-  'Oito filtros com estética vintage',
+//
+// SCROLLYTELLING — 13/08/2026. Era uma <ul> de nove itens; virou nove
+// capítulos, cada um com a sua cena. O efeito EXPLICA o produto: a vantagem
+// escrita e a imagem que a comprova entram juntas.
+//
+// AS NOVE VANTAGENS SÃO AS APROVADAS, PALAVRA POR PALAVRA. O texto do <h3> é
+// a string que já estava aqui — nenhum número mexido, nenhuma especificação
+// nova. O que mudou foi só o formato de apresentação.
+//
+// A LINHA DE APOIO SÓ EXISTE ONDE JÁ HAVIA COPY APROVADO. Sai do FAQ e do
+// hero desta mesma página, verbatim. Quatro capítulos têm; cinco não têm, e
+// ficam só com o título — inventar frase de apoio para emparelhar visualmente
+// seria criar afirmação sobre o produto, que é justamente o que o pedido
+// proíbe. A pendência está registrada no progresso.md.
+//
+// AS CENAS vêm de tools/polen-story-assets.js, geradas do acervo oficial do
+// cliente. O capítulo 3 não tem imagem adequada no acervo e recebe um
+// placeholder editorial que diz exatamente qual foto falta.
+const CAPITULOS = [
+  {
+    n: 1,
+    tit: 'Experiência analógica real',
+    // hero desta página, texto do cliente em 13/08
+    txt: 'Você fotografa o momento e segue vivendo. O resto você descobre depois.',
+    img: 'polen-01-fotografando.jpg',
+    alt: 'Pessoa fotografando com uma Polen amarela junto ao rosto, de frente para o Pão de Açúcar',
+  },
+  {
+    n: 2,
+    tit: 'Sem tela e sem distrações',
+    // FAQ desta página: "A Polen tem tela?"
+    txt: 'Sem tela, você fotografa olhando a cena e não o visor. A revisão acontece depois, no computador ou no celular.',
+    img: 'polen-02-sem-tela.jpg',
+    alt: 'Traseira da Polen preta: superfície lisa, sem visor de revisão, apenas o pequeno contador de fotos',
+  },
+  {
+    n: 3,
+    tit: 'Bateria recarregável para até 1000 fotos, dependendo do uso do flash',
+    vaga: {
+      nome: 'Bateria recarregável',
+      direcao: 'Câmera em recarga pelo cabo USB-C, ou em uso com o cabo à vista',
+    },
+  },
+  {
+    n: 4,
+    tit: 'Dimensões 11,4 × 6,4 × 2,5 cm',
+    img: 'polen-04-dimensoes.jpg',
+    alt: 'Polen preta de frente, packshot oficial em fundo escuro',
+    // As cotas são desenhadas em SVG por cima, no HTML — não vêm queimadas na
+    // foto. Os três números são os mesmos do título, sem arredondamento.
+    cotas: { larg: '11,4 cm', alt: '6,4 cm', prof: '2,5 cm' },
+  },
+  {
+    n: 5,
+    tit: 'Flash LED integrado',
+    img: 'polen-05-flash.jpg',
+    alt: 'Close do topo da Polen marrom em luz baixa, com a janela do flash acesa ao lado do visor',
+  },
+  {
+    n: 6,
+    tit: 'Resolução de 12 MP',
+    img: 'polen-06-doze-mp.jpg',
+    alt: 'Foto feita com a Polen: a curva do Museu de Arte Contemporânea de Niterói contra o céu',
+  },
+  {
+    n: 7,
+    tit: 'Cartão de 4 GB para até 1000 fotos',
+    img: 'polen-07-cartao.jpg',
+    alt: 'O cartão MicroSD de 4 GB que acompanha a Polen',
+  },
+  {
+    n: 8,
+    tit: 'Carregamento e transferência por USB-C',
+    // FAQ desta página: "Como vejo as fotos?"
+    txt: 'Conectando a câmera ao computador pelo cabo USB-C. As fotos saem prontas, com o filtro já aplicado.',
+    img: 'polen-08-usb-c.jpg',
+    alt: 'O cabo USB-C que acompanha a Polen, com as duas pontas à mostra',
+  },
+  {
+    n: 9,
+    tit: 'Oito filtros com estética vintage',
+    // FAQ desta página: "Como funcionam os filtros?"
+    txt: 'Você escolhe antes de fotografar, como num filme: o filtro é aplicado na hora do clique, direto na câmera.',
+    img: 'polen-09-filtros.jpg',
+    alt: 'A mesma fotografia repetida oito vezes, uma por filtro da Polen',
+  },
 ];
-function diferencial() {
+
+const STORY_DIR = '/melcam/img/polen-story/';
+const dd = (n) => String(n).padStart(2, '0');
+
+// Cotas em SVG por cima do packshot. As posições são percentuais do quadro de
+// 1440x960 e foram MEDIDAS na imagem gerada (o corpo da câmera ocupa de 26,8%
+// a 73,2% na horizontal e de 30,1% a 69,6% na vertical). A profundidade não
+// ganha cota: é uma vista frontal, e desenhar seta de profundidade onde ela
+// não aparece seria afirmação visual falsa. Ela entra como texto.
+function cotas(c) {
   return `
-<section class="mel-sec" aria-labelledby="mel-dif-tit">
+      <svg class="mel-story-cotas" viewBox="0 0 1440 960" aria-hidden="true" focusable="false">
+        <g class="mel-story-cota">
+          <path d="M386 712 L386 736 M1054 712 L1054 736 M386 724 L1054 724"/>
+          <text x="720" y="770" text-anchor="middle">${c.cotas.larg}</text>
+        </g>
+        <g class="mel-story-cota">
+          <path d="M1106 289 L1130 289 M1106 668 L1130 668 M1118 289 L1118 668"/>
+          <text x="1160" y="486" text-anchor="start">${c.cotas.alt}</text>
+        </g>
+      </svg>
+      <p class="mel-story-prof">profundidade ${c.cotas.prof}</p>`;
+}
+
+// PLACEHOLDER EDITORIAL, não retângulo genérico. Traz número do capítulo, nome
+// da vantagem, o aviso de que a imagem oficial ainda vai entrar e a direção do
+// asset que falta — para o cliente saber exatamente o que fotografar. Ocupa a
+// MESMA proporção 3:2 das cenas reais, então a foto entra no lugar dele sem
+// mudar uma linha de layout.
+function vaga(c) {
+  return `
+      <div class="mel-story-vaga">
+        <p class="mel-story-vaga-num">${dd(c.n)}</p>
+        <p class="mel-story-vaga-nome">${c.vaga.nome}</p>
+        <p class="mel-story-vaga-rot">imagem oficial a inserir</p>
+        <p class="mel-story-vaga-dir">${c.vaga.direcao}</p>
+      </div>`;
+}
+
+// GIF transparente de 1x1, embutido. Não é enfeite: um <img> SEM src é
+// contado como imagem quebrada por qualquer auditoria — a deste projeto
+// acusou "6 imagens quebradas" na primeira versão — e ainda desenha o ícone de
+// quebrado com o texto do alt por cima. Com o placeholder o elemento é uma
+// imagem válida e invisível, sem nenhuma ida à rede.
+const VAZIO = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+// A cena 1 nasce com a foto; as outras guardam o caminho em data-src e só são
+// buscadas quando o capítulo chega perto. Sem isso as oito entrariam de uma
+// vez, porque no desktop elas ficam empilhadas dentro da viewport e
+// loading="lazy" não segura imagem que o navegador considera visível.
+// O <noscript> é o que garante a foto para quem está sem JavaScript.
+function cena(c) {
+  const primeira = c.n === 1;
+  const dentro = c.vaga ? vaga(c) : `
+      <img class="mel-story-img" src="${primeira ? STORY_DIR + c.img : VAZIO}"${primeira ? '' : `
+           data-src="${STORY_DIR}${c.img}"`}
+           alt="${c.alt}" width="1440" height="960" decoding="async">
+      <noscript><img class="mel-story-img" src="${STORY_DIR}${c.img}" alt="${c.alt}"
+           width="1440" height="960" loading="lazy" decoding="async"></noscript>${c.cotas ? cotas(c) : ''}`;
+
+  // --linha crava a linha da grade. Sem isso a alternância quebra: a
+  // auto-alocação do CSS Grid, ao ver um item com coluna definida MENOR que a
+  // do anterior, pula uma linha — e o seguinte, com coluna maior, cabe na
+  // mesma. Resultado medido em 13/08: capítulos 2 e 3 dividindo a linha 2, 4 e
+  // 5 a linha 3, e por aí. Dois passos com o mesmo centro vertical fazem o
+  // observer nunca ativar o de índice maior, e quatro capítulos ficaram
+  // inalcançáveis. Com a linha cravada, cada capítulo tem a sua.
+  return `
+    <figure class="mel-story-cena${c.vaga ? ' mel-story-cena-vaga' : ''}"
+            data-mel-story-scene data-story-index="${c.n - 1}" data-lado="${lado(c.n)}"
+            style="--linha:${c.n}">${dentro}
+    </figure>`;
+}
+
+// LADO ALTERNADO — 13/08/2026, a pedido.
+// Capítulo ímpar: imagem à esquerda, texto à direita. Par: o contrário. A
+// descida deixa de ser um painel parado num canto só e passa a jogar o olho de
+// um lado para o outro a cada capítulo.
+//
+// O lado é escrito no HTML, não deduzido por :nth-of-type no CSS. A grade tem
+// figuras, divs e um p misturados como irmãos, e contar por tipo ali é o
+// caminho curto para o dia em que alguém acrescentar um elemento e a
+// alternância inverter sozinha, sem ninguém entender por quê.
+const lado = (n) => (n % 2 ? 'esq' : 'dir');
+
+function passo(c) {
+  // O texto vai SEMPRE no lado oposto ao da imagem.
+  return `
+    <div class="mel-story-passo" data-mel-story-step data-story-index="${c.n - 1}"
+         data-lado="${lado(c.n) === 'esq' ? 'dir' : 'esq'}" style="--linha:${c.n}">
+      <p class="mel-story-num" aria-hidden="true">${dd(c.n)}</p>
+      <h3 class="mel-story-tit">${c.tit}</h3>${c.txt ? `
+      <p class="mel-story-txt">${c.txt}</p>` : ''}
+    </div>`;
+}
+
+function diferencial() {
+  // ORDEM DO DOM: cena, passo, cena, passo… intercalado. É isso que faz o
+  // mobile funcionar sem duplicar nada — lá a grade vira uma coluna e cada
+  // imagem já cai imediatamente antes do texto dela. No desktop o CSS coloca
+  // TODAS as cenas na mesma célula (coluna 1, todas as linhas) e os passos na
+  // coluna 2, e a sobreposição é o que permite o crossfade.
+  const corpo = CAPITULOS.map((c) => cena(c) + passo(c)).join('');
+
+  return `
+<section class="mel-sec mel-story" id="diferencial" data-mel="polen-story"
+         aria-labelledby="mel-dif-tit">
   <div class="mel-sec-topo">
     <p class="mel-eyebrow">o diferencial</p>
     <h2 id="mel-dif-tit" class="mel-tit">Analógica por fora, digital por dentro</h2>
   </div>
-  <ul class="mel-specs">${SPECS.map(s => `<li>${s}</li>`).join('')}</ul>
+
+  <div class="mel-story-grade" style="--caps:${CAPITULOS.length}">${corpo}
+    <p class="mel-story-conta" data-mel-story-conta aria-hidden="true"><span
+      class="mel-story-conta-in"><span data-mel-story-atual>01</span><span
+      class="mel-story-conta-de">/</span>${dd(CAPITULOS.length)}</span></p>
+  </div>
+
+  <!-- REDE DE SEGURANÇA DO CARREGAMENTO ADIADO.
+       As cenas 2 a 9 esperam em data-src, e quem as promove é
+       iniciarScrollytellingPolen(), em /melcam/interacoes.js. Se aquele arquivo
+       não carregar — 404, rede caída, bloqueio —, o parser desta página teve o
+       sinalizador de script LIGADO, então o <noscript> de cada cena continua
+       inerte e oito capítulos ficariam com a moldura vazia. É a mesma armadilha
+       do "hero em branco" registrada no progresso.md: conteúdo que só aparece
+       se o JS rodar.
+       Estas linhas são inline, então chegam junto com o HTML. Se meio segundo
+       depois do load a seção não tiver sido ligada, elas trazem todas as fotos
+       e o adiamento simplesmente não acontece. Com JavaScript desligado de vez,
+       quem cobre é o <noscript>, que aí vira DOM de verdade. -->
+  <script>(function(){
+    var s=document.currentScript&&document.currentScript.previousElementSibling;
+    while(s&&s.getAttribute&&s.getAttribute('data-mel')!=='polen-story')s=s.parentNode;
+    if(!s)return;
+    function tudo(){
+      if(s.hasAttribute('data-mel-ligado'))return;
+      var l=s.querySelectorAll('img[data-src]');
+      for(var i=0;i<l.length;i++){l[i].src=l[i].getAttribute('data-src');l[i].removeAttribute('data-src');}
+    }
+    window.addEventListener('load',function(){setTimeout(tudo,500);});
+  })();</script>
 </section>`;
+  // SEM aria-live aqui, de propósito. O capítulo ativo muda a cada rolagem;
+  // uma região viva anunciaria nove vezes numa descida, o que atrapalha em vez
+  // de ajudar. Nada se perde: os nove títulos e textos estão no DOM, em ordem,
+  // e são lidos normalmente. O indicador numérico é aria-hidden porque é
+  // duplicata visual da posição que a leitura já dá.
 }
 
 // -------------------------------------------------------------- 7. colméia
-function colmeia() {
-  const c = cfg.colmeia;
-  return `
-<section class="mel-sec mel-colmeia" aria-labelledby="mel-col-tit">
-  <p class="mel-eyebrow">${c.eyebrow}</p>
-  <h2 id="mel-col-tit" class="mel-tit">${c.titulo}</h2>
-  <p class="mel-col-txt">${c.texto}</p>
-  <ul class="mel-perks">${c.perks.map(p => `<li>${p}</li>`).join('')}</ul>
-  <a class="mel-bt mel-bt-mel" href="#" data-mel-colmeia>${c.cta}</a>
-  <p class="mel-nota">Cadastro da Colméia <strong>a decidir</strong>: sem backend
-     integrado, o site não afirma que o envio foi feito.</p>
-</section>`;
-}
+//
+// SAIU EM 13/08/2026, a pedido, junto com a da /bee.
+//
+// Era a seção "o clube da marca / Entre para a Colméia", fechando a página:
+// eyebrow, título, o parágrafo da comunidade, os três perks (Acesso antecipado
+// · Encontros exclusivos · Desafios mensais), o CTA "Quero entrar na Colméia"
+// e a nota de cadastro a decidir.
+//
+// A HOME NÃO FOI TOCADA. Lá o bloco é outro: a seção do template Framer
+// (data-framer-name "Speed On"), que tools/identidade.js reordena de propósito
+// para fechar a home. Removê-la é decisão à parte, e não foi pedida.
+//
+// O que sobrou de pé, e por quê:
+//   melcam.config.json  a chave `colmeia` continua lá — é conteúdo aprovado do
+//                       cliente, e apagar dado do config por causa de uma
+//                       remoção de layout é perder o texto sem precisar.
+//   tools/paginas.js    .mel-colmeia e .mel-perks continuam no CSS. São regras
+//                       de sistema e voltam a ser usadas no dia em que o bloco
+//                       voltar; nenhuma delas casa com nada hoje.
+//   /sobre              o card "Comunidade" cita a Colméia em texto corrido.
+//                       Não é este bloco e não foi pedido.
 
 // ------------------------------------------------------------------ 8. FAQ
 const FAQ = [
@@ -295,13 +521,13 @@ function ctaFinal() {
 
 module.exports = {
   hero, produto, beneficios, galeria, filtros,
-  diferencial, colmeia, faq, ctaFinal,
+  diferencial, faq, ctaFinal,
   conteudo() {
     // hero() e produto() substituíram abertura() e modelos() em 13/08/2026.
-    // O resto da página não mudou de ordem: a Colméia fecha, depois do CTA
-    // final, igual à Bee — o convite para a comunidade é o último passo, não
-    // uma interrupção entre o diferencial e o FAQ.
+    // A Colméia fechava a página, depois do CTA final; saiu em 13/08 a pedido.
+    // Agora quem fecha é o CTA final, que é o passo certo numa página de
+    // produto: o último bloco convida a comprar, não a entrar num clube.
     return hero() + produto() + beneficios() + galeria()
-      + filtros() + diferencial() + faq() + ctaFinal() + colmeia();
+      + filtros() + diferencial() + faq() + ctaFinal();
   },
 };

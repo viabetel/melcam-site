@@ -187,6 +187,119 @@ function js() {
   }
 
 
+  /* ====== /polen — scrollytelling de "O diferencial" ======
+     Roda so em body.mel-pagina-polen: [data-mel="polen-story"] nao existe em
+     nenhuma outra pagina. NAO toca em iniciarFileira nem em variavel dela —
+     tudo aqui e local a esta funcao.
+
+     O QUE ESTE SCRIPT FAZ: liga uma classe na secao e troca um atributo no
+     capitulo ativo. So isso. Quem anima e o CSS, por transition. Nao ha
+     requestAnimationFrame, nao ha escrita de transform e nao ha leitura de
+     layout dentro de listener de scroll — o unico calculo de geometria roda
+     UMA vez, na largada, para o caso de a pagina abrir no meio da secao.
+
+     O ESTADO SEM ESTE SCRIPT E VALIDO: sem a classe, o CSS deixa cada cena na
+     propria linha ao lado do passo, todas visiveis. Por isso o palco so
+     aparece depois que este codigo confirma que pode existir. */
+  function iniciarScrollytellingPolen() {
+    var raiz = document.querySelector('[data-mel="polen-story"]');
+    if (!raiz || raiz.hasAttribute('data-mel-ligado')) return;
+    raiz.setAttribute('data-mel-ligado', '1');
+
+    var cenas  = [].slice.call(raiz.querySelectorAll('[data-mel-story-scene]'));
+    var passos = [].slice.call(raiz.querySelectorAll('[data-mel-story-step]'));
+    var conta  = raiz.querySelector('[data-mel-story-atual]');
+    /* Descasou, nao liga nada: melhor a lista honesta de duas colunas do que
+       um palco apontando para o capitulo errado. */
+    if (!cenas.length || cenas.length !== passos.length) return;
+
+    /* A cena 1 ja nasce com src; as outras esperam aqui. Sem isso as nove
+       entrariam de uma vez, porque empilhadas elas contam como visiveis e
+       loading="lazy" nao segura. */
+    function carregar(i) {
+      var c = cenas[i];
+      if (!c) return;
+      var img = c.querySelector('img[data-src]');
+      if (!img) return;
+      img.src = img.getAttribute('data-src');
+      img.removeAttribute('data-src');
+    }
+
+    /* Movimento reduzido: nenhum palco, nenhuma troca automatica. O layout
+       sequencial do CSS ja e o estado final; falta so trazer as imagens, para
+       que nenhuma fique invisivel. */
+    if (menosMovimento.matches) {
+      for (var k = 0; k < cenas.length; k++) carregar(k);
+      return;
+    }
+
+    /* Sem IntersectionObserver, fica o layout de duas colunas com tudo
+       visivel. Nada de fallback com listener de scroll: seria pior que o
+       estado estatico, que ja e legivel. */
+    if (typeof IntersectionObserver !== 'function') {
+      for (var k2 = 0; k2 < cenas.length; k2++) carregar(k2);
+      return;
+    }
+
+    raiz.classList.add('mel-story-ligado');
+
+    var ativo = -1;
+
+    function ativar(i) {
+      if (i < 0 || i >= cenas.length || i === ativo) return;
+      if (ativo >= 0) {
+        cenas[ativo].removeAttribute('data-mel-story-ativa');
+        passos[ativo].removeAttribute('data-mel-story-ativa');
+      }
+      ativo = i;
+      cenas[i].setAttribute('data-mel-story-ativa', '');
+      passos[i].setAttribute('data-mel-story-ativa', '');
+      /* O contador muda de coluna junto com o painel. O lado nao e calculado
+         aqui: vem do data-lado que tools/polen.js escreveu na cena, entao ha
+         uma fonte de verdade so. */
+      raiz.setAttribute('data-lado-ativo', cenas[i].getAttribute('data-lado') || 'esq');
+      /* A cena de agora e a proxima. So elas: pre-carregar as nove seria o
+         mesmo que nao ter adiado nada. */
+      carregar(i);
+      carregar(i + 1);
+      if (conta) conta.textContent = (i + 1 < 10 ? '0' : '') + (i + 1);
+    }
+
+    /* Usada uma vez, na largada. Cobre abrir a pagina no meio da secao, onde
+       nenhum passo cruza a faixa central e o observer nao teria o que dizer. */
+    function maisProximoDoCentro() {
+      var meio = window.innerHeight / 2, melhor = 0, menor = Infinity;
+      for (var i = 0; i < passos.length; i++) {
+        var r = passos[i].getBoundingClientRect();
+        var d = Math.abs((r.top + r.bottom) / 2 - meio);
+        if (d < menor) { menor = d; melhor = i; }
+      }
+      return melhor;
+    }
+    ativar(maisProximoDoCentro());
+
+    /* Faixa de ativacao: os 4% centrais da viewport. Um capitulo entra quando
+       cruza o centro da tela, que e onde o olho esta. Como a faixa e estreita,
+       raramente ha dois passos dentro dela; quando ha (passo curto no fim da
+       secao), vence o de menor indice, o que mantem a ordem na descida e na
+       subida. */
+    var dentro = [];
+    var observador = new IntersectionObserver(function (entradas) {
+      for (var i = 0; i < entradas.length; i++) {
+        var idx = +entradas[i].target.getAttribute('data-story-index');
+        var p = dentro.indexOf(idx);
+        if (entradas[i].isIntersecting) { if (p < 0) dentro.push(idx); }
+        else if (p >= 0) dentro.splice(p, 1);
+      }
+      if (!dentro.length) return;   /* fora da faixa, segura o ultimo ativo */
+      dentro.sort(function (a, b) { return a - b; });
+      ativar(dentro[0]);
+    }, { rootMargin: '-48% 0px -48% 0px', threshold: 0 });
+
+    for (var j = 0; j < passos.length; j++) observador.observe(passos[j]);
+  }
+
+
   /* ============ /polen — seletor das 7 cores ============
      As cores NAO vivem aqui: cada botao carrega data-nome, data-sub e
      data-img, escritos por tools/polen.js a partir de melcam.config.json. */
@@ -577,7 +690,7 @@ function css() {
 /* Ancora nao pode ficar embaixo da barra fixa. */
 /* A barra fixa da Polen saiu em 13/08; o unico elemento que pode cobrir uma
    ancora agora e a navbar principal, medida em 81px. */
-#produto, #filtros, #faq{ scroll-margin-top:96px }
+#produto, #filtros, #faq, #diferencial{ scroll-margin-top:96px }
 
 @media (max-width:900px){
   /* Imagem primeiro, informacao depois. */
@@ -590,7 +703,256 @@ function css() {
   .mel-pr-cores{ gap:.6rem }
 }
 
+/* ============ /polen — scrollytelling de "O diferencial" ============
+   ARQUITETURA, e por que ela é assim:
+
+   O DOM intercala cena, passo, cena, passo… uma única cópia de cada. Não há
+   imagem duplicada para o mobile. Quem muda de layout é a GRADE:
+
+     abaixo de 1025   uma coluna. A ordem do DOM já entrega figura seguida do
+                      texto dela, sequencial, sem sticky e sem nada absoluto.
+     1025 pra cima    duas colunas. Sem JS: cada cena na SUA linha, ao lado do
+                      passo — uma lista de duas colunas, honesta.
+                      Com JS (.mel-story-ligado): todas as cenas vão para a
+                      MESMA área (coluna 1, todas as linhas), empilhadas e
+                      sticky, e é essa sobreposição que permite o crossfade.
+
+   Por isso o estado sem JavaScript e o estado com movimento reduzido são o
+   MESMO estado, e nenhum deles esconde imagem: o palco só existe quando o
+   script liga a classe.
+
+   O grid-row:1/-1 exige linhas EXPLÍCITAS — com grid implícito o -1 volta
+   para a linha 1 e a regra morre calada. Daí --caps, escrito no HTML por
+   tools/polen.js com a quantidade de capítulos. */
+/* PRÉ-REQUISITO DO STICKY, e ele não é óbvio: position:sticky não engata se
+   QUALQUER ancestral tiver overflow:hidden, porque hidden cria caixa de
+   rolagem e o elemento passa a grudar dentro dela — que não rola. O template
+   do Framer embrulha a página inteira em dois contêineres assim
+   (header.framer-vrbx7h e o div que o contém), e por isso a primeira versão
+   deste palco simplesmente rolou embora: medido, o topo dele ia a -546, -1230,
+   -1914 em vez de ficar em 113.
+
+   overflow:clip recorta igual a hidden e NÃO cria caixa de rolagem, que é
+   exatamente a diferença que falta aqui.
+
+   ESCOPADO EM body.mel-pagina-polen de propósito: a home e as outras internas
+   não são tocadas, e o QA da fileira continua medindo o mesmo overflow:hidden
+   de sempre. O contêiner externo é alcançado por :has(> .framer-vrbx7h)
+   porque a classe dele é hasheada e muda a cada export do template. */
+body.mel-pagina-polen .framer-vrbx7h,
+body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
+
+.mel-story-grade{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:clamp(24px,4vw,40px);
+  margin-top:clamp(28px,4vw,56px);
+}
+
+/* PROPORÇÃO RESERVADA SEMPRE, com ou sem src. É isso que zera o CLS: a caixa
+   já tem a altura final antes de a imagem existir. */
+.mel-story-cena{
+  margin:0; position:relative; overflow:hidden;
+  aspect-ratio:3/2;
+  border-radius:6px;
+  background:${P.carvao};
+  border:1px solid rgba(251,247,238,.07);
+}
+.mel-story-img{ width:100%; height:100%; display:block; object-fit:cover }
+/* Enquanto o caminho ainda está em data-src, o <img> não tem src — e um <img>
+   sem src desenha o ícone de quebrado com o texto do alt por cima. Foi o que
+   apareceu no mobile em 13/08, com a frase do alt escrita sobre a moldura.
+   Escondido, o que se vê é a caixa em carvão, do tamanho final. A proporção já
+   está reservada, então isto não custa nenhum layout shift. O atributo é
+   removido no mesmo instante em que o src entra. */
+.mel-story-cena img[data-src]{ visibility:hidden }
+/* SEM JAVASCRIPT o <noscript> vira DOM de verdade, e a foto dele passa a ser a
+   SEGUNDA <img> da moldura. Em fluxo ela caía embaixo do placeholder, que já
+   ocupa 100% da altura, e o overflow:hidden da moldura a cortava inteira —
+   medido em 13/08: nove capítulos com caixa vazia. Absoluta, ela ocupa a
+   moldura toda. Com script ligado esta regra não casa com nada, porque aí o
+   conteúdo do <noscript> nem é analisado como DOM. */
+.mel-story-cena noscript img{ position:absolute; inset:0 }
+
+.mel-story-passo{ max-width:46ch }
+.mel-story-num{
+  margin:0 0 .7rem; color:${P.mel};
+  font-family:"Area",sans-serif; font-size:.78rem; font-weight:700;
+  letter-spacing:.22em; font-variant-numeric:tabular-nums;
+}
+.mel-story-tit{
+  margin:0; color:${P.papel};
+  font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
+  font-size:clamp(1.35rem,2.2vw,1.9rem); line-height:1.18; letter-spacing:-.01em;
+}
+.mel-story-txt{
+  margin:.9rem 0 0; color:#CFC6B8;
+  font-family:"Area",sans-serif; font-size:clamp(.96rem,1.05vw,1.03rem); line-height:1.66;
+}
+
+/* --- cotas do capítulo 4 --- */
+.mel-story-cotas{
+  position:absolute; inset:0; width:100%; height:100%; pointer-events:none;
+}
+.mel-story-cota path{
+  fill:none; stroke:${P.mel}; stroke-width:2; stroke-linecap:round; opacity:.85;
+}
+.mel-story-cota text{
+  fill:${P.papel}; font-family:"Area",sans-serif; font-size:34px; letter-spacing:.02em;
+}
+.mel-story-prof{
+  position:absolute; left:0; right:0; bottom:14px; margin:0; text-align:center;
+  color:#9A9083; font-family:"Area",sans-serif; font-size:.76rem; letter-spacing:.08em;
+}
+
+/* --- placeholder editorial ---
+   Nem retângulo genérico nem imagem falsa: diz o número, a vantagem, que a
+   foto oficial ainda entra e QUAL foto é. O fundo é o favo da marca desenhado
+   em gradiente cônico, discreto, na própria superfície do sistema. Ocupa a
+   mesma proporção 3:2 da cena real, então a substituição não mexe no layout. */
+.mel-story-cena-vaga{
+  /* #2B251C e a superficie do sistema. Cravada e nao tokenizada porque a
+     paleta do config so tem carvao, mel, papel, coral e verdeMar — o mesmo
+     valor ja aparece cravado em corDoTile() por este motivo. */
+  background:
+    radial-gradient(circle at 30% 22%, rgba(242,169,0,.05), transparent 58%),
+    #2B251C;
+  border-style:dashed; border-color:rgba(251,247,238,.16);
+}
+.mel-story-vaga{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; text-align:center;
+  padding:clamp(20px,4%,40px); gap:.35rem;
+}
+.mel-story-vaga-num{
+  margin:0; color:rgba(242,169,0,.5);
+  font-family:"Iowan Old Style",Georgia,serif; font-size:clamp(2.4rem,5vw,3.6rem);
+  line-height:1; font-variant-numeric:tabular-nums;
+}
+.mel-story-vaga-nome{
+  margin:.4rem 0 0; color:${P.papel};
+  font-family:"Area",sans-serif; font-size:.86rem; font-weight:700;
+  letter-spacing:.18em; text-transform:uppercase;
+}
+.mel-story-vaga-rot{
+  margin:.9rem 0 0; color:${P.mel};
+  font-family:"Area",sans-serif; font-size:.72rem; letter-spacing:.14em; text-transform:uppercase;
+}
+.mel-story-vaga-dir{
+  margin:.35rem 0 0; max-width:34ch; color:#9A9083;
+  font-family:"Area",sans-serif; font-size:.82rem; line-height:1.55;
+}
+
+/* O contador só faz sentido quando existe um palco trocando de cena. */
+.mel-story-conta{ display:none }
+
+/* --- desktop --- */
+@media (min-width:1025px){
+  /* DUAS COLUNAS IGUAIS, e isso é consequência da alternância: como imagem e
+     texto trocam de lado a cada capítulo, colunas de larguras diferentes
+     fariam o painel encolher nos capítulos pares. Com 1fr 1fr o palco fica em
+     50% da grade nos dois lados — dentro da faixa pedida e, principalmente,
+     do mesmo tamanho sempre. */
+  .mel-story-grade{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    grid-template-rows:repeat(var(--caps,9), auto);
+    column-gap:clamp(40px,5vw,80px);
+    row-gap:clamp(40px,5vw,72px);
+    align-items:start;
+  }
+  /* Sem JS: par por linha, já alternando o lado. A linha vem de --linha, do
+     HTML — a auto-alocação junta pares de capítulos na mesma linha quando a
+     coluna alterna (o porquê está em tools/polen.js). */
+  .mel-story-cena{ grid-row:var(--linha) }
+  .mel-story-passo{ grid-row:var(--linha); align-self:center }
+  .mel-story-cena[data-lado="esq"]{ grid-column:1 }
+  .mel-story-cena[data-lado="dir"]{ grid-column:2 }
+  .mel-story-passo[data-lado="esq"]{ grid-column:1 }
+  .mel-story-passo[data-lado="dir"]{ grid-column:2 }
+
+  /* Com JS: empilha e gruda. 113px = navbar de 81 + respiro de 32.
+     As cenas continuam na coluna do próprio lado — as ímpares empilham na 1,
+     as pares na 2. Como só uma está visível por vez, as duas pilhas nunca
+     aparecem juntas, e o que se vê é o painel trocando de lado. */
+  .mel-story-ligado .mel-story-cena{
+    grid-row:1 / -1;
+    position:sticky; top:113px; align-self:start;
+    opacity:0;
+    transition:opacity 560ms cubic-bezier(.22,.61,.36,1),
+               transform 560ms cubic-bezier(.22,.61,.36,1);
+    pointer-events:none;
+  }
+  /* A cena entra vindo de FORA, do seu próprio lado: 22px, o bastante para o
+     olho ler a direção da troca e pouco o bastante para não virar carrossel.
+     A escala curta é a mesma dos outros blocos da página. */
+  .mel-story-ligado .mel-story-cena[data-lado="esq"]{ transform:scale(1.025) translateX(-22px) }
+  .mel-story-ligado .mel-story-cena[data-lado="dir"]{ transform:scale(1.025) translateX(22px) }
+  .mel-story-ligado .mel-story-cena[data-mel-story-ativa]{
+    opacity:1; transform:none;
+  }
+  /* Cada passo é um capítulo de scroll. 68vh é o que faz um capítulo por vez
+     ocupar o centro da tela sem transformar a seção em nove telas cheias — a
+     seção inteira fica em ~6,3 telas, e não em 9. */
+  .mel-story-ligado .mel-story-passo{
+    grid-row:var(--linha);
+    min-height:68vh; display:flex; flex-direction:column; justify-content:center;
+    align-self:stretch;
+    /* 0,66 e nao 0,34. O apagado era bonito e REPROVAVA em contraste: medido no
+       navegador, o numero em mel dava 2,06:1 contra os 4,5 exigidos e o titulo
+       dava 2,94:1 contra 3. Capitulo inativo continua na tela, entao vale
+       WCAG igual. Em 0,66 o numero sobe para 4,66:1 e o titulo para 7,2:1, e a
+       diferenca para o capitulo ativo continua legivel — que era o pedido:
+       mudanca discreta, nao apagao. */
+    opacity:.66; transition:opacity 460ms cubic-bezier(.22,.61,.36,1);
+  }
+  .mel-story-ligado .mel-story-passo[data-mel-story-ativa]{ opacity:1 }
+
+  /* CONTADOR — a caixa dele é IDÊNTICA à do palco (mesma área, mesmo sticky,
+     mesmo aspect-ratio), e o número mora num filho absoluto logo abaixo dela.
+     Foi a segunda tentativa. A primeira usava padding-top em % para empurrar o
+     número até o pé do palco, e funcionava no meio da seção mas desencontrava
+     no capítulo 9: com a caixa mais alta que a do palco, o sticky dele soltava
+     antes, e o número subia para dentro da imagem. Medido: número em y553 com
+     o palco terminando em y563. Caixas iguais soltam juntas. */
+  .mel-story-ligado .mel-story-conta{
+    display:block; grid-column:1; grid-row:1 / -1;
+    position:sticky; top:113px; align-self:start;
+    aspect-ratio:3/2; margin:0; pointer-events:none;
+    transition:none;   /* trocar de coluna não se anima; só salta com a cena */
+  }
+  /* O contador acompanha o painel. Sem isto ele ficaria órfão à esquerda nos
+     capítulos em que a imagem está à direita. Quem escreve data-lado-ativo é
+     o script, lendo o data-lado da própria cena que acabou de entrar. */
+  .mel-story-ligado[data-lado-ativo="dir"] .mel-story-conta{ grid-column:2 }
+  .mel-story-ligado .mel-story-conta-in{
+    position:absolute; left:0; top:calc(100% + 16px);
+    color:#7C7365; font-family:"Area",sans-serif; font-size:.78rem;
+    letter-spacing:.16em; font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  .mel-story-conta [data-mel-story-atual]{ color:${P.mel} }
+  .mel-story-conta-de{ margin:0 .45rem; opacity:.6 }
+}
+
+/* Em janela baixa o palco de 3:2 mais a navbar não cabem: encolhe o palco em
+   vez de deixar a cena sair pela dobra. */
+@media (min-width:1025px) and (max-height:760px){
+  .mel-story-ligado .mel-story-cena{ top:96px }
+  .mel-story-grade{ grid-template-columns:minmax(0,48%) minmax(0,1fr) }
+}
+
 @media (prefers-reduced-motion:reduce){
+  /* Fluxo sequencial, sem palco trocando sozinho e sem nenhuma cena
+     invisível. O JS nem chega a ligar a classe, mas a regra fica aqui como
+     rede: se alguém ligar na mão, o layout não vira empilhamento cego. */
+  .mel-story-ligado .mel-story-cena{
+    position:static; grid-row:auto; grid-column:1;
+    opacity:1; transform:none; transition:none;
+  }
+  .mel-story-ligado .mel-story-passo{
+    min-height:0; opacity:1; transition:none; align-self:center;
+  }
+  .mel-story-ligado .mel-story-conta{ display:none }
+
   .mel-ph-pronto .mel-ph-eyebrow,
   .mel-ph-pronto .mel-ph-tit,
   .mel-ph-pronto .mel-ph-txt,
