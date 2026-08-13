@@ -175,6 +175,127 @@ a[data-framer-name="Polen"]{ position:relative; }
 }
 
 /* --------------------------------------------------------------------
+   BLOCO POLEN DA HOME — 13/08/2026
+
+   O argumento da Polen e ESCOLHA: linha madura, 7 cores. O card ja tinha
+   moldura em papel e a regua de 7 pontos; faltavam o conceito aprovado, as
+   cores em PRODUTO, o preco real e um CTA. tools/bloco-polen.js insere isso
+   dentro do <a> que ja existe, sem tocar em classe framer-* nem em DOM.
+
+   ESCOPO: body:not(.mel-interna). As internas tambem tem Header Grid, e a
+   decisao de 13/08 foi mante-lo la como navegacao entre as linhas — entao
+   nada disso pode vazar para elas.
+
+   Onde ha miniatura de verdade, os 7 pontos em CSS saem: dois indicadores da
+   mesma coisa e ruido. A regua continua valendo no card pequeno e nas
+   internas, que nao recebem a tira.
+   -------------------------------------------------------------------- */
+body:not(.mel-interna) a[data-framer-name="Polen"]:has(.mel-polen-tira)::after{ content:none }
+
+/* FORA DO FLUXO, como o selo da Bee. O card tem altura fixa: medido em
+   13/08, o eyebrow em fluxo mais o titulo de duas linhas empurravam o
+   paragrafo para fora e ele sumia. Em absolute o eyebrow nao custa linha
+   nenhuma e o texto volta. Nao e pilula como o da Bee de proposito — la o
+   argumento e NOVIDADE e pede etiqueta; aqui e ESCOLHA, e pede rotulo seco. */
+.mel-polen-eyebrow{
+  position:absolute; z-index:3; top:1.25rem; left:1.25rem; margin:0;
+  font-family:"Area",sans-serif; font-size:.72rem; font-weight:700;
+  letter-spacing:.16em; text-transform:uppercase; color:${P.mel};
+  pointer-events:none;
+}
+
+/* ABSOLUTA, no rodape do card, e nao em fluxo.
+   O card do template tem ALTURA FIXA e o packshot sangra em position:absolute
+   para fora da base. Medido em 13/08: com a tira em fluxo ela dava 0x0 no
+   desktop — o card nao cresce, entao o conteudo novo era simplesmente cortado,
+   e a altura da pagina nao mudava um pixel. Em absolute ela ocupa o lugar que a
+   regua de 7 pontos ja ocupava, sem alterar altura de card, de grade ou de
+   pagina. */
+.mel-polen-tira{
+  position:absolute; z-index:3; left:0; right:0; bottom:0;
+  display:flex; flex-direction:column; align-items:center; gap:.55rem;
+  padding:2.6rem 1.25rem 1.1rem;
+  pointer-events:none;                    /* o clique continua sendo o do <a> */
+  /* Scrim funcional, nao enfeite: e ele que garante AA do preco e do CTA sobre
+     a foto. Sem ele o texto cai em cima do couro claro da camera. */
+  background:linear-gradient(180deg,rgba(34,30,23,0) 0%,rgba(34,30,23,.78) 42%,rgba(34,30,23,.94) 100%);
+}
+
+/* As 7 cores. Cada miniatura ja e o packshot sobre o proprio fundo de cor,
+   entao mostra produto e cor ao mesmo tempo — mais honesto que um ponto
+   abstrato, e e asset oficial, nao amostra inventada. */
+.mel-polen-cores{ display:flex; gap:.4rem; }
+.mel-polen-cores img{
+  width:2.1rem; height:2.1rem; border-radius:3px;   /* raio pequeno, como o card */
+  object-fit:cover; display:block; flex:none;
+  border:1px solid rgba(251,247,238,.07);
+  transition:transform 420ms cubic-bezier(.22,.61,.36,1);
+}
+/* Hover contido, no mesmo easing do resto do site. So enfeite: nenhuma
+   informacao depende dele. */
+a[data-framer-name="Polen"]:hover .mel-polen-cores img{ transform:translateY(-2px) }
+
+.mel-polen-linha{
+  display:flex; align-items:baseline; justify-content:center;
+  gap:.75rem; flex-wrap:wrap;
+}
+.mel-polen-preco{
+  font-family:"Iowan Old Style",Georgia,serif; font-size:1.15rem;
+  color:${P.papel};
+}
+/* CTA e TEXTO, nao <a>: o bloco inteiro ja e o link, e link dentro de link
+   e invalido. O sublinhado deixa claro que e acionavel sem depender de cor. */
+.mel-polen-cta{
+  font-family:"Area",sans-serif; font-size:.82rem; font-weight:700;
+  letter-spacing:.06em; color:${P.mel};
+  text-decoration:underline; text-underline-offset:.28em;
+  text-decoration-thickness:1px;
+}
+
+@media (max-width:809.98px){
+  .mel-polen-tira{ margin:.85rem .75rem 0; gap:.55rem; padding-top:.75rem }
+  .mel-polen-cores{ gap:.3rem }
+  .mel-polen-cores img{ width:1.7rem; height:1.7rem }
+  .mel-polen-preco{ font-size:1rem }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .mel-polen-cores img{ transition:none }
+  a[data-framer-name="Polen"]:hover .mel-polen-cores img{ transform:none }
+}
+
+/* Rede de seguranca: se um dia paginas.gerar() propagar esses nos para as
+   internas, eles nao aparecem la. */
+
+/* O PARAGRAFO SAI DESTE CARD — divergencia declarada, nao descuido.
+   O card do template tem ALTURA FIXA (437x486 no desktop) e o packshot sangra
+   em absolute por cima. Medido em 13/08: com eyebrow + titulo de duas linhas +
+   tira, o paragrafo nao cabe — em fluxo ele era cortado, e com o eyebrow fora
+   do fluxo ele reaparecia ATRAS da foto, ilegivel. Entregar texto por baixo de
+   imagem e pior do que nao entregar.
+   O recado de fotografia intencional e sem tela continua na home, no subtitulo
+   logo acima da grade: "cameras digitais retro da Melcam. Fotografia
+   intencional, filtros vintage embutidos e menos distracao."
+   Para trazer o paragrafo de volta seria preciso mexer na altura do card, que
+   e estrutura do template — decisao que nao cabia nesta tarefa. */
+body:not(.mel-interna) a[data-framer-name="Polen"]:has(.mel-polen-tira) p.framer-text{
+  display:none;
+}
+
+
+/* Enquadramento das duas fotos do card Sobre Nos — 13/08/2026.
+   Os slots sao QUADRADOS (437x437) e as fotos sao 2:3, entao o cover corta uma
+   faixa vertical. Com o padrao 50% 50% a faixa escolhida caia no meio da foto e
+   o card, que so revela a parte de baixo do wrapper sangrado, mostrava dedo e
+   boca — a camera e o rosto ficavam fora. Subindo a faixa, o assunto entra no
+   pedaco visivel. Ancorado no data-framer-name do card: nao alcanca a fileira do
+   hero, que usa as MESMAS fotos e cujo object-position e center por spec. */
+a[data-framer-name="Sobre Nós"] img{ object-position:50% 18% !important }
+
+body.mel-interna .mel-polen-tira,
+body.mel-interna .mel-polen-eyebrow{ display:none !important }
+
+/* --------------------------------------------------------------------
    BLOCOS EDITORIAIS ABAIXO DO HERO
 
    O template posiciona o packshot em absolute sangrando para fora da base
@@ -199,21 +320,32 @@ a[data-framer-name="Polen"]{ position:relative; }
    .framer-dtlgl4 que e a fileira. Usar o atributo pegava o de fora e
    vazava para as imagens de outras secoes. Alvo correto e a CLASSE. */
 
-/* O container era width:min-content, e min-content encolhe os filhos ate o
-   tamanho intrinseco da foto. Era a causa raiz do "parece miniatura". */
-.framer-dtlgl4{
-  width:100% !important;
-  max-width:100% !important;
-  height:auto !important;
-  gap:20px !important;
-  overflow-x:auto !important;
-  overflow-y:hidden !important;
-  scrollbar-width:none;
-  -ms-overflow-style:none;
-  scroll-snap-type:x proximity;
-}
-.framer-dtlgl4::-webkit-scrollbar{ display:none }
+/* 13/08/2026 — a fileira volta a ser fileira.
+   Ela tinha virado carrossel de swipe (width:100%, overflow-x:auto,
+   scroll-snap) para contornar o "parece miniatura". So que a miniatura nao
+   vinha da largura do container: vinha do GRUPO congelado em scale(0.5) pelo
+   export sem React. Com o transform de volta (interacoes.js, iniciarFileira)
+   a causa some, e o remendo passou a ser a divergencia — a medicao do build
+   antigo mostrava grupo de 1392px e overflow "auto hidden" contra os 4980px e
+   "hidden" do template. Aqui a geometria medida volta.
 
+   max-content, e nao o min-content do template: o numero e o mesmo (4980 =
+   10x480 + 9x20, porque os filhos tem altura fixa e aspect-ratio, entao a
+   largura e derivada), mas min-content colapsa para o tamanho intrinseco da
+   foto se a regra de altura abaixo por qualquer motivo nao vencer. Era esse
+   colapso o "parece miniatura" original. max-content nao tem esse modo de
+   falha e mede igual. */
+.framer-dtlgl4{
+  width:max-content !important;
+  max-width:none !important;
+  height:min-content !important;
+  gap:20px !important;
+  overflow:hidden !important;
+}
+
+/* O template declara height:80vh, mas prefixado por uma classe de escopo de
+   pagina, e nem sempre vence. Aqui e cravado. O piso em px evita a fileira
+   virar tira fina em janela baixa. */
 .framer-dtlgl4 > div{
   height:80vh !important;
   min-height:560px !important;
@@ -221,33 +353,43 @@ a[data-framer-name="Polen"]{ position:relative; }
   width:auto !important;
   flex:0 0 auto !important;
   border-radius:4px; overflow:hidden;
-  scroll-snap-align:center;
 }
 /* As fotos precisam PREENCHER o frame — cover, nao contain, senao sobra fundo. */
 .framer-dtlgl4 img{
   width:100% !important; height:100% !important;
   object-fit:cover !important; object-position:50% 50%;
 }
+/* Abaixo de 810px o template troca 80vh por 50vh — e so isso que muda entre
+   breakpoints nesta secao. Medido: 341x512 no tablet, 281x422 no mobile.
+   Estava 78svh, herdado da fase de carrossel, quando fazia sentido a foto
+   ocupar a tela toda porque so uma aparecia. */
 @media (max-width:809.98px){
-  .framer-dtlgl4 > div{ height:78svh !important; min-height:420px !important }
+  .framer-dtlgl4 > div{ height:50vh !important; min-height:340px !important }
+
+  /* 13/08/2026 — a fileira comeca na foto 1 no celular.
+     O pai (section.framer-1da55c7) e flex-column com align-items:center, e era
+     ele que centralizava o grupo de 2993px numa janela de 390: a fileira abria
+     em left -1301, no MEIO dela, com a foto da esquerda cortada ao meio e as
+     fotos 1 a 4 inalcancaveis. align-self solta so o grupo — o titulo e o
+     resto da coluna continuam centralizados.
+
+     transform-origin na borda esquerda e o par obrigatorio: com origem no
+     centro (o padrao), o scale(0.5) da entrada puxaria a borda esquerda 748px
+     para dentro e a foto 1 sairia de vista justamente no comeco da animacao.
+     Com origem na esquerda, a foto 1 fica ancorada e a fileira cresce para a
+     direita. Quem desfila e o translateX, em interacoes.js (iniciarFileira).
+
+     Acima de 810px nada disso vale: a geometria medida do template continua. */
+  .framer-dtlgl4{
+    align-self:flex-start !important;
+    transform-origin:0 50% !important;
+  }
 }
 
-/* Reveal na entrada: transform + opacity, sem reflow.
-   Duracao e easing acompanham o spring do template (damping 100 /
-   stiffness 200), lido como 620ms em cubic-bezier(.22,.61,.36,1). */
-/* Sem scale no estado inicial: encolher a foto era o que a fazia parecer
-   pequena quando o observer nao disparava. So deslocamento e opacidade. */
-[data-mel-reveal]{
-  opacity:0; transform:translate3d(0,42px,0);
-  transition:opacity 620ms cubic-bezier(.22,.61,.36,1),
-             transform 620ms cubic-bezier(.22,.61,.36,1);
-  will-change:transform,opacity;
-}
-[data-mel-reveal].mel-visivel{ opacity:1; transform:none }
-/* escalonamento suave entre os blocos, sem virar cascata longa */
-[data-mel-reveal]:nth-child(2){ transition-delay:90ms }
-[data-mel-reveal]:nth-child(3){ transition-delay:180ms }
-[data-mel-reveal]:nth-child(4){ transition-delay:270ms }
+/* O reveal por IntersectionObserver que animava os 10 filhos um a um saiu:
+   MOTION_SPEC secao 3 mede "sem movimento individual" na fileira. Quem se
+   move e o grupo, ligado ao scroll, em interacoes.js. As regras de
+   [data-mel-reveal] saem junto — nada mais recebe o atributo. */
 
 /* Hover: zoom contido na foto, dentro da mascara do container — o frame nao
    muda de tamanho, entao nao ha layout shift. */
@@ -255,9 +397,9 @@ a[data-framer-name="Polen"]{ position:relative; }
 .framer-dtlgl4 > div:hover img{ transform:scale(1.05) }
 
 @media (prefers-reduced-motion:reduce){
-  /* estado final, mantendo escala e impacto — nao some com nada */
-  [data-mel-reveal]{ opacity:1; transform:none; transition:none }
-  .framer-dtlgl4{ scroll-snap-type:none }
+  /* estado final, mantendo escala e impacto — nao some com nada.
+     O grupo tambem: interacoes.js escreve escala 1 / y 0 / opacidade 1 direto,
+     sem passar pelo caminho do meio. */
   .framer-dtlgl4 img{ transition:none }
   .framer-dtlgl4 > div:hover img{ transform:none }
 }

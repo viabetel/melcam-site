@@ -17,10 +17,15 @@ function fotosComunidade() {
 function comunidade() {
   const c = cfg.home.comunidade;
   const fotos = fotosComunidade();
-  const itens = fotos.map((src, i) => `
+  // 13/08/2026, a pedido: o rótulo [USUÁRIO E CIDADE A CONFIRMAR] saiu de dentro
+  // dos cards. A pendência NÃO some do site — continua declarada na nota ao pé
+  // da seção, que diz que a identificação de cada autor está a decidir. O que
+  // saiu foi a etiqueta repetida oito vezes por cima das fotos.
+  // (De quebra some um <figcaption> que vivia fora de um <figure>, que é markup
+  // inválido — o <li> nunca foi <figure>.)
+  const itens = fotos.map(src => `
       <li class="mel-com-item">
         <img src="${src}" alt="Foto da comunidade Melcam" loading="lazy">
-        <figcaption class="mel-com-cap">[USUÁRIO E CIDADE A CONFIRMAR]</figcaption>
       </li>`).join('');
 
   return `
@@ -122,13 +127,9 @@ function css() {
   transition:transform 520ms cubic-bezier(.22,.61,.36,1);
 }
 .mel-com-item:hover img{ transform:scale(1.045) }
-.mel-com-cap{
-  position:absolute; inset:auto 0 0 0; padding:.55rem .7rem;
-  background:linear-gradient(180deg,rgba(34,30,23,0),rgba(34,30,23,.86));
-  color:${P.papel}; font-family:"Area",sans-serif; font-size:.66rem;
-  letter-spacing:.04em; opacity:0; transition:opacity 260ms ease;
-}
-.mel-com-item:hover .mel-com-cap,.mel-com-item:focus-within .mel-com-cap{ opacity:1 }
+/* .mel-com-cap saiu em 13/08/2026 junto com a legenda que ele vestia. Regra
+   morta e nao volta sozinha: quando houver @usuario e cidade de verdade, o
+   estilo se reescreve com o conteudo. */
 
 /* --- clipes --- */
 .mel-clipes-grade{
@@ -174,8 +175,6 @@ function css() {
   .mel-clipes-grade{ grid-template-columns:1fr; gap:16px }
   .mel-clipe-box{ max-width:340px; margin:0 auto }
   .mel-seg-lista{ grid-template-columns:1fr; padding-left:16px; padding-right:16px }
-  /* legenda sempre visível no toque: hover não existe */
-  .mel-com-cap{ opacity:1; font-size:.6rem }
 }
 @media (prefers-reduced-motion:reduce){
   .mel-com-item img{ transition:none }

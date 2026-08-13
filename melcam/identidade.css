@@ -96,6 +96,127 @@ a[data-framer-name="Polen"]{ position:relative; }
 }
 
 /* --------------------------------------------------------------------
+   BLOCO POLEN DA HOME — 13/08/2026
+
+   O argumento da Polen e ESCOLHA: linha madura, 7 cores. O card ja tinha
+   moldura em papel e a regua de 7 pontos; faltavam o conceito aprovado, as
+   cores em PRODUTO, o preco real e um CTA. tools/bloco-polen.js insere isso
+   dentro do <a> que ja existe, sem tocar em classe framer-* nem em DOM.
+
+   ESCOPO: body:not(.mel-interna). As internas tambem tem Header Grid, e a
+   decisao de 13/08 foi mante-lo la como navegacao entre as linhas — entao
+   nada disso pode vazar para elas.
+
+   Onde ha miniatura de verdade, os 7 pontos em CSS saem: dois indicadores da
+   mesma coisa e ruido. A regua continua valendo no card pequeno e nas
+   internas, que nao recebem a tira.
+   -------------------------------------------------------------------- */
+body:not(.mel-interna) a[data-framer-name="Polen"]:has(.mel-polen-tira)::after{ content:none }
+
+/* FORA DO FLUXO, como o selo da Bee. O card tem altura fixa: medido em
+   13/08, o eyebrow em fluxo mais o titulo de duas linhas empurravam o
+   paragrafo para fora e ele sumia. Em absolute o eyebrow nao custa linha
+   nenhuma e o texto volta. Nao e pilula como o da Bee de proposito — la o
+   argumento e NOVIDADE e pede etiqueta; aqui e ESCOLHA, e pede rotulo seco. */
+.mel-polen-eyebrow{
+  position:absolute; z-index:3; top:1.25rem; left:1.25rem; margin:0;
+  font-family:"Area",sans-serif; font-size:.72rem; font-weight:700;
+  letter-spacing:.16em; text-transform:uppercase; color:#F2A900;
+  pointer-events:none;
+}
+
+/* ABSOLUTA, no rodape do card, e nao em fluxo.
+   O card do template tem ALTURA FIXA e o packshot sangra em position:absolute
+   para fora da base. Medido em 13/08: com a tira em fluxo ela dava 0x0 no
+   desktop — o card nao cresce, entao o conteudo novo era simplesmente cortado,
+   e a altura da pagina nao mudava um pixel. Em absolute ela ocupa o lugar que a
+   regua de 7 pontos ja ocupava, sem alterar altura de card, de grade ou de
+   pagina. */
+.mel-polen-tira{
+  position:absolute; z-index:3; left:0; right:0; bottom:0;
+  display:flex; flex-direction:column; align-items:center; gap:.55rem;
+  padding:2.6rem 1.25rem 1.1rem;
+  pointer-events:none;                    /* o clique continua sendo o do <a> */
+  /* Scrim funcional, nao enfeite: e ele que garante AA do preco e do CTA sobre
+     a foto. Sem ele o texto cai em cima do couro claro da camera. */
+  background:linear-gradient(180deg,rgba(34,30,23,0) 0%,rgba(34,30,23,.78) 42%,rgba(34,30,23,.94) 100%);
+}
+
+/* As 7 cores. Cada miniatura ja e o packshot sobre o proprio fundo de cor,
+   entao mostra produto e cor ao mesmo tempo — mais honesto que um ponto
+   abstrato, e e asset oficial, nao amostra inventada. */
+.mel-polen-cores{ display:flex; gap:.4rem; }
+.mel-polen-cores img{
+  width:2.1rem; height:2.1rem; border-radius:3px;   /* raio pequeno, como o card */
+  object-fit:cover; display:block; flex:none;
+  border:1px solid rgba(251,247,238,.07);
+  transition:transform 420ms cubic-bezier(.22,.61,.36,1);
+}
+/* Hover contido, no mesmo easing do resto do site. So enfeite: nenhuma
+   informacao depende dele. */
+a[data-framer-name="Polen"]:hover .mel-polen-cores img{ transform:translateY(-2px) }
+
+.mel-polen-linha{
+  display:flex; align-items:baseline; justify-content:center;
+  gap:.75rem; flex-wrap:wrap;
+}
+.mel-polen-preco{
+  font-family:"Iowan Old Style",Georgia,serif; font-size:1.15rem;
+  color:#FBF7EE;
+}
+/* CTA e TEXTO, nao <a>: o bloco inteiro ja e o link, e link dentro de link
+   e invalido. O sublinhado deixa claro que e acionavel sem depender de cor. */
+.mel-polen-cta{
+  font-family:"Area",sans-serif; font-size:.82rem; font-weight:700;
+  letter-spacing:.06em; color:#F2A900;
+  text-decoration:underline; text-underline-offset:.28em;
+  text-decoration-thickness:1px;
+}
+
+@media (max-width:809.98px){
+  .mel-polen-tira{ margin:.85rem .75rem 0; gap:.55rem; padding-top:.75rem }
+  .mel-polen-cores{ gap:.3rem }
+  .mel-polen-cores img{ width:1.7rem; height:1.7rem }
+  .mel-polen-preco{ font-size:1rem }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .mel-polen-cores img{ transition:none }
+  a[data-framer-name="Polen"]:hover .mel-polen-cores img{ transform:none }
+}
+
+/* Rede de seguranca: se um dia paginas.gerar() propagar esses nos para as
+   internas, eles nao aparecem la. */
+
+/* O PARAGRAFO SAI DESTE CARD — divergencia declarada, nao descuido.
+   O card do template tem ALTURA FIXA (437x486 no desktop) e o packshot sangra
+   em absolute por cima. Medido em 13/08: com eyebrow + titulo de duas linhas +
+   tira, o paragrafo nao cabe — em fluxo ele era cortado, e com o eyebrow fora
+   do fluxo ele reaparecia ATRAS da foto, ilegivel. Entregar texto por baixo de
+   imagem e pior do que nao entregar.
+   O recado de fotografia intencional e sem tela continua na home, no subtitulo
+   logo acima da grade: "cameras digitais retro da Melcam. Fotografia
+   intencional, filtros vintage embutidos e menos distracao."
+   Para trazer o paragrafo de volta seria preciso mexer na altura do card, que
+   e estrutura do template — decisao que nao cabia nesta tarefa. */
+body:not(.mel-interna) a[data-framer-name="Polen"]:has(.mel-polen-tira) p.framer-text{
+  display:none;
+}
+
+
+/* Enquadramento das duas fotos do card Sobre Nos — 13/08/2026.
+   Os slots sao QUADRADOS (437x437) e as fotos sao 2:3, entao o cover corta uma
+   faixa vertical. Com o padrao 50% 50% a faixa escolhida caia no meio da foto e
+   o card, que so revela a parte de baixo do wrapper sangrado, mostrava dedo e
+   boca — a camera e o rosto ficavam fora. Subindo a faixa, o assunto entra no
+   pedaco visivel. Ancorado no data-framer-name do card: nao alcanca a fileira do
+   hero, que usa as MESMAS fotos e cujo object-position e center por spec. */
+a[data-framer-name="Sobre Nós"] img{ object-position:50% 18% !important }
+
+body.mel-interna .mel-polen-tira,
+body.mel-interna .mel-polen-eyebrow{ display:none !important }
+
+/* --------------------------------------------------------------------
    BLOCOS EDITORIAIS ABAIXO DO HERO
 
    O template posiciona o packshot em absolute sangrando para fora da base
@@ -120,21 +241,32 @@ a[data-framer-name="Polen"]{ position:relative; }
    .framer-dtlgl4 que e a fileira. Usar o atributo pegava o de fora e
    vazava para as imagens de outras secoes. Alvo correto e a CLASSE. */
 
-/* O container era width:min-content, e min-content encolhe os filhos ate o
-   tamanho intrinseco da foto. Era a causa raiz do "parece miniatura". */
-.framer-dtlgl4{
-  width:100% !important;
-  max-width:100% !important;
-  height:auto !important;
-  gap:20px !important;
-  overflow-x:auto !important;
-  overflow-y:hidden !important;
-  scrollbar-width:none;
-  -ms-overflow-style:none;
-  scroll-snap-type:x proximity;
-}
-.framer-dtlgl4::-webkit-scrollbar{ display:none }
+/* 13/08/2026 — a fileira volta a ser fileira.
+   Ela tinha virado carrossel de swipe (width:100%, overflow-x:auto,
+   scroll-snap) para contornar o "parece miniatura". So que a miniatura nao
+   vinha da largura do container: vinha do GRUPO congelado em scale(0.5) pelo
+   export sem React. Com o transform de volta (interacoes.js, iniciarFileira)
+   a causa some, e o remendo passou a ser a divergencia — a medicao do build
+   antigo mostrava grupo de 1392px e overflow "auto hidden" contra os 4980px e
+   "hidden" do template. Aqui a geometria medida volta.
 
+   max-content, e nao o min-content do template: o numero e o mesmo (4980 =
+   10x480 + 9x20, porque os filhos tem altura fixa e aspect-ratio, entao a
+   largura e derivada), mas min-content colapsa para o tamanho intrinseco da
+   foto se a regra de altura abaixo por qualquer motivo nao vencer. Era esse
+   colapso o "parece miniatura" original. max-content nao tem esse modo de
+   falha e mede igual. */
+.framer-dtlgl4{
+  width:max-content !important;
+  max-width:none !important;
+  height:min-content !important;
+  gap:20px !important;
+  overflow:hidden !important;
+}
+
+/* O template declara height:80vh, mas prefixado por uma classe de escopo de
+   pagina, e nem sempre vence. Aqui e cravado. O piso em px evita a fileira
+   virar tira fina em janela baixa. */
 .framer-dtlgl4 > div{
   height:80vh !important;
   min-height:560px !important;
@@ -142,33 +274,43 @@ a[data-framer-name="Polen"]{ position:relative; }
   width:auto !important;
   flex:0 0 auto !important;
   border-radius:4px; overflow:hidden;
-  scroll-snap-align:center;
 }
 /* As fotos precisam PREENCHER o frame — cover, nao contain, senao sobra fundo. */
 .framer-dtlgl4 img{
   width:100% !important; height:100% !important;
   object-fit:cover !important; object-position:50% 50%;
 }
+/* Abaixo de 810px o template troca 80vh por 50vh — e so isso que muda entre
+   breakpoints nesta secao. Medido: 341x512 no tablet, 281x422 no mobile.
+   Estava 78svh, herdado da fase de carrossel, quando fazia sentido a foto
+   ocupar a tela toda porque so uma aparecia. */
 @media (max-width:809.98px){
-  .framer-dtlgl4 > div{ height:78svh !important; min-height:420px !important }
+  .framer-dtlgl4 > div{ height:50vh !important; min-height:340px !important }
+
+  /* 13/08/2026 — a fileira comeca na foto 1 no celular.
+     O pai (section.framer-1da55c7) e flex-column com align-items:center, e era
+     ele que centralizava o grupo de 2993px numa janela de 390: a fileira abria
+     em left -1301, no MEIO dela, com a foto da esquerda cortada ao meio e as
+     fotos 1 a 4 inalcancaveis. align-self solta so o grupo — o titulo e o
+     resto da coluna continuam centralizados.
+
+     transform-origin na borda esquerda e o par obrigatorio: com origem no
+     centro (o padrao), o scale(0.5) da entrada puxaria a borda esquerda 748px
+     para dentro e a foto 1 sairia de vista justamente no comeco da animacao.
+     Com origem na esquerda, a foto 1 fica ancorada e a fileira cresce para a
+     direita. Quem desfila e o translateX, em interacoes.js (iniciarFileira).
+
+     Acima de 810px nada disso vale: a geometria medida do template continua. */
+  .framer-dtlgl4{
+    align-self:flex-start !important;
+    transform-origin:0 50% !important;
+  }
 }
 
-/* Reveal na entrada: transform + opacity, sem reflow.
-   Duracao e easing acompanham o spring do template (damping 100 /
-   stiffness 200), lido como 620ms em cubic-bezier(.22,.61,.36,1). */
-/* Sem scale no estado inicial: encolher a foto era o que a fazia parecer
-   pequena quando o observer nao disparava. So deslocamento e opacidade. */
-[data-mel-reveal]{
-  opacity:0; transform:translate3d(0,42px,0);
-  transition:opacity 620ms cubic-bezier(.22,.61,.36,1),
-             transform 620ms cubic-bezier(.22,.61,.36,1);
-  will-change:transform,opacity;
-}
-[data-mel-reveal].mel-visivel{ opacity:1; transform:none }
-/* escalonamento suave entre os blocos, sem virar cascata longa */
-[data-mel-reveal]:nth-child(2){ transition-delay:90ms }
-[data-mel-reveal]:nth-child(3){ transition-delay:180ms }
-[data-mel-reveal]:nth-child(4){ transition-delay:270ms }
+/* O reveal por IntersectionObserver que animava os 10 filhos um a um saiu:
+   MOTION_SPEC secao 3 mede "sem movimento individual" na fileira. Quem se
+   move e o grupo, ligado ao scroll, em interacoes.js. As regras de
+   [data-mel-reveal] saem junto — nada mais recebe o atributo. */
 
 /* Hover: zoom contido na foto, dentro da mascara do container — o frame nao
    muda de tamanho, entao nao ha layout shift. */
@@ -176,9 +318,9 @@ a[data-framer-name="Polen"]{ position:relative; }
 .framer-dtlgl4 > div:hover img{ transform:scale(1.05) }
 
 @media (prefers-reduced-motion:reduce){
-  /* estado final, mantendo escala e impacto — nao some com nada */
-  [data-mel-reveal]{ opacity:1; transform:none; transition:none }
-  .framer-dtlgl4{ scroll-snap-type:none }
+  /* estado final, mantendo escala e impacto — nao some com nada.
+     O grupo tambem: interacoes.js escreve escala 1 / y 0 / opacidade 1 direto,
+     sem passar pelo caminho do meio. */
   .framer-dtlgl4 img{ transition:none }
   .framer-dtlgl4 > div:hover img{ transform:none }
 }
@@ -316,13 +458,9 @@ video[data-mel="hero-video"]{ background:#221E17 }
   transition:transform 520ms cubic-bezier(.22,.61,.36,1);
 }
 .mel-com-item:hover img{ transform:scale(1.045) }
-.mel-com-cap{
-  position:absolute; inset:auto 0 0 0; padding:.55rem .7rem;
-  background:linear-gradient(180deg,rgba(34,30,23,0),rgba(34,30,23,.86));
-  color:#FBF7EE; font-family:"Area",sans-serif; font-size:.66rem;
-  letter-spacing:.04em; opacity:0; transition:opacity 260ms ease;
-}
-.mel-com-item:hover .mel-com-cap,.mel-com-item:focus-within .mel-com-cap{ opacity:1 }
+/* .mel-com-cap saiu em 13/08/2026 junto com a legenda que ele vestia. Regra
+   morta e nao volta sozinha: quando houver @usuario e cidade de verdade, o
+   estilo se reescreve com o conteudo. */
 
 /* --- clipes --- */
 .mel-clipes-grade{
@@ -368,8 +506,6 @@ video[data-mel="hero-video"]{ background:#221E17 }
   .mel-clipes-grade{ grid-template-columns:1fr; gap:16px }
   .mel-clipe-box{ max-width:340px; margin:0 auto }
   .mel-seg-lista{ grid-template-columns:1fr; padding-left:16px; padding-right:16px }
-  /* legenda sempre visível no toque: hover não existe */
-  .mel-com-cap{ opacity:1; font-size:.6rem }
 }
 @media (prefers-reduced-motion:reduce){
   .mel-com-item img{ transition:none }
@@ -379,6 +515,17 @@ video[data-mel="hero-video"]{ background:#221E17 }
 /* ============ Páginas internas MELCAM ============
    O que é só da home some nas internas. Nada é removido do DOM. */
 body.mel-interna [data-framer-name="The first section"],
+body.mel-interna [data-framer-name="Header Section"],
+body.mel-interna [data-framer-name="Header Info"],
+/* 13/08/2026, pedido novo: o que sobrava da home acima da abertura das
+   internas. Header Grid (982px) repetia na /polen o título e o parágrafo que a
+   própria página já traz; Header Grids (723px) é a vitrine "DESTAQUES", que
+   numa página de produto compete com o produto. A navegação entre as linhas
+   continua na navbar e no rodapé. */
+body.mel-interna [data-framer-name="Header Grid"],
+body.mel-interna [data-framer-name="Header Grids"],
+body.mel-interna [data-framer-name="Shadow"],
+body.mel-interna :has(> video[data-mel="hero-video"]),
 body.mel-interna [data-framer-name="Speed On"],
 body.mel-interna .mel-carrossel,
 body.mel-interna .mel-comunidade,
@@ -603,7 +750,18 @@ body.mel-interna .mel-seguranca{ display:none !important }
 }
 .mel-dest-inv .mel-dest-img{ order:2 }
 .mel-dest-img{ border-radius:8px; overflow:hidden; background:#2B251C }
-.mel-dest-img img{ width:100%; aspect-ratio:4/5; object-fit:cover; display:block }
+/* O 4/5 sozinho abria um buraco nas duas colunas: numa coluna de 668px ele dá
+   835px de foto ao lado de um texto de 135px, e com align-items:center sobravam
+   ~350px de vazio acima e abaixo do texto — duas linhas dessas, mais da metade
+   da seção em branco. O teto resolve sem trocar o enquadramento: acima de
+   ~1150px de tela a foto para de crescer e a linha encolhe junto; abaixo disso
+   o 4/5 ainda cabe e continua valendo. object-fit:cover recorta, então nenhuma
+   foto deforma. Em uma coluna o teto sai — ali o texto fica EMBAIXO da foto,
+   não ao lado, então não há vazio nenhum e o retrato alto é o que se quer. */
+.mel-dest-img img{
+  width:100%; aspect-ratio:4/5; max-height:clamp(380px,32vw,460px);
+  object-fit:cover; display:block;
+}
 .mel-dest-txt h3,.mel-dest-specs h3{
   margin:0 0 .8rem; color:#FBF7EE;
   font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
@@ -619,6 +777,7 @@ body.mel-interna .mel-seguranca{ display:none !important }
   .mel-bee-palco{ max-width:280px }
   .mel-dest{ grid-template-columns:1fr }
   .mel-dest-inv .mel-dest-img{ order:0 }
+  .mel-dest-img img{ max-height:none }   /* uma coluna: sem vazio, retrato cheio */
   .mel-cores-2{ grid-template-columns:1fr }
 }
 @media (prefers-reduced-motion:reduce){
@@ -745,3 +904,311 @@ body.mel-interna .mel-seguranca{ display:none !important }
 .framer-8hdwjm-container{ display:contents }
 .framer-bx6rvt-container{ order:1 }
 .framer-8hdwjm-container > footer{ order:2 }
+
+/* ================== /polen — hero premium ==================
+   Direção da referência de 13/08: fundo escuro, texto editorial à esquerda,
+   fotografia oficial grande à direita sangrando na borda.
+
+   TRÊS CAMADAS, nesta ordem de pilha:
+     1  foto      — a Polen na caixa oficial, sangra até a borda direita
+     2  scrim     — gradiente em carvão que garante a leitura do texto
+     3  copy      — dentro de uma largura máxima, nunca colado na borda
+
+   O scrim vem DEPOIS da foto de propósito: é ele que dissolve a borda
+   esquerda da fotografia no carvão, que é o que a referência faz. Sem ele a
+   foto teria um corte reto no meio da tela.
+
+   A COLAGEM SAIU em 13/08 e não volta: as 4 fotos da galeria escurecidas
+   atrás da principal nunca leram como fotografia, só como retângulos escuros.
+   Nenhuma variação de opacidade, blur ou máscara resolveu. A fotografia
+   principal sozinha é mais premium — e é a única camada de imagem daqui. */
+.mel-ph{
+  position:relative; isolation:isolate; overflow:hidden;
+  /* MESMA ALTURA DO HERO DA HOME. Medido em 13/08: o <video> da home e
+     1440x900 em 1440x900 e 390x844 em 390x844, ou seja a viewport inteira,
+     object-fit:cover, sempre. O hero da /polen passou a ser a mesma coisa: a
+     fotografia ocupa a tela toda, canto a canto, e o texto vem POR CIMA. A
+     composicao anterior era um painel de 48% a direita com carvao a esquerda —
+     lia como caixa dentro da pagina, que e exatamente o que o pedido recusou.
+
+     92svh, e nao 100: a home pode tomar a tela inteira porque o hero dela e a
+     pagina abrindo, mas aqui a proxima secao e a ESCOLHA da cor, que e o
+     proximo passo do CTA. Os 8% que sobram sao ~72px em 1440x900 — o bastante
+     para "Escolha sua Polen" espiar na dobra e convidar ao scroll. O eixo do
+     cover nao muda com isso: quem fixa a escala e a largura. */
+  min-height:92svh;
+  display:flex; align-items:center;
+  /* Cor de base sob a foto, para o caso de ela ainda nao ter pintado. Nao ha
+     mais gradiente de saida aqui: quem dissolve a emenda com a proxima secao e
+     a terceira camada do scrim, que fecha em #0d0d0d — o fundo da pagina,
+     cravado em .framer-vrbx7h pelo template. */
+  background:#221E17;
+  /* A largura cheia e escrita por JS (sangrar(), em interacoes.js), medida em
+     document.documentElement.clientWidth — que NAO inclui a scrollbar. 100vw
+     incluiria, e criaria transbordo horizontal. Sem JS, fica na largura do
+     container e nao quebra nada. */
+}
+
+/* --- camada 1: a fotografia, sangrando nos QUATRO lados --- */
+.mel-ph-foto{
+  position:absolute; z-index:1; inset:0;
+  width:100%;
+  will-change:transform;
+  /* Sem mascara. Ela existia para dissolver a borda ESQUERDA do painel contra
+     o carvao; nao ha mais painel nem borda — a foto encosta nos quatro cantos,
+     e quem garante a leitura do texto e o scrim. */
+}
+.mel-ph-foto img{
+  width:100%; height:100%; display:block;
+  /* 57% no eixo Y centra a JANELA na camera, nao na foto.
+     Medido: em 1440x900 o cover escala 1440/1600 = 0,9, entao a foto renderiza
+     1440x2160 e a janela mostra 900/2160 = 41,7% da altura. A camera ocupa a
+     faixa de 30,5% a 78% do arquivo (47,5%), maior que a janela — nao cabe
+     inteira em nenhum enquadramento de tela cheia com uma fonte 2:3. Com
+     offset = (2160-900)*0,57 = 718px, a janela vai de 33% a 75% e o corte fica
+     nas sobras (topo da aba da caixa e sombra da base), com lente, flash,
+     visor, marca e etiqueta inteiros. */
+  object-fit:cover; object-position:50% 57%;
+  /* Entrada: a foto já existe no primeiro frame (opacidade parte de 0 mas o
+     elemento está montado), então não há flash de fundo vazio. */
+  animation:melPhFoto 1000ms cubic-bezier(.22,.61,.36,1) both;
+}
+@keyframes melPhFoto{
+  /* Sem translateX: ele existia para a foto entrar deslizando pela direita,
+     movimento que so fazia sentido quando ela era um painel lateral. */
+  from{ opacity:0; transform:scale(1.04) }
+  to  { opacity:1; transform:none }
+}
+
+/* --- camada 2: o scrim ---
+   Tres gradientes, cada um com uma tarefa:
+     90deg   — a coluna de leitura. Vai de quase opaco na esquerda a quase
+               limpo na direita, sem parar em carvao chapado como antes: nada
+               aqui pode virar retangulo de novo.
+     180deg  — assenta a navbar sobre a foto no topo.
+     0deg    — dissolve a base no #0d0d0d da pagina, para o hero terminar sem
+               linha reta e emendar na secao de produto. */
+.mel-ph-scrim{
+  position:absolute; z-index:2; inset:0; pointer-events:none;
+  background:
+    linear-gradient(90deg,
+      rgba(34,30,23,.94) 0%, rgba(34,30,23,.86) 28%,
+      rgba(34,30,23,.62) 46%, rgba(34,30,23,.26) 68%, rgba(34,30,23,.08) 100%),
+    linear-gradient(180deg, rgba(34,30,23,.70) 0%, rgba(34,30,23,.16) 18%, rgba(34,30,23,0) 38%),
+    linear-gradient(0deg, #0d0d0d 0%, rgba(13,13,13,.62) 7%, rgba(13,13,13,0) 20%);
+}
+
+/* --- camada 3: o texto --- */
+.mel-ph-in{
+  position:relative; z-index:3;
+  width:100%; max-width:1240px; margin:0 auto;
+  padding:clamp(56px,6vw,88px) 24px;
+}
+.mel-ph-copy{ max-width:min(44%, 34rem) }
+.mel-ph-eyebrow{
+  margin:0 0 1rem; color:#F2A900;
+  font-family:"Area",sans-serif; font-size:.74rem; font-weight:700;
+  letter-spacing:.24em; text-transform:uppercase;
+}
+.mel-ph-tit{
+  margin:0; color:#FBF7EE;
+  font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
+  /* ~12 a 15 caracteres por linha na medida cheia */
+  font-size:clamp(2.2rem,4.4vw,3.6rem); line-height:1.06; letter-spacing:-.015em;
+  /* 16ch e a medida que produz "A Polen guarda / as que importam." no desktop:
+     a primeira linha tem 14 caracteres e cabe, a segunda nao alcanca. Medido
+     na fonte real, nao estimado. text-wrap:balance fica FORA de proposito —
+     ele reequilibra as linhas e devolve a quebra em tres. */
+  max-width:16ch;
+}
+/* A Brooklyn é a assinatura da linha Polen no toolkit — este é o único lugar
+   da página onde ela entra, e é exatamente o papel documentado no config. */
+.mel-ph-assin{
+  font-family:"Brooklyn Heritage","Iowan Old Style",Georgia,serif;
+  font-weight:600; font-size:1.16em; line-height:1;
+  padding-inline:.04em;
+}
+.mel-ph-txt{
+  margin:clamp(18px,2.4vw,28px) 0 0;
+  max-width:44ch;                       /* mais estreito que o titulo, de proposito */
+  color:#CFC6B8; font-family:"Area",sans-serif;
+  font-size:clamp(1rem,1.15vw,1.09rem); line-height:1.66;
+}
+.mel-ph-cta{
+  margin-top:clamp(24px,3vw,36px); min-height:44px; line-height:1.6;
+  letter-spacing:.06em; text-transform:uppercase; font-size:.86rem;
+}
+.mel-ph-apoio{
+  margin:1.1rem 0 0; color:#9A9083;
+  font-family:"Area",sans-serif; font-size:.82rem; letter-spacing:.06em;
+}
+
+/* Entrada do texto: keyframes de CSS, sem depender de JS.
+   Se o script falhar, o conteúdo aparece do mesmo jeito — é a lição do "hero
+   em branco" registrada no progresso.md. Cada peça tem classe própria e
+   atraso próprio; nada de nth-child. */
+@keyframes melPhCopy{ from{ opacity:0; transform:translateY(16px) } to{ opacity:1; transform:none } }
+.mel-ph-eyebrow,
+.mel-ph-tit,
+.mel-ph-txt,
+.mel-ph-cta,
+.mel-ph-apoio{ animation:melPhCopy 620ms cubic-bezier(.22,.61,.36,1) both }
+.mel-ph-eyebrow{ animation-delay:60ms }
+.mel-ph-tit    { animation-delay:150ms }
+.mel-ph-txt    { animation-delay:250ms }
+.mel-ph-cta    { animation-delay:340ms }
+.mel-ph-apoio  { animation-delay:420ms }
+
+/* --- tablet ---
+   A foto continua sangrando nos quatro lados; muda so a medida do texto. */
+@media (max-width:1024px){
+  .mel-ph-copy{ max-width:min(58%, 26rem) }
+  .mel-ph-tit{ font-size:clamp(2rem,4.4vw,2.9rem) }
+}
+
+/* --- retrato: mesma tela cheia, scrim virado para a vertical ---
+   A quebra em coluna com a foto virando bloco depois do texto SAIU: ela era
+   o oposto de sangrar canto a canto, e o hero da home nao faz isso — em 390
+   ele tambem e 390x844, cover, viewport inteira.
+
+   Aqui o cover inverte de eixo: a fonte e 2:3 (0,667) e a tela e mais estreita
+   que isso (390/844 = 0,462), entao quem manda na escala passa a ser a ALTURA.
+   A foto aparece inteira de cima a baixo e o corte vai para as laterais, que e
+   onde so ha caixa. A camera fica centrada e completa na vertical. */
+@media (max-width:809.98px){
+  .mel-ph{ align-items:flex-start }
+  /* A navbar tem 81px e fica POR CIMA do topo da pagina; um padding menor que
+     isso esconde o eyebrow e a primeira linha do titulo atras dela. Medido em
+     390: com 56px o titulo entrava debaixo da barra. */
+  .mel-ph-in{ padding:104px 20px clamp(28px,7vw,44px) }
+  .mel-ph-copy{ max-width:none }
+  .mel-ph-txt{ max-width:46ch }
+  .mel-ph-foto img{ object-position:50% 50% }
+
+  /* Em retrato o texto ocupa a largura toda, entao o gradiente de leitura tem
+     de vir de CIMA, nao da esquerda: horizontal ali escureceria a coluna
+     inteira e apagaria a foto. A base continua fechando em #0d0d0d. */
+  .mel-ph-scrim{
+    background:
+      linear-gradient(180deg,
+        rgba(34,30,23,.94) 0%, rgba(34,30,23,.88) 34%,
+        rgba(34,30,23,.60) 56%, rgba(34,30,23,.18) 78%, rgba(34,30,23,.05) 100%),
+      linear-gradient(0deg, #0d0d0d 0%, rgba(13,13,13,.60) 8%, rgba(13,13,13,0) 24%);
+  }
+}
+
+/* Emenda com a seção de produto: as duas em carvão, sem corte branco. A
+   diferença é de composição e de espaço, não de cor de fundo.
+
+   72px NAO SERVE MAIS. Com o hero em 92svh, em 1440x900 a secao comeca em 838
+   e sobram 62px de dobra — mas o padding de 72 jogava o eyebrow para y=910,
+   dez pixels ABAIXO do corte. O que espiava era uma faixa preta, nao a proxima
+   secao: pior que nao espiar nada, porque le como vao. Com 48px o eyebrow cai
+   em 886 e aparece inteiro, e 48 e o piso do respiro pedido (48–80px). */
+.mel-ph + .mel-sec{ padding-top:clamp(32px,3.4vw,48px) }
+
+@media (prefers-reduced-motion:reduce){
+  /* Estado final direto: nada escondido, nada escalonado, layout igual. */
+  .mel-ph-foto img,
+  .mel-ph-eyebrow, .mel-ph-tit, .mel-ph-txt, .mel-ph-cta, .mel-ph-apoio{
+    animation:none;
+  }
+}
+
+
+/* ================== /polen — produto e seletor ================== */
+.mel-pr-grade{
+  max-width:1240px; margin:clamp(24px,4vw,48px) auto 0;
+  display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);
+  gap:clamp(24px,4.5vw,64px); align-items:center;
+}
+.mel-pr-palco{
+  position:relative; width:100%; aspect-ratio:1;
+  border-radius:12px; overflow:hidden; background:#2B251C;
+  box-shadow:0 24px 60px rgba(0,0,0,.42), 0 0 0 1px rgba(251,247,238,.07);
+}
+/* As duas camadas do crossfade. Em repouso so uma tem opacidade 1; o estado
+   e mandado pela classe, escrita por um unico ponto do JS. */
+.mel-pr-foto{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:contain; display:block;
+  opacity:1; transition:opacity 260ms cubic-bezier(.22,.61,.36,1);
+}
+.mel-pr-foto-fora{ opacity:0 }
+
+.mel-pr-info{ min-width:0 }
+.mel-pr-linha{
+  margin:0; color:#F2A900; font-family:"Area",sans-serif;
+  font-size:.74rem; font-weight:700; letter-spacing:.22em; text-transform:uppercase;
+}
+.mel-pr-cor{
+  margin:.5rem 0 0; color:#FBF7EE;
+  font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
+  font-size:clamp(1.8rem,3.4vw,2.6rem); line-height:1.1;
+}
+.mel-pr-sub{ margin:.35rem 0 0; color:#C9BFB0; font-family:"Area",sans-serif; font-size:1rem }
+.mel-pr-preco{ margin:clamp(18px,2.4vw,28px) 0 0; font-family:"Area",sans-serif; color:#9A9083 }
+.mel-pr-preco strong{
+  display:block; color:#FBF7EE; font-size:clamp(1.5rem,2.6vw,1.95rem);
+  font-weight:700; letter-spacing:-.01em;
+}
+.mel-pr-preco span{ display:block; margin-top:.25rem; font-size:.88rem }
+
+/* --- o seletor --- */
+.mel-pr-rot{
+  margin:clamp(20px,2.6vw,30px) 0 .7rem; color:#9A9083;
+  font-family:"Area",sans-serif; font-size:.78rem;
+  letter-spacing:.14em; text-transform:uppercase;
+}
+.mel-pr-cores{ display:flex; flex-wrap:wrap; gap:.7rem }
+.mel-pr-swatch{
+  position:relative; width:44px; height:44px; padding:0; cursor:pointer;
+  border:0; border-radius:50%; background:transparent;
+  transition:transform 220ms cubic-bezier(.22,.61,.36,1);
+}
+/* O disco de cor e um filho, para o anel de selecao ficar por fora sem mexer
+   no tamanho do alvo de toque (44px, o minimo confortavel). */
+.mel-pr-swatch::before{
+  content:""; position:absolute; inset:5px; border-radius:50%;
+  background:var(--sw,#2B251C);
+  box-shadow:inset 0 0 0 1px rgba(251,247,238,.22);
+}
+/* Anel de selecao em mel. NAO e o unico sinal: o nome da cor selecionada esta
+   escrito em .mel-pr-cor e o botao carrega aria-checked. */
+.mel-pr-swatch::after{
+  content:""; position:absolute; inset:0; border-radius:50%;
+  box-shadow:inset 0 0 0 2px transparent;
+  transition:box-shadow 220ms ease;
+}
+.mel-pr-swatch:hover{ transform:translateY(-2px) }
+.mel-pr-swatch[aria-checked="true"]::after{ box-shadow:inset 0 0 0 2px #F2A900 }
+.mel-pr-swatch:focus-visible{ outline:2px solid #F2A900; outline-offset:3px }
+
+.mel-pr-cta{ margin-top:clamp(22px,3vw,32px); min-height:44px; line-height:1.6 }
+.mel-pr-info .mel-nota{ margin-top:.9rem }
+
+/* Ancora nao pode ficar embaixo da barra fixa. */
+/* A barra fixa da Polen saiu em 13/08; o unico elemento que pode cobrir uma
+   ancora agora e a navbar principal, medida em 81px. */
+#produto, #filtros, #faq{ scroll-margin-top:96px }
+
+@media (max-width:900px){
+  /* Imagem primeiro, informacao depois. */
+  .mel-pr-grade{ grid-template-columns:1fr; gap:clamp(20px,4vw,32px) }
+  .mel-pr-palco{ max-width:min(88vw,480px); margin-inline:auto }
+}
+@media (max-width:420px){
+  /* 7 discos de 44px + gap nao cabem em 390: quebram em duas linhas, com o
+     mesmo alvo de toque. Nada de encolher abaixo do confortavel. */
+  .mel-pr-cores{ gap:.6rem }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .mel-ph-pronto .mel-ph-eyebrow,
+  .mel-ph-pronto .mel-ph-tit,
+  .mel-ph-pronto .mel-ph-txt,
+  .mel-ph-pronto .mel-ph-cta,
+  .mel-ph-pronto .mel-ph-apoio{ animation:none }
+  .mel-pr-foto{ transition:none }
+  .mel-pr-swatch{ transition:none }
+}

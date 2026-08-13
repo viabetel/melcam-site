@@ -15,6 +15,108 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, process.env.SERVE_ROOT || '.');
 const PORT = Number(process.env.PORT) || 3030;
 
+// ---------------------------------------------------------------------------
+// GUARDA DE RAIZ CANÔNICA — 13/08/2026
+//
+// Por que existe: havia duas cópias do projeto. A oficial aqui, e uma antiga em
+// C:\Users\israe\Downloads\framer-teste com a regressão da fileira
+// (iniciarReveal no lugar de iniciarFileira, overflow-x:auto, scroll-snap,
+// grupo congelado em scale(0.5)). Alguém subiu `node serve.js` dentro da cópia
+// antiga; o navegador em localhost:3030 passou a mostrar a animação quebrada e
+// pareceu regressão do projeto, enquanto os arquivos corretos seguiam intactos.
+// O endereço localhost não diz de qual pasta o conteúdo veio. Esta guarda diz.
+//
+// QUEM DETERMINA A RAIZ: `__dirname`, não `process.cwd()`. O ROOT acima é
+// resolvido a partir de __dirname, então o servidor serve a pasta onde ESTE
+// arquivo está, independente de onde o comando foi digitado. Por isso a
+// identidade é validada em __dirname. O cwd é conferido só para avisar quando
+// diverge — não é ele que decide o que é servido.
+//
+// SERVE_ROOT continua livre DENTRO da raiz canônica (SERVE_ROOT=site é uso
+// legítimo). O que a guarda proíbe é servir a partir de outra cópia do projeto.
+const MARCADOR = '.melcam-project.json';
+
+function abortar(linhas) {
+  console.error('\nERRO: tentativa de servir uma cópia não canônica do MELCAM.');
+  for (const l of linhas) console.error(l);
+  console.error('\nExecute:');
+  console.error('  cd C:\\Users\\israe\\viabetel\\melcam-site');
+  console.error('  node serve.js');
+  process.exit(1);
+}
+
+// No Windows o mesmo caminho aparece com caixa diferente conforme quem o
+// escreveu. Comparar cru reprovaria uma raiz legítima.
+function mesmoCaminho(a, b) {
+  const norm = (p) => path.resolve(p).replace(/[\\/]+$/, '');
+  return process.platform === 'win32'
+    ? norm(a).toLowerCase() === norm(b).toLowerCase()
+    : norm(a) === norm(b);
+}
+
+function dentroDe(filho, pai) {
+  const f = path.resolve(filho);
+  const p = path.resolve(pai);
+  if (mesmoCaminho(f, p)) return true;
+  const rel = path.relative(p, f);
+  return !!rel && !rel.startsWith('..') && !path.isAbsolute(rel);
+}
+
+function validarRaiz() {
+  const base = __dirname;
+  const marcador = path.join(base, MARCADOR);
+
+  if (!ehArquivo(marcador)) {
+    abortar([
+      `Raiz atual: ${base}`,
+      `Faltando: ${MARCADOR}`,
+      'Esta pasta não é a cópia canônica do MELCAM.',
+    ]);
+  }
+
+  let m;
+  try {
+    m = JSON.parse(fs.readFileSync(marcador, 'utf8'));
+  } catch (e) {
+    abortar([`Raiz atual: ${base}`, `${MARCADOR} ilegível: ${e.message}`]);
+  }
+
+  if (m.project !== 'melcam-site' || m.role !== 'canonical') {
+    abortar([
+      `Raiz atual: ${base}`,
+      `Marcador inválido: project=${m.project} role=${m.role}`,
+      'Esperado: project="melcam-site" role="canonical"',
+    ]);
+  }
+
+  if (!m.canonicalRoot || !mesmoCaminho(base, m.canonicalRoot)) {
+    abortar([
+      `Raiz atual: ${base}`,
+      `Raiz autorizada: ${m.canonicalRoot}`,
+      'O marcador foi copiado para outra pasta.',
+    ]);
+  }
+
+  // SERVE_ROOT não pode apontar para fora da raiz canônica. Sem esta checagem a
+  // guarda seria contornável com SERVE_ROOT=../../Downloads/framer-teste.
+  if (!dentroDe(ROOT, base)) {
+    abortar([
+      `Raiz atual: ${base}`,
+      `SERVE_ROOT resolve para: ${ROOT}`,
+      'SERVE_ROOT só pode apontar para dentro da raiz canônica.',
+    ]);
+  }
+
+  // Divergência de cwd não impede nada, mas é o sintoma que confundiu antes.
+  if (!mesmoCaminho(process.cwd(), base)) {
+    console.warn(`aviso: cwd (${process.cwd()}) difere da raiz servida (${base}).`);
+    console.warn('       quem manda é a pasta do serve.js, não o diretório do terminal.');
+  }
+
+  return { base, canonicalRoot: m.canonicalRoot };
+}
+// ---------------------------------------------------------------------------
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -77,11 +179,21 @@ function ehArquivo(abs) {
   }
 }
 
+// Identificação do servidor canônico. É o que permite a uma ferramenta (ou a
+// outro agente) provar de qual cópia veio a resposta, sem depender da porta.
+// O caminho absoluto NÃO vai no header de propósito: identifica o projeto, não
+// expõe a árvore de diretórios de quem está rodando.
+const IDENTIDADE = {
+  'x-melcam-project': 'canonical',
+  'x-melcam-root': 'melcam-site',
+};
+
 function responder(res, status, corpo, contentType) {
   res.writeHead(status, {
     'content-type': contentType,
     'cache-control': 'no-store',
     'x-content-type-options': 'nosniff',
+    ...IDENTIDADE,
   });
   res.end(corpo);
 }
@@ -98,6 +210,7 @@ function enviarArquivo(res, abs, status = 200) {
     'content-length': info.size,
     'cache-control': 'no-store',
     'x-content-type-options': 'nosniff',
+    ...IDENTIDADE,
   });
   fs.createReadStream(abs).pipe(res);
 }
@@ -163,7 +276,15 @@ const servidor = http.createServer((req, res) => {
   return naoEncontrado(res, rel);
 });
 
+// A validação roda ANTES do listen: se a raiz for a errada, a porta nunca abre.
+// Abrir e só depois avisar deixaria o navegador servido pela cópia errada.
+const raiz = validarRaiz();
+
 servidor.listen(PORT, () => {
-  console.log(`servindo ${ROOT} em http://localhost:${PORT}`);
+  console.log('MELCAM canonical');
+  console.log(`Root:    ${raiz.canonicalRoot}`);
+  console.log(`Serving: ${ROOT}`);
+  console.log(`Port:    ${PORT}`);
+  console.log(`http://localhost:${PORT}`);
   console.log(`rotas: ${Object.keys(ROTAS).join(' · ')}`);
 });

@@ -12,9 +12,69 @@ const P = cfg.paleta;
 // blocos que existem só na home
 const SO_HOME = [
   '[data-framer-name="The first section"]',
+  // 13/08/2026 — o hero. Faltava aqui, e por isso as 6 internas abriam com a
+  // manchete "Chegou a Bee" e a fileira de 10 fotos por cima da abertura
+  // propria de cada uma (a Polen tem "Memoria cheia", a Bee tem a dela).
+  // Numa pagina de produto Polen, o titulo era o da Bee. So ficou visivel
+  // quando a fileira voltou ao tamanho real; antes, encolhida a 50%, passava
+  // por faixa decorativa.
+  '[data-framer-name="Header Section"]',
+  // 13/08/2026 — irmão do anterior, não filho: a regra acima não o alcançava.
+  // Carrega "A câmera que vive com você." e o subtítulo, que são manchete da
+  // home e ficavam por cima da abertura de cada interna.
+  '[data-framer-name="Header Info"]',
+  // 13/08/2026, segunda passada — PEDIDO NOVO, reverte a decisão anterior.
+  // Estes dois eram o que sobrava da home acima da abertura de cada interna,
+  // 1.705px medidos antes da barra da Polen:
+  //
+  //   Header Grid  (982px) — os blocos Polen · Bee · Acessórios · Sobre Nós.
+  //     Tinham sido mantidos como "navegação entre as linhas". Só que na
+  //     /polen o bloco Polen repete, palavra por palavra, o que a página já
+  //     diz logo abaixo: o título "7 cores. Uma decisão." é o mesmo da seção
+  //     de produto e o parágrafo é o mesmo do hero.
+  //   Header Grids (723px) — a faixa "DESTAQUES" com os cards e o ticker.
+  //     É vitrine de home; numa página de produto compete com o produto.
+  //
+  // A navegação entre as linhas continua existindo: está na navbar e no
+  // rodapé, os dois presentes em todas as páginas.
+  '[data-framer-name="Header Grid"]',
+  '[data-framer-name="Header Grids"]',
+  // 13/08/2026 — os dois últimos restos da home no topo das internas.
+  // Só apareceram quando o hero da Polen subiu para y≈69: antes ficavam
+  // escondidos ATRÁS do Header Grid, que ocupava os primeiros 982px.
+  //
+  //   Shadow — faixa de 1440x900 com um gradiente até #0d0d0d e z-index 1.
+  //     Não é filha de "The first section", é elemento de topo, por isso
+  //     nenhuma regra anterior a alcançava. Como tem z maior que o hero, ela
+  //     lavava o título, o parágrafo e o CTA — o mel do botão chegava a
+  //     renderizar como oliva.
+  //   o vídeo do hero da home — num container "position:fixed" de 1440x900,
+  //     que estava BAIXANDO E TOCANDO os 5 MB em toda página interna, atrás
+  //     do conteúdo. Medido: paused=false na /polen.
+  //
+  // O container do vídeo não tem data-framer-name, só classe hasheada, que
+  // muda a cada export. Ancorar em :has(> video[data-mel]) é estável e não
+  // depende do hash. O ":has" já é usado neste projeto (regra do bloco Polen).
+  '[data-framer-name="Shadow"]',
+  ':has(> video[data-mel="hero-video"])',
   '[data-framer-name="Speed On"]',
   '.mel-carrossel', '.mel-comunidade', '.mel-clipes', '.mel-seguranca',
 ];
+
+// Índice do </header> que fecha o <header class="...framer-vrbx7h...">, que é o
+// stack da página. É o único ponto de inserção seguro: fora de toda ssr-variant.
+function fimDoStack(html) {
+  const abertura = /<header[^>]*class="[^"]*framer-vrbx7h[^"]*"[^>]*>/.exec(html);
+  if (!abertura) return -1;
+  const re = /<(\/?)header\b[^>]*>/g;
+  re.lastIndex = abertura.index;
+  let prof = 0, t;
+  while ((t = re.exec(html))) {
+    prof += t[1] ? -1 : 1;
+    if (prof === 0) return t.index;
+  }
+  return -1;
+}
 
 function gerar(arquivo, classe, titulo, descricao, conteudo) {
   const base = fs.readFileSync(path.join(SITE, 'index.html'), 'utf8');
@@ -41,8 +101,22 @@ function gerar(arquivo, classe, titulo, descricao, conteudo) {
   // não é afetado.
   s = s.replace(/<h1(\s[^>]*)?>/g, (m, at) => `<h2${at || ''}>`).replace(/<\/h1>/g, '</h2>');
 
-  // só insere, antes do rodapé
-  s = s.replace(/(<footer)/, () => conteudo + '<footer');
+  // Só insere — nunca recorta. Mas o ONDE importa.
+  //
+  // ⚠️ NUNCA voltar a usar s.replace(/(<footer)/). O template tem TRÊS
+  // <footer>, e o primeiro mora dentro de
+  // <div class="ssr-variant hidden-1g8fb3q hidden-wq5psc">, que é
+  // display:none fora do desktop. Inserir ali deixava as seis internas com
+  // nav e rodapé e mais nada no tablet e no mobile — medido em 13/08/2026,
+  // altura idêntica de 3995px nas seis. É o mesmo erro que o
+  // tools/comunidade.js cometeu na home e que o mover-secoes.js corrigiu.
+  //
+  // O lugar certo é como filho direto do stack (o <header class="framer-vrbx7h">,
+  // flex column), depois de todas as variantes. As páginas já geradas foram
+  // realocadas por tools/mover-conteudo-interno.js.
+  const corte = fimDoStack(s);
+  if (corte < 0) throw new Error(`${arquivo}: stack framer-vrbx7h não encontrado — inserção abortada`);
+  s = s.slice(0, corte) + conteudo + s.slice(corte);
 
   fs.writeFileSync(path.join(SITE, arquivo), s, 'utf8');
   return arquivo;
@@ -273,7 +347,18 @@ ${esconder}{ display:none !important }
 }
 .mel-dest-inv .mel-dest-img{ order:2 }
 .mel-dest-img{ border-radius:8px; overflow:hidden; background:#2B251C }
-.mel-dest-img img{ width:100%; aspect-ratio:4/5; object-fit:cover; display:block }
+/* O 4/5 sozinho abria um buraco nas duas colunas: numa coluna de 668px ele dá
+   835px de foto ao lado de um texto de 135px, e com align-items:center sobravam
+   ~350px de vazio acima e abaixo do texto — duas linhas dessas, mais da metade
+   da seção em branco. O teto resolve sem trocar o enquadramento: acima de
+   ~1150px de tela a foto para de crescer e a linha encolhe junto; abaixo disso
+   o 4/5 ainda cabe e continua valendo. object-fit:cover recorta, então nenhuma
+   foto deforma. Em uma coluna o teto sai — ali o texto fica EMBAIXO da foto,
+   não ao lado, então não há vazio nenhum e o retrato alto é o que se quer. */
+.mel-dest-img img{
+  width:100%; aspect-ratio:4/5; max-height:clamp(380px,32vw,460px);
+  object-fit:cover; display:block;
+}
 .mel-dest-txt h3,.mel-dest-specs h3{
   margin:0 0 .8rem; color:${P.papel};
   font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
@@ -289,6 +374,7 @@ ${esconder}{ display:none !important }
   .mel-bee-palco{ max-width:280px }
   .mel-dest{ grid-template-columns:1fr }
   .mel-dest-inv .mel-dest-img{ order:0 }
+  .mel-dest-img img{ max-height:none }   /* uma coluna: sem vazio, retrato cheio */
   .mel-cores-2{ grid-template-columns:1fr }
 }
 @media (prefers-reduced-motion:reduce){
@@ -321,6 +407,7 @@ ${esconder}{ display:none !important }
   .mel-cor,.mel-gal-item img,.mel-filtro-palco img,.mel-faq-q svg{ transition:none }
   .mel-cor:hover,.mel-gal-item:hover img{ transform:none }
 }
+${require('./polen-interacoes.js').css()}
 `;
 }
 

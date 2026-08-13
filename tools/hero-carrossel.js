@@ -260,9 +260,53 @@ function js() {
      mesma sensação de rolagem contínua, e para quando não deve rolar. */
   function iniciarTicker(raiz) {
     var lista = raiz.querySelector('ul');
-    if (!lista || menosMovimento.matches) return;
-    var itens = Array.prototype.slice.call(lista.children);
-    if (!itens.length) return;
+    if (!lista) return;
+
+    /* Nas internas o ticker vive dentro de [data-framer-name="Header Grids"],
+       que passou a ser display:none em 13/08. Sem esta guarda ele media
+       larguras de 0 e mantinha um requestAnimationFrame vivo movendo uma
+       fileira que ninguem ve, em cinco paginas. offsetParent nulo e o teste
+       barato de "nao esta sendo renderizado". */
+    if (!raiz.offsetParent && raiz.style.position !== 'fixed') return;
+
+    /* Os slots excedentes saem do FLUXO, nao so de vista.
+       tools/grade.js esconde o <a> do slot que sobra (o catalogo tem 9 produtos
+       para 10 posicoes no ticker) marcando-o com data-mel-excedente="1". Mas
+       quem ocupa lugar na linha e o <li> em volta, e esse ficava. Medido em
+       13/08/2026, identico nos tres breakpoints:
+
+         <li> excedente: 252 x 0 px   -> altura zerada pelo <a>, largura inteira
+
+       O que saia dai:
+         1. um vao de 252px no fim de cada copia, invisivel mas ocupando lugar;
+         2. o cloneNode(true) copiava o slot vazio junto, entao o vao aparecia
+            duas vezes por ciclo, uma por copia (504px somados);
+         3. o ciclo media 2720px em vez de 2448 — 272 deles de nada.
+
+       O reinicio em si NAO saltava: medir() somava os mesmos 10 <li> que
+       estavam no layout, entao a conta fechava e o clone caia no lugar certo.
+       O defeito era o buraco viajando pela fileira, nao um tranco no loop.
+
+       Escondemos o <li>, nao o removemos: o card la dentro e o unico elemento
+       com data-framer-appear-id="zfsne5", e o MOTION_SPEC manda preservar essa
+       estrutura. Quando o catalogo crescer, o slot esta no lugar.
+
+       A marca e o data-mel-excedente, nunca a posicao: :nth-child(10) quebraria
+       no dia em que entrar o decimo produto. */
+    var itens = [];
+    Array.prototype.forEach.call(lista.children, function (li) {
+      if (li.querySelector('[data-mel-excedente="1"]')) {
+        li.hidden = true;
+        li.style.display = 'none';
+        li.setAttribute('aria-hidden', 'true');
+        return;
+      }
+      itens.push(li);
+    });
+
+    /* A limpeza acontece ANTES desta saida de proposito: com movimento
+       reduzido nao ha clone nem animacao, mas o vao continuaria la. */
+    if (!itens.length || menosMovimento.matches) return;
 
     itens.forEach(function (li) {
       var c = li.cloneNode(true);
@@ -283,10 +327,107 @@ function js() {
     raiz.addEventListener('focusin', function () { rodando = false; });
     raiz.addEventListener('focusout', function () { rodando = true; });
 
+    /* ---------------- arrastar com o ponteiro ----------------
+       ADITIVO. Nao mexe em aparencia, medida, espacamento, ritmo (40 px/s),
+       sentido, links, hover, foco nem reduced-motion — com movimento reduzido
+       a funcao ja saiu la em cima, entao nada disso existe. Nao ha indicacao
+       visual nenhuma de que da para arrastar: a unica mudanca perceptivel
+       acontece enquanto o gesto esta em curso.
+
+       So MOUSE. Toque nao entra: quem arrasta com o dedo espera rolar a
+       pagina, e sequestrar isso quebraria a rolagem vertical. Por isso
+       tambem nao existe touch-action aqui — o comportamento no celular fica
+       byte a byte o que era.
+
+       O ponteiro escreve no MESMO x que a animacao usa. Nao ha segundo
+       transform concorrente: durante o arrasto o passo() esta parado pelo
+       flag arrastando, e quem pinta e o pointermove; ao soltar, o passo()
+       retoma do x que ficou, entao nao ha salto nem volta.
+
+       ATENCAO: nunca usar crase em comentario aqui — este JS mora dentro de
+       um template literal e a crase fecha a string. Foi o que quebrou agora.
+
+       LIMIAR de 6px separa clique de arrasto. Abaixo dele nada acontece e o
+       link abre normal; acima, o clique daquele gesto — e so daquele — e
+       engolido na fase de captura. */
+    var LIMIAR = 6;
+    var arrastando = false, apontando = false, idPonteiro = null;
+    var xAoPegar = 0, telaAoPegar = 0, selecaoAntes = '';
+
+    /* Traz x para dentro de UMA copia, em (-largura, 0]. O conteudo se repete
+       a cada largura, entao qualquer x fora dessa faixa tem um equivalente
+       exato dentro dela — e a mesma emenda que a animacao usa. Sem isso, o
+       arrasto para a direita levaria x acima de 0 e apareceria borda vazia. */
+    function normalizar() {
+      if (largura <= 0) return;
+      x = x % largura;
+      if (x > 0) x -= largura;
+    }
+
+    /* Engole o clique nascido do arrasto, uma vez so. O timeout e a rede de
+       seguranca para quando o gesto termina fora de um link e clique nenhum
+       chega — senao o ouvinte ficaria armado e comeria o proximo clique bom. */
+    function engolirClique(ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      lista.removeEventListener('click', engolirClique, true);
+    }
+
+    /* Imagem e link arrastam sozinhos no navegador, e o arrasto nativo
+       roubaria o gesto. Desligar isso nao muda nada visualmente. */
+    Array.prototype.forEach.call(lista.querySelectorAll('img, a'), function (n) {
+      n.draggable = false;
+    });
+
+    lista.addEventListener('pointerdown', function (ev) {
+      if (ev.pointerType !== 'mouse' || ev.button !== 0) return;
+      apontando = true;
+      arrastando = false;
+      idPonteiro = ev.pointerId;
+      telaAoPegar = ev.clientX;
+      xAoPegar = x;
+      /* Sem preventDefault aqui: ele mataria o foco e o clique do link. */
+    });
+
+    lista.addEventListener('pointermove', function (ev) {
+      if (!apontando || ev.pointerId !== idPonteiro) return;
+      var d = ev.clientX - telaAoPegar;
+      if (!arrastando) {
+        if (Math.abs(d) < LIMIAR) return;   // ainda pode virar clique
+        arrastando = true;
+        selecaoAntes = lista.style.userSelect;
+        lista.style.userSelect = 'none';    // so durante o gesto
+        if (lista.setPointerCapture) {
+          try { lista.setPointerCapture(idPonteiro); } catch (e) { /* segue sem captura */ }
+        }
+      }
+      x = xAoPegar + d;
+      normalizar();
+      lista.style.transform = 'translateX(' + x + 'px)';
+    });
+
+    function soltar(ev) {
+      if (!apontando || (ev && ev.pointerId !== idPonteiro)) return;
+      apontando = false;
+      if (idPonteiro !== null && lista.releasePointerCapture &&
+          lista.hasPointerCapture && lista.hasPointerCapture(idPonteiro)) {
+        try { lista.releasePointerCapture(idPonteiro); } catch (e) { /* ja solto */ }
+      }
+      idPonteiro = null;
+      if (arrastando) {
+        lista.style.userSelect = selecaoAntes;
+        lista.addEventListener('click', engolirClique, true);
+        setTimeout(function () { lista.removeEventListener('click', engolirClique, true); }, 300);
+      }
+      arrastando = false;                   // libera o passo() do ponto atual
+    }
+    lista.addEventListener('pointerup', soltar);
+    lista.addEventListener('pointercancel', soltar);
+
     function passo(t) {
       if (ultimo === null) ultimo = t;
       var dt = t - ultimo; ultimo = t;
-      if (rodando && !document.hidden && largura > 0) {
+      if (rodando && !arrastando && !document.hidden && largura > 0) {
         x -= (dt / 1000) * 40;            // 40 px/s, o ritmo do template
         if (-x >= largura) x += largura;
         lista.style.transform = 'translateX(' + x + 'px)';
@@ -740,40 +881,184 @@ function js() {
     });
   }
 
-  /* ---------------- reveal na entrada da seção ----------------
-     O reveal do template morreu com a hidratação: só 1 dos 20 nós tinha
-     entrada no JSON de appear. Aqui ele volta por IntersectionObserver,
-     animando transform e opacity — nada que cause reflow. */
-  function iniciarReveal() {
-    /* .framer-dtlgl4 e a fileira. NAO usar [data-framer-name="Header"]: o
-       <header> da pagina tem o mesmo nome e o reveal vazaria para tudo. */
-    var alvos = document.querySelectorAll('.framer-dtlgl4 > div');
-    if (!alvos.length) return;
-    Array.prototype.forEach.call(alvos, function (el) { el.setAttribute('data-mel-reveal', ''); });
+  /* ---------------- fileira do Header: o transform ligado ao scroll --------
+     Substitui o reveal por IntersectionObserver que existia aqui. Aquele
+     animava os 10 FILHOS, um a um, com atraso escalonado — invencao nossa. O
+     MOTION_SPEC (secao 3) e explicito: "sem rotacao, sem offset individual,
+     sem movimento individual". Quem se move no template e o GRUPO inteiro, e
+     o movimento e ligado ao scroll, nao disparado uma vez.
 
-    if (menosMovimento.matches || !('IntersectionObserver' in window)) {
-      Array.prototype.forEach.call(alvos, function (el) { el.classList.add('mel-visivel'); });
+     O grupo estava congelado no estado inicial do export
+     (transform: perspective(1200px) translateY(150px) scale(0.5) com
+     opacity:1), porque quem o animava era o runtime React, desligado. Dai a
+     fileira aparecer com metade do tamanho e parada. Aqui ele volta.
+
+     A CURVA E MEDIDA, nao estimada. Fonte: medidas/medida-template.json —
+     7 posicoes de scroll x 3 breakpoints no template publicado. O achado que
+     resolve tudo: os tres breakpoints colapsam numa curva so quando o
+     progresso e medido em ALTURAS DE JANELA que o topo do grupo ja subiu,
+     contadas a partir da borda de baixo da janela:
+
+       s = (alturaJanela - topoDoGrupoNaJanela) / alturaJanela
+
+     Medido (s | escala | translateY), desktop/tablet/mobile lado a lado:
+       0.107 0.130 0.104 | 0.500 0.500 0.500 | 150.0 150.0 150.0
+       0.429 0.428 0.415 | 0.895 0.899 0.896 |  31.4  30.2  31.2
+       0.751 0.727 0.724 | 0.989 0.990 0.989 |   3.2   3.1   3.2
+       1.072 1.024 1.033 | 1.000 1.000 1.000 |   0.0   0.0   0.0
+
+     Ajuste por minimos quadrados sobre esses 12 pontos: INICIO 0.13,
+     FIM 1.40, expoente 6. RMS de 0.004 no progresso — erro maximo de 0.005
+     na escala e 3px no translateY. Os parametros do ajuste estao abaixo
+     como constantes nomeadas, para ficar claro o que e medicao e o que e
+     ajuste.
+
+     O topo do grupo e lido pela cadeia de offsetTop, nao por
+     getBoundingClientRect: rect JA VEM com o transform aplicado, e o
+     transform e o que estamos calculando — daria realimentacao, o grupo
+     perseguindo a propria posicao. offsetTop e posicao de layout e ignora
+     transform. Foi tambem o que fez as tres medicoes baterem entre si: nelas
+     o topo usado e o do estado assentado, que e o de layout.
+
+     DUAS COISAS A MAIS ANDAM COM O PROGRESSO DA PAGINA, nao com a entrada:
+
+     1. O deslocamento HORIZONTAL. A fileira escorrega para a esquerda o
+        tempo todo, e o total e uma constante: -1000px do topo ao rodape.
+        Medido em motion-bruto-template.json, e o numero e exato e IDENTICO
+        nos cinco viewports — -250 / -500 / -750 / -1000 em 25/50/75/100% de
+        progresso, com erro de centesimo. Nao e derivado da largura da
+        fileira nem da janela: e o parametro do efeito. Ele cabe na sobra:
+        a fileira transborda ~1770px de cada lado no desktop e ~1300 no
+        mobile, entao 1000px de arrasto nunca descobre a borda.
+        Isso tinha passado despercebido na primeira leitura desta secao — a
+        medicao e que pegou.
+
+     2. A opacidade NAO para quando a geometria chega: assenta perto de 0,89
+        e continua subindo devagar ate 1 no rodape. Conferido nas duas
+        campanhas de medicao, que concordam nisso apesar de terem rodado em
+        paginas de altura diferente. */
+  var FILEIRA_INICIO = 0.13;   // s em que sai do estado inicial (ajustado)
+  var FILEIRA_FIM    = 1.40;   // s em que chega ao final (ajustado)
+  var FILEIRA_EXP    = 6;      // expoente da desaceleracao (ajustado)
+  var FILEIRA_ESCALA_INICIAL = 0.5;    // MEDIDO, identico nos 5 viewports
+  var FILEIRA_Y_INICIAL      = 150;    // MEDIDO, em px, identico nos 5
+  var FILEIRA_X_TOTAL        = 1000;   // MEDIDO, em px, identico nos 5
+  var FILEIRA_OP_GEOMETRIA   = 0.889;  // parte da opacidade que a entrada entrega
+  var FILEIRA_OP_PAGINA      = 0.111;  // o resto, que sobe com o scroll da pagina
+
+  /* ---- MOBILE: o desfile ---- 13/08/2026, a pedido -------------------------
+     No celular a fileira tem 2993px numa janela de 390. Centralizada como no
+     desktop, ela abria em left -1301, ou seja, no MEIO da fileira: a foto da
+     esquerda entrava cortada ao meio e as fotos 1 a 4 nao apareciam nunca. O
+     arrasto de -1000px so empurrava mais para o fim da fileira.
+
+     Agora, abaixo de 810px: o grupo encosta na esquerda (CSS, align-self, com
+     transform-origin na borda esquerda) e comeca na foto 1, e o arrasto passa
+     a ser medido pela PASSAGEM do grupo pela janela, nao pelo progresso da
+     pagina. Assim a fileira percorre exatamente o proprio transbordo enquanto
+     cruza a tela: entra mostrando a foto 1 na esquerda e sai mostrando a 10 na
+     direita. As dez ficam acessiveis sem swipe manual.
+
+     Desktop e tablet NAO mudam: a curva medida do template continua valendo
+     acima de 810px, incluindo o X_TOTAL de 1000px. */
+  var FILEIRA_MOBILE_ATE = 809.98;   // o breakpoint do proprio template
+
+  function iniciarFileira() {
+    /* .framer-dtlgl4 e a fileira. NAO usar [data-framer-name="Header"]: o
+       <header> da pagina tem o mesmo nome e o alvo vazaria para tudo. */
+    var el = document.querySelector('.framer-dtlgl4');
+    if (!el) return;
+
+    el.style.willChange = 'transform, opacity';
+
+    /* Com reduced-motion o template entrega o estado final direto — medido em
+       MOTION_SPEC secao 6.3. Nada de meio caminho. */
+    if (menosMovimento.matches) {
+      el.style.transform = 'perspective(1200px) translate(0px, 0px) scale(1)';
+      el.style.opacity = '1';
       return;
     }
-    var obs = new IntersectionObserver(function (ents) {
-      ents.forEach(function (e) {
-        if (!e.isIntersecting) return;
-        e.target.classList.add('mel-visivel');
-        obs.unobserve(e.target);           // anima uma vez só
-      });
-    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.12 });
-    Array.prototype.forEach.call(alvos, function (el) { obs.observe(el); });
 
-    /* Rede de seguranca: se por qualquer motivo o observer nao disparar, o
-       conteudo nao pode ficar invisivel. Depois de 1,2s tudo aparece. */
-    setTimeout(function () {
-      Array.prototype.forEach.call(alvos, function (el) { el.classList.add('mel-visivel'); });
-    }, 1200);
+    var topo = 0;
+    function medirTopo() {
+      var n = el, y = 0;
+      while (n) { y += n.offsetTop; n = n.offsetParent; }
+      topo = y;
+    }
+
+    var pendente = false;
+    function pintar() {
+      pendente = false;
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      if (!vh) return;
+
+      /* d = quanto o topo do grupo ja subiu, em px. Os dois eixos saem daqui:
+         s divide por vh (a curva medida da entrada) e q divide pela passagem
+         inteira do grupo pela janela (o desfile do mobile). */
+      var d = vh - (topo - window.scrollY);
+
+      var s = d / vh;
+      var u = (s - FILEIRA_INICIO) / (FILEIRA_FIM - FILEIRA_INICIO);
+      if (u < 0) u = 0; else if (u > 1) u = 1;
+      var e = 1 - Math.pow(1 - u, FILEIRA_EXP);
+
+      var rolavel = (document.documentElement.scrollHeight || 0) - vh;
+      var p = rolavel > 0 ? window.scrollY / rolavel : 1;
+      if (p < 0) p = 0; else if (p > 1) p = 1;
+
+      var escala = FILEIRA_ESCALA_INICIAL + (1 - FILEIRA_ESCALA_INICIAL) * e;
+      var y = FILEIRA_Y_INICIAL * (1 - e);
+      var op = FILEIRA_OP_GEOMETRIA * e + FILEIRA_OP_PAGINA * p;
+      if (op > 1) op = 1;
+
+      var x;
+      var larguraJanela = document.documentElement.clientWidth || window.innerWidth;
+      if (larguraJanela <= FILEIRA_MOBILE_ATE) {
+        /* Percorre o proprio transbordo enquanto cruza a janela. O denominador
+           e vh + altura do grupo: q vale 0 quando o topo do grupo encosta na
+           borda de baixo e 1 quando a base sai por cima. */
+        var q = d / (vh + (el.offsetHeight || 1));
+        if (q < 0) q = 0; else if (q > 1) q = 1;
+        var transbordo = el.offsetWidth - larguraJanela;
+        x = transbordo > 0 ? -transbordo * q : 0;
+      } else {
+        x = -FILEIRA_X_TOTAL * p;
+      }
+
+      /* A ordem importa: as funcoes se aplicam da direita para a esquerda,
+         entao o translate acontece FORA da escala — os 150px sao 150px de
+         layout, nao 150 ja encolhidos. E a ordem do inline do template, e e o
+         que faz a matriz medida bater: em scrollY 580 o template da
+         matrix3d(0.895277, ..., -134.632, 31.417, 0, 1), com a translacao
+         crua ao lado da diagonal escalada. Trocar a ordem move em dobro. */
+      el.style.transform = 'perspective(1200px) translate(' + x.toFixed(2) + 'px, ' + y.toFixed(2) + 'px) scale(' + escala.toFixed(4) + ')';
+      el.style.opacity = op.toFixed(4);
+    }
+
+    function agendar() {
+      if (pendente) return;
+      pendente = true;
+      requestAnimationFrame(pintar);
+    }
+
+    medirTopo();
+    pintar();
+    window.addEventListener('scroll', agendar, { passive: true });
+    window.addEventListener('resize', function () { medirTopo(); agendar(); }, { passive: true });
+    /* As fotos entram depois e empurram o layout: sem remedir, o topo fica
+       velho e a curva dispara na hora errada. */
+    window.addEventListener('load', function () { medirTopo(); pintar(); });
   }
+
+${require('./polen-interacoes.js').js()}
 
   function iniciar() {
     document.querySelectorAll('[data-mel="carrossel"]').forEach(iniciarCarrossel);
-    iniciarReveal();
+    iniciarFileira();
+    /* Só fazem algo em /polen: os alvos data-mel="polen-*" não existem em
+       nenhuma outra página, então saem no primeiro if. */
+    iniciarHeroPolen();
+    iniciarSeletorPolen();
     iniciarFiltros();
     iniciarFaq();
     iniciarSacola();
@@ -785,6 +1070,11 @@ function js() {
     /* O vídeo pode ser bloqueado pelo navegador: nesse caso fica o poster,
        que o atributo já garante. Com reduced-motion nem tenta tocar. */
     document.querySelectorAll('video[data-mel="hero-video"]').forEach(function (v) {
+      /* Nas internas o container do video e display:none desde 13/08 — ele e
+         da home. Sem esta guarda o navegador baixava e tocava os 5 MB atras
+         do conteudo em cinco paginas. Esconder por CSS nao impede o play;
+         so o pause impede. */
+      if (!v.offsetParent && getComputedStyle(v).position !== 'fixed') { v.pause(); return; }
       if (menosMovimento.matches) { v.pause(); return; }
       var p = v.play();
       if (p && p.catch) p.catch(function () { /* poster assume */ });

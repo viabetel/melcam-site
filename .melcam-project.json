@@ -1,0 +1,8 @@
+{
+  "project": "melcam-site",
+  "canonicalRoot": "C:\\Users\\israe\\viabetel\\melcam-site",
+  "role": "canonical",
+  "warning": "Esta é a única cópia operacional autorizada do projeto MELCAM.",
+  "criadoEm": "2026-08-13",
+  "motivo": "Existia uma cópia antiga em C:\\Users\\israe\\Downloads\\framer-teste com a regressão da fileira (iniciarReveal, overflow-x:auto, scroll-snap, grupo congelado em scale(0.5)). Um serve.js iniciado lá servia essa cópia em localhost:3030, e o navegador mostrava a animação quebrada enquanto os arquivos corretos seguiam intactos aqui. Este marcador é o que serve.js e tools/preflight.js exigem antes de abrir a porta."
+}

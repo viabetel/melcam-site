@@ -1,3 +1,9 @@
+// 13/08/2026 — ATENCAO: um hash pode alimentar DOIS slots do mesmo card.
+// O card "Sobre Nos" tem dois wrappers absolutos que sangram para fora, e os
+// dois usam E60m9ySte60CtImTqU; card-polen.jpg atende 3 slots. Trocar por hash
+// poe a MESMA foto nos dois lugares e o card parece partido ao meio.
+// A desduplicacao por slot vive em tools/desduplicar-cards.js, que roda DEPOIS
+// desta troca. Se acrescentar mapa aqui, conferir la tambem.
 // Troca as imagens remotas do template (framerusercontent.com) pelos assets
 // oficiais da MELCAM, nas 3 camadas, e reescreve os alt (que vinham em romeno).
 //

@@ -4,3 +4,12 @@ desktop.ini
 node_modules/
 .vercel
 *.log
+
+# perfis descartaveis do Edge headless (tools/medir.js) e capturas de trabalho
+tools/edge-cdp-*/
+tools/shots/
+tools/shots-*/
+
+# PNG de medicao e evidencia de sessao, nao entrega. Os .json de medida
+# CONTINUAM versionados: sao eles as baselines que o QA compara.
+medidas/*.png
