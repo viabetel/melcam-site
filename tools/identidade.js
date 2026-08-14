@@ -356,8 +356,12 @@ body:not(.mel-interna) a[data-framer-name="Sneakers"]{ aspect-ratio:1.55752 !imp
 }
 a[data-framer-name="Bee"]:hover .mel-bee-cores img{ transform:translateY(-2px) }
 
+/* center e nao baseline desde 14/08 (a passagem da grade em mel): com o CTA
+   em pilula, alinhar pela linha de base do TEXTO de dentro dela deixava a
+   pilula 4px abaixo do preco. O que tem de se alinhar agora sao as duas
+   caixas, nao as duas letras. */
 .mel-bee-linha{
-  display:flex; align-items:baseline; justify-content:center;
+  display:flex; align-items:center; justify-content:center;
   gap:.75rem; flex-wrap:wrap;
 }
 .mel-bee-preco{
@@ -365,11 +369,8 @@ a[data-framer-name="Bee"]:hover .mel-bee-cores img{ transform:translateY(-2px) }
   color:#FBF7EE;
 }
 /* CTA e TEXTO, nao <a>: o bloco inteiro ja e o link, e link dentro de link e
-   invalido. O sublinhado deixa claro que e acionavel sem depender de cor. */
-.mel-bee-cta{
-  font-family:"Area",sans-serif; font-size:.82rem; font-weight:700;
-  color:#F2A900; text-decoration:underline; text-underline-offset:3px;
-}
+   invalido. Ver o bloco "A GRADE DE PRODUTOS EM FUNDO MEL" adiante para o
+   desenho da pilula, que e comum a Bee e a Polen. */
 
 /* Se um dia o paginas.gerar() propagar estes nos para as internas, a tira sai
    de cena em vez de aparecer fora de contexto. Mesma guarda da Polen. */
@@ -474,7 +475,10 @@ body:not(.mel-interna) div[data-framer-name="Header Grid"] a[data-framer-name="S
    Depois: Bee com 19px de respiro, Acessorios com a foto cobrindo o cartao
    inteiro atras do scrim, como o card pequeno da Polen ja fazia.
 
-   🔴 O SELETOR AQUI NAO PODE TER `> div >`. A regra do desktop usa o caminho
+   🔴 O SELETOR AQUI NAO PODE TER "> div >". A regra do desktop usa o caminho
+   (as ASPAS aqui sao obrigatorias: uma CRASE dentro deste comentario FECHA o
+   template literal de gerarIdentidade() e o arquivo deixa de rodar. Foi o que
+   aconteceu entre 14/08 e agora — ver a secao da grade em mel no progresso.md)
    direto porque naquela variante a foto e neta do <a>. No mobile o export
    monta outra arvore e o mesmo seletor nao casa com nada — a primeira versao
    desta media query nao moveu um pixel, e so a medicao mostrou. */
@@ -487,6 +491,85 @@ body:not(.mel-interna) div[data-framer-name="Header Grid"] a[data-framer-name="S
   }
 }
 
+
+/* ============ A GRADE DE PRODUTOS EM FUNDO MEL — 14/08/2026 ============
+   topicos_alteracoes.pdf, item 1: "implementacao de uma nova secao dedicada a
+   apresentacao das cameras Bee e Polen, caracterizada por um fundo amarelo
+   distinto e botoes de chamada para acao ('Conheca' e 'Ver Modelos')".
+
+   NAO E UMA SECAO NOVA, e a decisao fica registrada aqui.
+   A secao que o pedido descreve JA EXISTE: e a <section data-framer-name=
+   "Header Grid"> da home, cujo titulo e "A camera que vive com voce." e cujo
+   subtitulo termina em "Conheca a Bee e a Polen". Criar uma segunda deixaria a
+   home com duas vitrines dos mesmos dois produtos e dois pares de CTA
+   competindo pelo mesmo clique — que e exatamente o "sem duplicar cards ou
+   CTAs" do plano. O que faltava nela era o fundo amarelo e o botao. E so isso
+   que entra.
+
+   O FUNDO NAO SANGRA ALEM DE 1440, e nao e esquecimento. Medido a 1920: o
+   stack do template tem 1440 e o pai dele e overflow:hidden. A home inteira ja
+   e uma coluna de 1440 nessa largura — hero, carrossel, comunidade, rodape —,
+   entao a faixa amarela comeca e termina onde todas as outras comecam e
+   terminam. Sangrar exigiria furar o overflow:hidden do pai, que e a caixa que
+   segura o layout inteiro.
+
+   OS 10px DE COSTURA ACIMA E ABAIXO CONTINUAM CARVAO, de proposito. Na /bee o
+   vao entre duas secoes TINGIDAS virava um risco claro atravessando a pagina e
+   teve de ser pintado; aqui os vizinhos sao carvao, entao o vao carvao e a
+   propria moldura da faixa. E o "distinto" do pedido.
+*/
+body:not(.mel-interna) section[data-framer-name="Header Grid"]{
+  background:${P.mel};
+}
+
+/* 🔴 OS CARDS SO CONTINUAM ESCUROS POR CAUSA DESTA LINHA.
+   O gradiente de cada cartao termina em rgba(34,30,23,.35) — 35% de carvao,
+   medido nos cinco. Sobre a pagina carvao isso compunha carvao e ninguem via a
+   transparencia; sobre mel comporia AMARELO CLARO, e o titulo em papel dentro
+   do cartao cairia para 1,9:1. Com o background-color opaco por baixo, o mesmo
+   gradiente volta a compor contra carvao: dentro do cartao nada muda, pixel a
+   pixel, e nenhum contraste interno precisou ser recalculado. */
+body:not(.mel-interna) section[data-framer-name="Header Grid"] div[data-framer-name="Header Grid"] a{
+  background-color:${P.carvao};
+}
+
+/* O titulo e o subtitulo da secao eram papel sobre carvao. Papel sobre mel da
+   1,88:1; carvao sobre mel da 8,25:1 — a mesma conta ja medida no hero da /bee,
+   e a razao de a placa de titulo de la ser carvao com letra mel. */
+body:not(.mel-interna) section[data-framer-name="Header Grid"] [data-framer-name="Header Info"] h1,
+body:not(.mel-interna) section[data-framer-name="Header Grid"] [data-framer-name="Header Info"] h2,
+body:not(.mel-interna) section[data-framer-name="Header Grid"] [data-framer-name="Header Info"] h3,
+body:not(.mel-interna) section[data-framer-name="Header Grid"] [data-framer-name="Header Info"] p{
+  color:${P.carvao};
+}
+
+/* O CTA VIRA BOTAO.
+   O pedido nomeia "botoes de chamada para acao", e agora eles sao botoes na
+   forma: a mesma pilula do CTA de compra da /bee — Area curta, quase caixa
+   alta, border-radius 999px, mel com letra carvao (8,25:1).
+   Continuam sendo <span>: o cartao inteiro ja e o <a>, e link dentro de link e
+   markup invalido. Como a tira tem pointer-events:none, o clique na pilula e o
+   clique do cartao, que e o mesmo destino.
+   O SUBLINHADO SAI porque a forma preenchida ja diz "acionavel" sem depender
+   de cor — o sinal sobrevive em escala de cinza, que era o motivo do
+   sublinhado. */
+.mel-bee-cta,
+.mel-polen-cta{
+  display:inline-block; padding:.5rem 1.1rem; border-radius:999px;
+  background:${P.mel}; color:${P.carvao};
+  font-family:"Area",sans-serif; font-size:.76rem; font-weight:700;
+  letter-spacing:.07em; text-transform:uppercase;
+  text-decoration:none; white-space:nowrap;
+  transition:transform 420ms cubic-bezier(.22,.61,.36,1);
+}
+a[data-framer-name="Bee"]:hover .mel-bee-cta,
+a[data-framer-name="Polen"]:hover .mel-polen-cta{ transform:translateY(-2px) }
+
+@media (prefers-reduced-motion:reduce){
+  .mel-bee-cta,.mel-polen-cta{ transition:none }
+  a[data-framer-name="Bee"]:hover .mel-bee-cta,
+  a[data-framer-name="Polen"]:hover .mel-polen-cta{ transform:none }
+}
 
 
 /* ============ AS 7 CORES VIRAM ESCOLHA — 14/08/2026 ============
@@ -1149,8 +1232,9 @@ body:not(.mel-interna) a[data-framer-name="Polen"]:has(.mel-polen-tira)::after{ 
    informacao depende dele. */
 a[data-framer-name="Polen"]:hover .mel-polen-cores img{ transform:translateY(-2px) }
 
+/* center e nao baseline: ver a nota gemea em .mel-bee-linha. */
 .mel-polen-linha{
-  display:flex; align-items:baseline; justify-content:center;
+  display:flex; align-items:center; justify-content:center;
   gap:.75rem; flex-wrap:wrap;
 }
 .mel-polen-preco{
@@ -1158,13 +1242,8 @@ a[data-framer-name="Polen"]:hover .mel-polen-cores img{ transform:translateY(-2p
   color:${P.papel};
 }
 /* CTA e TEXTO, nao <a>: o bloco inteiro ja e o link, e link dentro de link
-   e invalido. O sublinhado deixa claro que e acionavel sem depender de cor. */
-.mel-polen-cta{
-  font-family:"Area",sans-serif; font-size:.82rem; font-weight:700;
-  letter-spacing:.06em; color:${P.mel};
-  text-decoration:underline; text-underline-offset:.28em;
-  text-decoration-thickness:1px;
-}
+   e invalido. O desenho da pilula e comum aos dois cards e mora no bloco
+   "A GRADE DE PRODUTOS EM FUNDO MEL". */
 
 @media (max-width:809.98px){
   .mel-polen-tira{ margin:.85rem .75rem 0; gap:.55rem; padding-top:.75rem }

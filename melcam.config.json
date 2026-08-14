@@ -1,17 +1,14 @@
 {
   "_leia": "Fonte única de verdade da transformação. tools/aplicar.js reconstrói o site a partir de _ORIGINAL/ aplicando este arquivo. Nada aqui pode ser inventado: o que não existe fica em PENDENTES.",
-
   "marca": {
     "nome": "MELCAM",
     "tagline": "Câmeras digitais retrô com filtros vintage embutidos. Analógica por fora, digital por dentro.",
     "descricao": "Câmeras digitais retrô da Melcam. Fotografia intencional, filtros vintage embutidos e menos distração. Conheça a Bee e a Polen."
   },
-
   "site": {
     "_leia": "PENDENTE: domínio de produção a decidir. Trocar baseUrl aqui regenera robots.txt, sitemap.xml, canonical, Open Graph e todo o Schema.org de uma vez.",
     "baseUrl": "https://www.melcam.com.br"
   },
-
   "paleta": {
     "carvao": "#221E17",
     "mel": "#F2A900",
@@ -19,22 +16,34 @@
     "coral": "#EE6A4D",
     "verdeMar": "#5E8C7B"
   },
-
   "fontes": {
     "_decisao": "Iowan Old Style só tem o peso Bold no toolkit. Decisão do cliente em 12/08/2026: Iowan apenas em display; Area assume o texto corrido. Brooklyn fica reservada à assinatura Polen.",
     "display": "Iowan Old Style BT",
     "texto": "Area",
     "assinatura": "Brooklyn Heritage Script"
   },
-
   "navegacao": [
-    { "rotulo": "Home", "href": "/" },
-    { "rotulo": "Polen", "href": "/polen" },
-    { "rotulo": "Bee", "href": "/bee" },
-    { "rotulo": "Acessórios", "href": "/acessorios" },
-    { "rotulo": "Sobre Nós", "href": "/sobre" }
+    {
+      "rotulo": "Home",
+      "href": "/"
+    },
+    {
+      "rotulo": "Polen",
+      "href": "/polen"
+    },
+    {
+      "rotulo": "Bee",
+      "href": "/bee"
+    },
+    {
+      "rotulo": "Acessórios",
+      "href": "/acessorios"
+    },
+    {
+      "rotulo": "Sobre Nós",
+      "href": "/sobre"
+    }
   ],
-
   "home": {
     "hero": {
       "badge": "Novo",
@@ -46,14 +55,40 @@
       "poster": "/melcam/img/hero-poster.jpg"
     },
     "blocos": [
-      { "eyebrow": "Novidade", "titulo": "Bee", "href": "/bee", "img": "/melcam/img/card-bee.jpg" },
-      { "eyebrow": "", "titulo": "Polen", "href": "/polen", "img": "/melcam/img/card-polen.jpg" }
+      {
+        "eyebrow": "Novidade",
+        "titulo": "Bee",
+        "href": "/bee",
+        "img": "/melcam/img/card-bee.jpg"
+      },
+      {
+        "eyebrow": "",
+        "titulo": "Polen",
+        "href": "/polen",
+        "img": "/melcam/img/card-polen.jpg"
+      }
     ],
     "banners": [
-      { "titulo": "Conheça a Bee", "href": "/bee", "img": "/melcam/img/banner-bee.jpg" },
-      { "titulo": "Conheça a Polen", "href": "/polen", "img": "/melcam/img/banner-polen.jpg" },
-      { "titulo": "Todo o site em até 3x sem juros", "href": "/polen", "img": "/melcam/img/banner-3x.jpg" }
+      {
+        "titulo": "Conheça a Bee",
+        "href": "/bee",
+        "img": "/melcam/img/banner-bee.jpg"
+      },
+      {
+        "titulo": "Conheça a Polen",
+        "href": "/polen",
+        "img": "/melcam/img/banner-polen.jpg"
+      },
+      {
+        "titulo": "Todo o site em até 3x sem juros",
+        "href": "/polen",
+        "img": "/melcam/img/banner-3x.jpg"
+      }
     ],
+    "clipes": {
+      "visivel": false,
+      "_porque": "PENDENTE: 2 a 3 clipes verticais 1080x1920 + poster de cada. Enquanto não existirem, a seção fica oculta a pedido do cliente (topicos_alteracoes.pdf, 14/08/2026). Para reativar: visivel=true e node tools/sincronizar-clipes.js"
+    },
     "comunidade": {
       "eyebrow": "Por onde a Melcam passou",
       "titulo": "Memórias da Colméia",
@@ -67,15 +102,17 @@
       "Pagamento 100% seguro"
     ]
   },
-
   "colmeia": {
     "eyebrow": "o clube da marca",
     "titulo": "Entre para a Colméia",
     "texto": "Acesso antecipado a lançamentos, encontros exclusivos com a comunidade e desafios fotográficos mensais para quem vive fotografando com a Melcam.",
-    "perks": ["Acesso antecipado", "Encontros exclusivos", "Desafios mensais"],
+    "perks": [
+      "Acesso antecipado",
+      "Encontros exclusivos",
+      "Desafios mensais"
+    ],
     "cta": "Quero entrar na Colméia"
   },
-
   "produtos": {
     "polen": {
       "nome": "Polen",
@@ -85,13 +122,41 @@
       "nota": "Envio para todo o Brasil · Cabo USB-C e cartão SD inclusos",
       "_divergencia": "A pasta de catálogo usa 'Coral'; o copy aprovado usa 'Laranja'. Tratados como a mesma variante até confirmação do cliente.",
       "cores": [
-        { "nome": "Amarela", "sub": "Vibrante por essência.", "img": "/melcam/img/polen/polen-amarela.png" },
-        { "nome": "Branca", "sub": "Suave como a luz natural.", "img": "/melcam/img/polen/polen-branca.png" },
-        { "nome": "Laranja", "sub": "Vibrante como o pôr do sol.", "img": "/melcam/img/polen/polen-coral.png" },
-        { "nome": "Marrom", "sub": "Nostalgia em cada clique.", "img": "/melcam/img/polen/polen-marrom.png" },
-        { "nome": "Preta", "sub": "Clássica por natureza.", "img": "/melcam/img/polen/polen-preto.png" },
-        { "nome": "Rosa", "sub": "Leve como o momento.", "img": "/melcam/img/polen/polen-rosa.png" },
-        { "nome": "Verde", "sub": "Natural em cada detalhe.", "img": "/melcam/img/polen/polen-verde.png" }
+        {
+          "nome": "Amarela",
+          "sub": "Vibrante por essência.",
+          "img": "/melcam/img/polen/polen-amarela.png"
+        },
+        {
+          "nome": "Branca",
+          "sub": "Suave como a luz natural.",
+          "img": "/melcam/img/polen/polen-branca.png"
+        },
+        {
+          "nome": "Laranja",
+          "sub": "Vibrante como o pôr do sol.",
+          "img": "/melcam/img/polen/polen-coral.png"
+        },
+        {
+          "nome": "Marrom",
+          "sub": "Nostalgia em cada clique.",
+          "img": "/melcam/img/polen/polen-marrom.png"
+        },
+        {
+          "nome": "Preta",
+          "sub": "Clássica por natureza.",
+          "img": "/melcam/img/polen/polen-preto.png"
+        },
+        {
+          "nome": "Rosa",
+          "sub": "Leve como o momento.",
+          "img": "/melcam/img/polen/polen-rosa.png"
+        },
+        {
+          "nome": "Verde",
+          "sub": "Natural em cada detalhe.",
+          "img": "/melcam/img/polen/polen-verde.png"
+        }
       ],
       "beneficios": [
         "Sem telas, sem distrações — apenas o momento.",
@@ -102,7 +167,16 @@
         "MicroSD 4GB incluso",
         "Até 3x sem juros em todo o site"
       ],
-      "filtros": ["Retro", "Mono", "Natural", "Polar", "Vintage", "Filmic", "Noir", "Boost"]
+      "filtros": [
+        "Retro",
+        "Mono",
+        "Natural",
+        "Polar",
+        "Vintage",
+        "Filmic",
+        "Noir",
+        "Boost"
+      ]
     },
     "bee": {
       "nome": "Bee",
@@ -111,25 +185,44 @@
       "cta": "Adicionar à sacola",
       "nota": "Envio em 24h · Cabo USB-C incluso",
       "cores": [
-        { "nome": "Bee Amarela", "img": "/melcam/img/bee/bee-catalogo-amarela-frente.jpg" },
-        { "nome": "Bee Branca", "img": "/melcam/img/bee/bee-catalogo-branca-frente.jpg" }
+        {
+          "nome": "Bee Amarela",
+          "img": "/melcam/img/bee/bee-catalogo-amarela-frente.jpg"
+        },
+        {
+          "nome": "Bee Branca",
+          "img": "/melcam/img/bee/bee-catalogo-branca-frente.jpg"
+        }
       ]
     }
   },
-
   "footer": {
-    "produtos": ["Bee", "Polen", "Acessórios"],
-    "ajuda": ["Rastrear pedido", "Trocas e devoluções", "Fale conosco"],
-    "institucional": ["Sobre Nós", "Privacidade", "Termos"],
+    "produtos": [
+      "Bee",
+      "Polen",
+      "Acessórios"
+    ],
+    "ajuda": [
+      "Rastrear pedido",
+      "Trocas e devoluções",
+      "Fale conosco"
+    ],
+    "institucional": [
+      "Sobre Nós",
+      "Privacidade",
+      "Termos"
+    ],
     "razaoSocial": "Melcam LTDA"
   },
-
   "remover": {
     "_motivo": "Rastreio e links de afiliado do autor do template. Não podem ir para o ar no site do cliente.",
     "gtagId": "G-RR9R4J88WR",
-    "hosts": ["dub.sh", "www.googletagmanager.com", "video-previews.elements.envatousercontent.com"]
+    "hosts": [
+      "dub.sh",
+      "www.googletagmanager.com",
+      "video-previews.elements.envatousercontent.com"
+    ]
   },
-
   "PENDENTES": [
     "CNPJ",
     "endereço",

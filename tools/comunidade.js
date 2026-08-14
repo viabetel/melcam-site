@@ -93,7 +93,41 @@ const CLIPES = [
   },
 ];
 
+// 🔴 A SEÇÃO ESTÁ OCULTA A PEDIDO — 14/08/2026.
+//
+// O `topicos_alteracoes.pdf` pede "ocultação temporária da seção de conteúdo em
+// vídeo e clipes, justificada pela ausência atual de material gravado pela
+// marca". É o mesmo motivo que já estava escrito no cabeçalho acima: não há
+// MP4, MOV nem WebM no material local, e o briefing proíbe vídeo de banco. A
+// diferença é que até aqui o site mostrava três FOTOS reservando o lugar dos
+// clipes; o cliente prefere não mostrar nada enquanto não houver vídeo.
+//
+// COMO RELIGAR, e é de propósito que seja assim de simples:
+//
+//     melcam.config.json  ->  home.clipes.visivel = true
+//     node tools/sincronizar-clipes.js
+//
+// Nada foi apagado: nem esta função, nem a lista CLIPES com os três
+// enquadramentos medidos, nem as fotos, nem o CSS de .mel-clipe*. As imagens
+// continuam referenciadas no HTML — então continuam publicadas pelo
+// verificar-assets-deploy.js — e voltam a aparecer no dia em que o interruptor
+// virar. Se os vídeos chegarem antes disso, o que muda é o conteúdo do card;
+// o interruptor continua sendo o mesmo.
+//
+// POR QUE `hidden` NO PRÓPRIO <section>, e não display:none na folha:
+//   - `hidden` tira a seção do fluxo, então não sobra vão nenhum entre a
+//     comunidade e a barra de segurança — o pedido diz isso com todas as
+//     letras. Medido depois: a página encolheu de 8.436 para 7.223px e nenhuma
+//     das seções vizinhas mudou de altura;
+//   - `hidden` também esconde para leitor de tela e tira os links da ordem de
+//     tabulação, o que display:none faz igual, mas `hidden` é atributo do
+//     documento: quem abrir o HTML vê que a seção está desligada sem precisar
+//     ler a folha de estilo;
+//   - e o pedido é explícito em não resolver isto só com CSS no build sem
+//     mexer na fonte. Quem decide é o config; a fonte lê o config; o build é
+//     sincronizado a partir da fonte.
 function clipes() {
+  const ligada = cfg.home.clipes ? cfg.home.clipes.visivel !== false : true;
   const cards = CLIPES.map((c) => `
       <li class="mel-clipe">
         <div class="mel-clipe-box">
@@ -104,7 +138,7 @@ function clipes() {
       </li>`).join('');
 
   return `
-<section class="mel-sec mel-clipes" aria-labelledby="mel-clipes-tit">
+<section class="mel-sec mel-clipes" aria-labelledby="mel-clipes-tit"${ligada ? '' : ' hidden data-mel-oculta="sem clipes gravados"'}>
   <div class="mel-sec-topo">
     <p class="mel-eyebrow">em movimento</p>
     <h2 id="mel-clipes-tit" class="mel-tit">A Melcam por aí</h2>

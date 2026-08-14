@@ -25,6 +25,23 @@ Polen e Sobre Nós corrigida. Estado commitado em `48dda9d` e publicado em
 > 3. A faixa "Sobre Nós" parou de abrir e fechar sozinha: o IntersectionObserver
 >    observava o próprio elemento cuja altura a animação muda. Agora observa a
 >    <section>, o gatilho não é mais razão e dispara uma vez só.
+>
+> **A ÚLTIMA seção do arquivo fecha o vídeo da Bee no hero da /bee**, que a
+> sessão anterior deixou aberto no meio. O retrato estava quebrado — a câmera
+> caía inteira sobre o plano de mel e lia como vidro fumê — e o tablet em pé
+> estava pior ainda, com 500px de papel morto. Os dois foram consertados pela
+> mesma régua (só a alça cruza mel), a legenda das cores parou de encostar na
+> peça nas duas telas em que encostava, e a validação rodou inteira em oito
+> janelas, incluindo um `tools/qa-bee-video.js` novo que prova que com
+> movimento reduzido o navegador não baixa um byte de vídeo. **Nada commitado.**
+>
+> A ANTEPENÚLTIMA seção fecha a altura do hero da /bee: ele passou de
+> `clamp(520px,80svh,820px)` para `max(560px,100svh)` e ocupa a dobra inteira,
+> nas seis janelas medidas. Junto: o retrato virou coluna flex (era
+> `min-height:0`) e a `qa-bee-cena.js` deixou de esticar a janela para medir —
+> esticar a janela invalida qualquer página que use `svh`, e as duas heroes
+> usam. Fica aberta uma pendência NOVA e pré-existente: acima de 1440 o stack
+> do Framer recorta o hero em 1440 na /bee E na /polen.
 
 **Pasta de trabalho:** `C:\Users\israe\viabetel\melcam-site`
 (a linha antiga dizia `Downloads\framer-teste`, que é a **cópia arquivada** —
@@ -7395,3 +7412,1671 @@ script cria para o menu mobile.
 | `polen.html` · `bee.html` · `melcam/interacoes.js` | builds, por `node tools/build-produtos.js` |
 
 `tools/aplicar.js` **não** foi executado. Nenhum commit.
+
+---
+
+## 🐝 AS DUAS BEE CAM GANHARAM SEÇÃO PRÓPRIA — 14/08/2026
+
+Pedido: levar para a /bee a lógica de apresentação de produto da /polen, em duas
+seções consecutivas (uma por Bee), com a imagem alternando de lado — adaptada à
+identidade que a Bee já tem, sem copiar cor, tipografia ou detalhe da Polen.
+
+> A captura de referência citada no pedido **não veio anexada**. O trabalho usou
+> o outro parâmetro dado, a seção equivalente da /polen, mais a própria página da
+> Bee como fonte de identidade. Se a captura aparecer e divergir, o ajuste é de
+> composição, não de estrutura.
+
+### O que era e o que ficou
+
+Era `modelos()`: uma grade de dois cards pequenos, cada um com nome, packshot de
+catálogo, preço e botão. Virou duas `<section>` irmãs, cada uma com palco
+grande, nome, descrição, destaques, preço e CTA.
+
+`modelos()` foi **substituída**, não somada. Manter os dois cards ao lado de duas
+seções que dizem o mesmo — mesmo nome, mesmo preço, mesmo botão — repetiria o
+par três vezes na mesma página, que é o defeito já registrado aqui duas vezes.
+
+O id `modelos` ficou na primeira seção: é o destino do CTA do hero ("Escolha sua
+Bee"). A segunda tem id próprio, `bee-branca`. Zero id duplicado na página,
+conferido.
+
+### O que veio da Polen, e o que não veio
+
+**Veio a composição:** a divisão em palco e coluna de informação, a ordem (nome,
+descrição, destaques, preço, CTA) e o peso dado à foto.
+
+**Não veio nada de arte.** Nenhuma classe `.mel-pr-*`, nenhuma cor e nenhuma
+tipografia da Polen atravessou — aquela página é carvão e cinema, esta é papel e
+sol. As classes novas são `.mel-bee-mod-*`, todas escopadas em
+`body.mel-pagina-bee`, e o que vestem elas é o vocabulário que a Bee já tinha:
+
+| elemento | de onde veio |
+|---|---|
+| fundo papel, texto carvão, eyebrow `#8A6A12`, CTA em mel | a faixa clara que a /bee já usava |
+| favo tom sobre tom no palco | o mesmo grafismo do plano do hero, noutro tom |
+| sombra de contato do produto | `filter:drop-shadow` do `.mel-bh-cam`, verbatim |
+| superfície `#F3EDE0` + borda `papelBorda` | os cards antigos de modelo |
+
+O plano de **mel** continua exclusivo do hero. Repeti-lo aqui tiraria dele a
+primazia; o palco usa a superfície clara e deixa o mel para o CTA e para o
+losango dos destaques.
+
+O `FAVO` virou função `favo(traco, espessura)` para o palco poder usar o MESMO
+desenho noutro tom — duplicar a string do path seria criar duas fontes de verdade
+para o mesmo grafismo. O traço do palco é papel escurecido, não mel: sobre
+`#F3EDE0` o mel viraria um segundo amarelo brigando com a câmera amarela em cima.
+E é 1,5 em vez de 2, porque em cima da superfície clara o traço de 2 lê como
+grade, não como textura.
+
+### As fotos, e por que não as óbvias
+
+Escolhidas com os arquivos abertos e o canal alfa medido, não pelo nome:
+
+| seção | arquivo | natural | por quê |
+|---|---|---|---|
+| 1 · Bee Amarela | `bee-amarela-frente.png` | 683x339 | recorte real, alfa 0 nas bordas |
+| 2 · Bee Branca | `bee-branca-angulo-corrente.png` | 1090x550 | recorte real, e traz a correntinha e o mosquetão |
+
+**O verde e o azul que aparecem ao abrir esses PNGs num visualizador são o matte
+descartado SOB alfa 0** — no navegador não pintam nada. Medido em quatro pontos
+da linha 4 de cada arquivo: alfa 0 em todos. Foi o que evitou descartar a foto
+da branca por engano.
+
+Os packshots de catálogo, que seriam o caminho óbvio, ficaram de fora:
+
+- `bee-catalogo-branca-frente.jpg` tem **fundo azul chapado**. Em card pequeno
+  passava; num palco deste tamanho vira um plano azul dominando uma página cuja
+  assinatura é o mel. É o mesmo motivo que já descartou a `bee-lp-1169.jpg` do
+  hero, registrado em `tools/bee.js`.
+- `bee-catalogo-amarela-frente.jpg` já traz o próprio plano de mel com favo:
+  sobre este palco seria mel sobre mel, e brigaria com o plano do hero.
+
+E não são as do hero: lá são amarela em três quartos e branca de frente; aqui são
+as **outras duas** poses. Nenhuma foto se repete na página, e o par alterna a pose
+junto com o lado. O QA confere isso automaticamente.
+
+### O espelho, e o erro que ele quase escondeu
+
+A ordem do DOM é **sempre** palco e depois informação, nas duas seções. Quem
+troca os lados no desktop é `grid-column`, e só nele — assim o celular empilha as
+duas igual (imagem, conteúdo, destaques), que era requisito explícito. Espelhar
+invertendo o HTML deixaria a segunda seção abrindo pelo texto.
+
+Na primeira medição o espelho estava errado sem parecer: com `1.08fr 1fr` fixo, a
+seção invertida punha o palco na coluna **estreita** e as duas fotos saíam de
+tamanhos diferentes — 689px contra 638px. A proporção agora vira junto com as
+colunas. Medido depois: os dois palcos em **689x517**, com a calha central de
+65px nos dois lados.
+
+### Copy
+
+Nenhuma especificação, número, preço, disponibilidade ou benefício foi inventado.
+As duas descrições saem de copy já aprovado desta mesma página, e a âncora está
+escrita ao lado de cada uma no `tools/bee.js`:
+
+| seção | texto | âncora |
+|---|---|---|
+| Amarela | O amarelo da Melcam, do tamanho de um chaveiro. Chega pronta pra pendurar na chave, na mochila ou no pescoço. | alt do hero + bloco "Câmera como acessório", palavra por palavra |
+| Branca | A mesma câmera, em branco. Os mesmos 11 filtros aplicados na hora da foto ou do vídeo, com a estética vintage dos anos 2000. | bloco "Filtros e estética retrô" |
+
+Os destaques são **verbatim** de `SPECS_BEE`: nenhuma unidade ou capacidade foi
+reescrita. A divisão é só de ênfase — corpo e mão de um lado, o que a câmera faz
+do outro. **"A mesma câmera, em branco" existe de propósito**: as duas Bees são a
+mesma câmera, e o texto diz isso com todas as letras em vez de deixar no ar que
+cada cor teria recurso próprio.
+
+A nota de envio fecha o par uma vez só, no fim da segunda seção: o envio é o
+mesmo para as duas cores.
+
+### Duas costuras, não uma
+
+O stack do template é flex column com `gap:10px` e fundo carvão. Entre duas
+seções de papel esse vão vira uma linha escura — a armadilha já documentada
+quando o `#modelos` nasceu. Com duas seções passaram a existir **duas** costuras
+de papel contra papel: hero/seção 1 e seção 1/seção 2. Cada `.mel-bee-mod` pinta
+o vão acima de si, então a mesma regra cobre as duas. O vão **abaixo** da segunda
+continua carvão de propósito: ali começa "Destaques", e a volta ao editorial
+escuro é divisão declarada.
+
+### Sincronia
+
+`tools/build-produtos.js` regenera `bee.html`, mas **não** encosta no bloco de CSS
+da /bee, que vive depois do bloco da /polen. Quem fazia isso era o
+`tools/sincronizar-bee.js`, e ele não serve mais para uso corrente: os passos 1 a
+3 dele recortam trechos por marcadores de uma migração já concluída.
+
+Entrou `tools/sincronizar-bee-css.js`, que faz só o passo 4 — o único que
+continua verdadeiro: o bloco da /bee é o último da folha, então sincronizar é
+truncar no marcador dele e reescrever dali para a frente. Com guardas: marcador
+único, chaves balanceadas e comentários balanceados **antes** de gravar.
+
+Essa última guarda pegou um defeito meu na primeira execução: um `*/` inserido
+depois de outro que já fechava. Nada foi gravado, e a mensagem apontou o
+problema — a mesma classe de erro que ontem passou em silêncio pelo pré-voo.
+
+### Validação
+
+`node tools/preflight.js` — pré-voo limpo, CSS balanceado 741/741, assets de 100
+para **102** (as duas fotos novas).
+
+`node tools/qa-bee-modelos.js` (novo, só lê) em **1440x900 e 390x844**, os dois
+[OK]. Ele prova, medindo:
+
+- **duas** seções `.mel-bee-mod`, ids `modelos` e `bee-branca`, nenhum id
+  duplicado na página inteira;
+- **desktop**: palco à esquerda na 1 (x24) e à direita na 2 (x727), com os dois
+  em 689x517;
+- **mobile**: nas duas, palco antes da informação (y829 < y1118 · y1571 < y1860)
+  — é a checagem que pega o erro de espelhar invertendo o DOM;
+- **identidade**: fundo `rgb(251,247,238)`, nome em carvão, CTA em mel sobre
+  carvão, CTA é `<button>`;
+- **fotos**: duas diferentes, nenhuma repetindo as do hero, as duas carregadas,
+  com `width`/`height` (contra layout shift), `alt` e `object-fit:contain`;
+- **sem regressão**: hero de pé em y=0, "Sobre nós" fora, "Destaques" de pé,
+  nada cobrindo a navegação, sem transbordo horizontal, console limpo.
+
+`qa-bee` e `qa-navegacao-bee` passam nas três larguras, com `modelosFundo` ainda
+em papel e o abridor do menu alcançável. `qa-rede` 7 rotas, 0 imagens quebradas.
+`qa-paleta`: as seções novas medem 15,51 no nome, 7,20 na descrição e nos
+destaques, 8,25 no CTA e 5,61 no menor deles — todos acima do mínimo.
+
+**Nenhuma animação nova entrou**, então não há nada a fazer sob
+`prefers-reduced-motion`: as animações da página são as do hero, intactas.
+
+`polen.html` e `melcam/interacoes.js` continuam byte a byte iguais ao commit —
+nenhuma outra página foi tocada.
+
+### Arquivos
+
+| arquivo | o quê |
+|---|---|
+| `tools/bee.js` | **fonte** — `modelos()` reescrita em duas seções, com fotos, destaques e copy anotados |
+| `tools/bee-interacoes.js` | **fonte** — `.mel-bee-mod-*`, o `favo()` parametrizado e o `#modelos` virando `.mel-bee-mod` |
+| `bee.html` · `melcam/identidade.css` | builds |
+| `tools/sincronizar-bee-css.js` | **novo** — sincroniza o bloco de CSS da /bee, com guardas |
+| `tools/qa-bee-modelos.js` | **novo** — o QA acima; só lê |
+
+As regras globais `.mel-cor*` e `.mel-cores-2` ficaram na folha e agora estão sem
+uso: eram só da /bee. Não foram apagadas porque remover regra global é decisão à
+parte e o pedido era preservar o existente.
+
+`tools/aplicar.js` **não** foi executado. Nenhum commit.
+## 📋 ANÁLISE DO `topicos_alteracoes.pdf` E PLANO DE ADAPTAÇÃO — 14/08/2026
+
+Fonte analisada: `C:\Users\israe\Downloads\topicos_alteracoes.pdf`, criado em
+14/08/2026 às 14:12. O documento foi comparado com a raiz canônica e com o estado
+atual das fontes e builds. Esta passagem **não implementa o redesign**: transforma
+o pedido do cliente em backlog executável e evita refazer recursos que já existem.
+
+### Decisão de produto
+
+O PDF não deve ser aplicado literalmente como uma reconstrução. O projeto atual já
+incorpora parte relevante do pedido — inclusive soluções mais maduras que a descrição
+resumida do relatório. A adaptação será incremental, preservando o que está validado e
+alterando apenas lacunas comprovadas.
+
+Também há pedidos que dependem de insumos ainda não entregues. Não serão simulados:
+
+- o modelo/animação 3D específico da Bee chaveiro;
+- vídeos para a seção de clipes;
+- CNPJ, endereço físico e WhatsApp oficiais;
+- autoria/localização de novas fotos da comunidade que não tenham metadados confirmados.
+
+### Matriz: pedido × situação atual
+
+| área | situação atual | decisão |
+|---|---|---|
+| Home · hero “Chegou a Bee” | já existe no `index.html`, com vídeo/poster, título e fileira fotográfica | preservar; apenas confrontar visualmente com a referência local antes de refinamentos |
+| Home · grid Bee/Polen em fundo amarelo e CTAs | existem apresentações de Bee e Polen, mas a composição final precisa ser auditada contra o pedido | ajustar como etapa própria, sem duplicar cards ou CTAs |
+| Home · “Memórias da Colmeia” | a comunidade já possui galeria real | renomear/reorganizar somente se a nova hierarquia melhorar a narrativa; preservar fotos válidas |
+| Home · clipes | os placeholders foram trocados por três fotos editoriais por falta de vídeo | o PDF pede ocultação temporária; ocultar a seção inteira, sem apagar fonte/assets, até existirem vídeos reais |
+| Home · banner rotativo | precisa de auditoria funcional/visual específica | implementar ou consolidar como carrossel acessível, com setas, dots, teclado, swipe e pausa; sem autoplay agressivo |
+| Home · “Por onde a Melcam passou” | já há seção comunitária e imagens, mas autoria/localização não pode ser presumida | usar somente créditos e lugares confirmados; manter pendente o que não tiver metadado |
+| Polen · entrada “Memória cheia” / 5.151 | a versão antiga foi deliberadamente removida ao reconstruir o hero | reintroduzir como prólogo curto do hero, não como um segundo hero; precisa encaixar no fluxo atual sem flash ou repetição |
+| Polen · 3D | hoje há scrollytelling com imagens/crossfade e fundo animado, não um modelo 3D real | preservar o scrollytelling; só migrar para 3D se houver asset adequado e ganho comprovado de desempenho/UX |
+| Polen · comprar, repetir e cores/preço | seleção de cores, preço e CTA já existem; replay deve ser auditado no novo prólogo | manter fonte única dos dados e adicionar “repetir” apenas à animação de entrada |
+| Polen · filtros/efeitos vintage | o scrollytelling já possui tópicos e descrições; bloco repetitivo “Uma foto. 8 filtros.” foi removido | integrar a mensagem nos capítulos existentes, sem recriar seção duplicada |
+| Bee · rotação 3D chaveiro | asset específico ainda não existe no projeto | bloqueado por asset do cliente; manter animações 2D atuais como fallback honesto |
+| Bee · somente amarela e branca | já implementado nas duas seções de produto | preservar e remover qualquer cor ilustrativa que ainda apareça como escolha comercial |
+| Bee · ergonomia | as seções atuais têm copy e destaques, mas os três conceitos do PDF não estão estruturados como conjunto | incorporar “Sempre à mão”, “Cabe na palma da mão” e “Feita para o cotidiano” sem duplicar benefícios |
+| Header | já há navegação sticky e QA dedicado; inversão por contexto precisa ser testada em todas as rotas | criar etapa global baseada em contraste real da seção, sem seletor genérico por posição |
+| Footer | suporte parcial existe; WhatsApp e CNPJ continuam “a decidir” | reestruturar links e hierarquia agora, mas só publicar dados cadastrais confirmados |
+| Acessórios / Sobre | são rotas próprias e possuem conteúdo atual | alinhar ao pedido com “Em breve”/contato somente após decisão editorial; não apagar a faixa “Sobre nós” da Home |
+| Responsividade | existem QAs de Home, Polen, Bee, navbar e rede | cada etapa terá validação desktop/mobile, reduced motion, teclado e primeiro paint |
+
+### Ordem de execução escolhida
+
+#### Parte 1 — Base global e inventário de conteúdo
+
+1. Fechar quais dados oficiais de footer estão disponíveis.
+2. Auditar header sticky/inversão em todas as rotas e fundos.
+3. Definir comportamento temporário de `/acessorios` e `/sobre` sem destruir conteúdo reutilizável.
+4. Criar baseline visual e funcional antes das mudanças seguintes.
+
+Motivo: header, footer e regras das internas afetam todas as páginas e precisam estar
+estáveis antes de qualquer novo bloco.
+
+#### Parte 2 — Home
+
+1. Preservar o hero “Chegou a Bee” e ajustar apenas divergências comprovadas.
+2. Consolidar o grid Bee/Polen com fundo amarelo e CTAs claros.
+3. Organizar “Memórias da Colmeia” e “Por onde a Melcam passou”, evitando duas galerias que contem a mesma história.
+4. Ocultar temporariamente “A Melcam por aí” enquanto não houver vídeos.
+5. Construir/validar o banner rotativo com controles acessíveis.
+
+Motivo: é a maior parte do pedido e não depende de asset 3D.
+
+#### Parte 3 — Polen
+
+1. Prototipar o prólogo “Memória cheia · 5.151 fotos” antes do hero atual.
+2. Integrar a transição ao scrollytelling existente, sem recriar a antiga tela estática.
+3. Adicionar replay escopado ao prólogo.
+4. Confirmar seletor de cor, preço e compra como uma única fonte de verdade.
+5. Revalidar fundo, etiquetas, textos e filtros já implementados.
+
+Motivo: o sistema atual é sólido; a mudança correta é uma extensão pequena e testável,
+não a substituição por um “3D” falso.
+
+#### Parte 4 — Bee
+
+1. Consolidar os três conceitos ergonômicos na narrativa das duas Bee Cam.
+2. Preservar apenas as escolhas Amarela e Branca.
+3. Preparar uma interface/fallback que possa receber o asset 3D chaveiro depois.
+4. Implementar rotação 3D somente quando o arquivo oficial for entregue e avaliado.
+
+Motivo: copy e estrutura podem avançar agora; a animação principal permanece dependente.
+
+#### Parte 5 — Integração e aceite
+
+1. QA cruzado de rotas, rede, console, navegação, primeiro paint e layout shift.
+2. Testes em desktop, tablet e mobile, com rolagem rápida/reversa e `prefers-reduced-motion`.
+3. Auditoria de acessibilidade dos carrosséis, seletores e controles de replay.
+4. Comparação final com o PDF e registro das pendências externas.
+
+### Critérios para todas as partes
+
+- editar fonte e build correspondente, nunca `_ORIGINAL`;
+- não executar `tools/aplicar.js`;
+- preservar o worktree e não fazer commit sem pedido;
+- não inventar especificações, créditos, locais, contatos ou dados legais;
+- nenhuma nova animação pode causar flash de versão antiga, reativação em limiares de scroll ou conteúdo invisível sem JavaScript;
+- registrar cada parte concluída neste arquivo, com causa, arquivos, testes e pendências.
+
+### Estado ao final desta análise
+
+`node tools/preflight.js`: limpo. Nenhum arquivo visual ou funcional foi alterado.
+Única mudança desta passagem: este plano em `progresso.md`.
+
+## 🍯 A CENA ÚNICA DA /BEE: FRASE FORA, GRADIENTE, PLACAS E REVELAÇÃO — 14/08/2026
+
+Quatro pedidos numa passada só, na /bee e em nenhuma outra rota. Nenhum deles
+mexe na identidade visual existente: as cores todas saem da paleta, o hero
+continua o mesmo e a /polen não foi tocada.
+
+### 1. A frase saiu — e qual frase, exatamente
+
+O pedido diz "remova do hero o texto: *Escolha sua Bee. Duas cores. Uma
+companheira.*". Havia duas leituras possíveis, e a página resolve a dúvida:
+
+- **o que saiu** foi o `div.mel-sec-topo` que abria o `#modelos`, com o eyebrow
+  "escolha sua Bee" e o `h2` "Duas cores. Uma companheira.". Lidas em sequência,
+  essas duas linhas são exatamente a frase do pedido, e na tela elas liam como um
+  bloco de abertura colado embaixo do hero, ocupando a largura inteira. Medido
+  antes: y782..865, na primeira dobra;
+- **o que ficou** foi o CTA do hero, que também diz "Escolha sua Bee". Ele é
+  botão, não a frase — e o pedido manda preservar o restante do conteúdo, da
+  estrutura, da imagem e das animações do hero. Ele continua apontando para
+  `#modelos`, e o QA confere a âncora.
+
+Três coisas quebrariam em silêncio com a remoção, e as três foram corrigidas
+junto:
+
+- o `aria-labelledby` do `#modelos` apontava para o `h2` removido. Agora aponta
+  para `mel-bee-amarela-tit`, o nome da própria Bee;
+- **o nome de cada Bee subiu de `h3` para `h2`.** Sem o `h2` do topo, um `h3`
+  debaixo do `h1` do hero pularia um nível do sumário. Medido depois:
+  `h1 h2 h2 h2 h3 h3 h3`, sem salto;
+- o vão. O `padding-top` curto do `#modelos` existia para o eyebrow espiar acima
+  da dobra; o motivo morreu com o bloco, mas o valor continua certo por outro:
+  agora quem espia é a Bee Cam. Medido em 1440x900: hero fecha em 720, a costura
+  come 10, o palco abre em 782. **62px de respiro, nenhuma tira vazia.**
+
+### 2. O gradiente, e por que ele não tem wrapper
+
+O pedido autoriza wrapper **ou** pseudo-elementos isolados. Não é nenhum dos
+dois: é `background-image` em cada bloco, que é mais barato que os dois e não
+cria camada nenhuma — logo, nada pode cobrir texto nem a navbar, e não há
+z-index novo na página.
+
+Wrapper foi descartado com motivo: o hero mede a própria posição para sangrar até
+a borda da janela (`sangrar()`), e as três seções são filhas diretas do stack do
+template. Envelopá-las troca o pai de todas e mexe na geometria que o QA já mediu.
+
+**A continuidade não depende de saber a altura de ninguém: as pontas se
+encontram.** O degrau em que um bloco termina é o mesmo em que o próximo começa,
+declarado em variável:
+
+```
+hero        --mel-cena-0 (nada) até 58%  ->  --mel-cena-1
+1a Bee Cam  --mel-cena-1  ->  --mel-cena-2 (52%)  ->  --mel-cena-3
+2a Bee Cam  --mel-cena-3  ->  quase parado até 22%  ->  volta a --mel-cena-0
+```
+
+O pico cai exatamente na costura entre as duas Bee Cam, e dos dois lados dela a
+curva está quase plana — é por isso que a fronteira mais arriscada da página não
+vira faixa. Os primeiros 58% do hero ficam sem tinta de propósito: ali estão a
+manchete, o plano de mel e as duas câmeras.
+
+A cor é o **mel da marca com alfa**, derivado de `P.mel`, não um segundo amarelo:
+`.135` sobre papel dá `rgb(250,238,212)`, um creme. Nada de neon.
+
+**Duas armadilhas que o gradiente criou e que estão fechadas:**
+
+- **a costura de 10px.** O vão do stack era pintado de papel liso. Entre dois
+  blocos tingidos, papel liso vira um risco claro atravessando a página — a
+  "divisão visível" que o pedido proíbe. Cada costura passou a receber o degrau
+  exato da fronteira que ela cobre;
+- **o palco opaco.** `#F3EDE0` chapado ficava de fora da cena: o gradiente
+  passava em volta e a câmera continuava sobre um plano frio. Virou
+  `rgba(235,227,210,.5)`, que **sobre papel compõe rgb(243,237,224) — o mesmo
+  #F3EDE0, pixel a pixel.** Onde há tinta, ele esquenta junto. Nenhuma cor mudou;
+  o que mudou é que ele deixa a cena atravessá-lo.
+
+No retrato os sete degraus caem para ~62% do alfa. Em 390 a tinta cobre a linha
+inteira, e o mesmo alfa que é atmosfera no desktop viraria mancha.
+
+### 3. As placas de título
+
+Amarelo tem que ser o **título**, então a letra é que precisa ser mel — e mel
+sobre papel dá 1,88:1, ou seja, título ilegível. Sobre carvão o mesmo mel dá
+**8,25:1**, medido. Daí a placa: carvão com letra mel, que é o inverso exato do
+CTA de compra logo abaixo e a mesma gramática do CTA do hero.
+
+**Como ela deixa claro que não é botão.** Nesta página botão é sempre pílula
+(`border-radius:999px`), texto curto em Area, 0,85rem, quase caixa alta. A placa
+é o oposto em cada eixo: raio de cartão — o mesmo do palco ao lado —, serifada,
+2,15rem, caixa mista. E não tem `href`, `tabindex`, `role`, cursor de mão, hover
+nem foco: continua sendo o `h2` da seção, com o id que o `aria-labelledby` aponta.
+
+`width:fit-content` e não `inline-block`: o segundo cria caixa de linha e sobra
+um vão de descendente que empurraria o parágrafo. Com `max-width:100%` a placa
+quebra o texto **dentro** dela quando a coluna aperta, em vez de vazar.
+
+### 4. A revelação, e o portão do fallback
+
+Um `IntersectionObserver` só para a página inteira, nenhum listener de scroll,
+`rootMargin` e `threshold` fixos. **Revelado é definitivo:** o `unobserve` vem na
+mesma linha do atributo, que é o que impede o liga-desliga de um elemento parado
+em cima do limite da viewport.
+
+A direção acompanha o layout nas duas seções de produto — a primeira imagem entra
+pela esquerda, a segunda pela direita —, e quem decide é um atributo no HTML, não
+a ordem nem um seletor de tag. Textos entram escalonados, 70/150/230/310 ms.
+
+**🔴 `html.mel-bee-rev` não é decoração — é o portão.** O estado inicial escondido
+só existe se essa classe existir, e quem a escreve é um `<script>` **síncrono** no
+topo do conteúdo da /bee. Sem JavaScript ela não aparece, nenhuma regra de
+escondido casa e a página fica visível como está hoje. É a lição do "hero em
+branco" aplicada de novo.
+
+E ele é síncrono e não vai no bundle `defer` por um motivo medido: `defer` roda
+depois do parse, deixando a janela em que o navegador já pode ter pintado a
+versão revelada. Como o script vem **antes** de qualquer `data-mel-rev` no
+documento, nenhum desses elementos chega a ser pintado no estado final.
+
+Duas armadilhas fechadas:
+
+- **transbordo horizontal.** O palco da segunda seção entra de `+30px` e a direita
+  dele já encosta na margem: sem recorte isso vira barra de rolagem que aparece e
+  some. `overflow-x:clip` (não `hidden`, que criaria container de rolagem e
+  recortaria o `::before` da costura) e só no eixo x;
+- **o hover do CTA.** O botão entra só em opacidade, com a lista de transições
+  explícita e o atraso aplicado item a item. Se a revelação mandasse no
+  `transform` dele, o `transform:none` do estado revelado mataria o hover depois.
+
+### Validação
+
+`node tools/preflight.js` — limpo, CSS balanceado 763/763, 102 assets.
+
+**`node tools/qa-bee-cena.js` (novo, só lê) em 1440, 768 e 390 — os três [OK].**
+Ele decodifica o PNG da captura na mão (zlib do Node, sem dependência) e desce
+uma coluna de amostras de 6 em 6px pela margem esquerda, onde só existe fundo.
+Continuidade não se confere no olho: uma emenda de 2 ou 3 unidades por canal é
+invisível numa captura reduzida e salta numa tela boa.
+
+| medida | 1440 | 768 | 390 |
+|---|---|---|---|
+| pico do gradiente | 32 em y1472 · `rgb(249,236,206)` | 24 em y1358 | 22 em y1028 |
+| maior degrau entre amostras vizinhas | **1** | 2 | 2 |
+| emenda hero / 1a Bee Cam | Δ1 | Δ1 | Δ1 |
+| emenda 1a / 2a Bee Cam | **Δ1** | **Δ0** | **Δ0** |
+| topo do hero · fim antes de #destaques | 0 · 0 | 0 · 0 | 0 · 0 |
+| descrição sobre o pico | 6,57:1 | 6,50:1 | 6,55:1 |
+| placas | 8,25:1, `<h2>`, cursor auto, não focável | idem | idem |
+| revelação após rolagem lenta, rápida e reversa | 11/11, 0 perdidos | 11/11, 0 | 11/11, 0 |
+| sem JavaScript | 29/29 visíveis | 29/29 | 29/29 |
+| `prefers-reduced-motion` | 29/29 no lugar final, 11/11 marcados sem rolar | idem | idem |
+| piscadas no carregamento | 0 (113 quadros) | — | 0 (136 quadros) |
+
+O teste de piscada é por amostragem quadro a quadro, injetada **antes** de
+qualquer script da página. Em 390 o primeiro alvo está acima da dobra: o primeiro
+quadro amostrado, em 140ms, já lê opacidade 0, e a revelação acontece em 160ms.
+Ou seja, a versão final nunca foi pintada antes do estado inicial.
+
+Duas correções no próprio QA, e as duas eram do teste, não do código: a coluna de
+amostras parava dentro do vão de 10px de carvão antes de `#destaques` e lia a
+mudança declarada como degrau; e sob `prefers-reduced-motion` o **próprio Chrome**
+reescreve `transition-duration` para `1e-05s` em tudo, então medir contra zero
+reprovava por causa do navegador. O que prova que a regra pegou é
+`transition-property: none`.
+
+`qa-bee-modelos` [OK] em 1440, 768 e 390 — atualizado para a placa (mel sobre
+carvão) e passando a medir também o fundo do nome. `qa-bee`, `qa-navegacao-bee`
+(h1=1, contraste 15,51, abridor do menu alcançável), `qa-rede` (7 rotas, 0
+imagens quebradas) e `qa-paleta` sem cor nova fora da paleta.
+
+`qa-hero-primeiro-paint` na /bee em 1440 e 768: `0,0 1440x720 @106ms` e
+`0,0 768x721 @237ms`, **sem salto depois do primeiro quadro** e com a largura
+certa já nele. O `<script>` inline não custou paint.
+
+`polen.html`, `index.html`, `sobre.html`, `acessorios.html`, `sacola.html` e
+`404.html` continuam byte a byte iguais ao commit.
+
+### Arquivos
+
+| arquivo | o quê |
+|---|---|
+| `tools/bee.js` | **fonte** — topo removido, `h3`→`h2`, `aria-labelledby`, atributos de revelação e o `<script>` sinalizador |
+| `tools/bee-interacoes.js` | **fonte** — os degraus do cenário, as costuras, o palco translúcido, a placa, o bloco de revelação e o `iniciarRevelarBee()` |
+| `tools/hero-carrossel.js` | **fonte** — uma linha: `iniciarRevelarBee()` ao lado de `iniciarHeroBee()` |
+| `bee.html` · `melcam/identidade.css` · `melcam/interacoes.js` | builds, por `tools/build-produtos.js` + `tools/sincronizar-bee-css.js` |
+| `tools/qa-bee-cena.js` | **novo** — o QA acima, com decodificador de PNG; só lê |
+| `tools/qa-bee-modelos.js` | atualizado para a placa |
+
+As regras `body.mel-pagina-bee .mel-bee-mod .mel-eyebrow` e `.mel-tit` foram
+removidas: os únicos elementos que casavam eram os do bloco de topo. `.mel-nota`
+ficou, que é a nota de envio e continua de pé.
+
+`tools/aplicar.js` **não** foi executado. Nenhum commit. Worktree preservado.
+
+### Pendências
+
+- A leitura da frase está registrada acima. Se o cliente quiser dizer que era o
+  **CTA do hero** que deveria sair, é uma linha em `hero()` — mas aí o hero perde
+  o passo seguinte e a âncora `#modelos` fica sem origem, o que precisa de outra
+  decisão de produto antes.
+- Os três conceitos de ergonomia do `topicos_alteracoes.pdf` ("Sempre à mão",
+  "Cabe na palma da mão", "Feita para o cotidiano") continuam fora: não faziam
+  parte deste pedido.
+
+## 🧭 PDF DO CLIENTE — PARTE 1: BASE GLOBAL (header, rodapé, secundárias) — 14/08/2026
+
+Primeira parte executável do plano registrado na seção anterior. Fonte:
+`C:\Users\israe\Downloads\topicos_alteracoes.pdf`, lido inteiro antes de mexer.
+Escopo desta passagem: **só** header, rodapé e páginas secundárias. Home, Polen
+e Bee ficaram para as partes seguintes.
+
+### Objetivo
+
+Do PDF, item 4 (Ajustes Gerais de UI/UX):
+
+- **Cabeçalho**: menu fixo com inversão dinâmica de cores conforme a rolagem —
+  logotipo e tipografia claros sobre fundo escuro e vice-versa.
+- **Rodapé**: reestruturação completa dos links de suporte (rastreamento,
+  trocas e devoluções, atendimento), mais institucional e dados cadastrais.
+- **Páginas secundárias**: "Acessórios" e "Sobre Nós" com "Em breve" ou
+  informações básicas de contato.
+
+---
+
+### 1.1 Header: inversão de tema por região
+
+#### Situação encontrada, medida antes de escrever uma linha
+
+A barra era carvão com tinta de papel no site todo, e a /bee tinha um bloco
+próprio que a virava do avesso — papel com tinta de carvão — **na página
+inteira**. Isso resolvia a primeira dobra da /bee, que é clara, e criava outro
+defeito adiante: de "Destaques" para baixo a /bee volta ao editorial escuro.
+
+**Medido na /bee em scrollY 2500**: fundo da nav `rgb(251,247,238)` sobre uma
+seção `rgb(34,30,23)` — uma lasca acesa atravessando uma página escura. Captura
+guardada como prova do antes.
+
+Nas outras seis rotas não havia defeito: elas são escuras de ponta a ponta e a
+barra escura é o desenho aprovado.
+
+#### Decisão: região marcada, não página, não índice, não cor lida do pixel
+
+O pedido proíbe explicitamente decidir o tema por "primeira seção", por índice
+de elemento ou por cor textual. Todas essas quebram quando uma página mistura
+claro e escuro — que é exatamente o caso da /bee hoje e o da grade de produtos
+amarela que entra na Parte 2.
+
+Quem decide é **`data-mel-tema="claro"` no HTML**. Só região clara leva marca; o
+resto do site é escuro e continua sendo o padrão, sem marcação nenhuma. Hoje
+são três regiões, todas na /bee: o hero e as duas Bee Cam.
+
+**Três camadas, nesta ordem de precedência:**
+
+1. tokens em `body` — o escuro, que vale para tudo;
+2. o padrão da página, por classe (`body.mel-pagina-bee` abre em claro). **É ele
+   que garante contraste certo no primeiro paint, sem JavaScript**: a barra
+   nasce com o tema da região que estará debaixo dela em scrollY 0;
+3. `html[data-mel-nav]`, escrito pelo controlador. Vence a camada 2 por
+   construção — `html[...] body` tem uma especificidade a mais que
+   `body.classe` —, então nunca precisou de `!important` para se impor.
+
+Nenhuma cor nova entrou: os valores claros são os que a /bee já usava, verbatim,
+e os escuros são os que a barra já tinha, medidos antes.
+
+#### Por que geometria e não IntersectionObserver
+
+O IO responde "entrou/saiu de uma faixa" e só dispara nas bordas dela. O que a
+barra precisa saber é outra coisa: "qual região está debaixo da minha
+meia-altura AGORA", com zona morta em volta do limite. Esses dois limiares — o
+de virar claro e o de virar escuro — são pontos **diferentes**, e faixa de IO só
+tem duas bordas: para expressar histerese com IO seriam necessários sentinelas
+ou dois observadores, mais peça para manter e mais jeito de dessincronizar.
+
+A conta geométrica dá a resposta exata com três `getBoundingClientRect`, e a
+decisão é função pura da posição — o mesmo scroll sempre dá o mesmo tema,
+rolando devagar, rápido ou para trás.
+
+**Um** listener de rolagem, passivo, coalescido em `requestAnimationFrame`, e
+ele só é instalado em página que TEM região clara. Nas seis rotas escuras a
+função sai na segunda linha sem instalar nada.
+
+Duas constantes, as duas com causa:
+
+- `FOLGA = 14px` cobre o vão de 10px que o stack do template deixa **entre**
+  seções (flex column com `gap:10px`). Sem ela, ao passar de uma região clara
+  para a região clara seguinte a barra piscaria de escuro por 10px de rolagem —
+  defeito que só a /bee produz, por ter três regiões claras seguidas.
+- `HISTERESE = 18px` é a zona morta. Uma vez claro, o limite para voltar a
+  escuro desce 18px; uma vez escuro, o limite para virar claro sobe 18px. São
+  36px de folga total, e é isso que impede a barra de alternar quando o usuário
+  para exatamente em cima de uma fronteira.
+
+Com o menu aberto o tema **congela**: o painel é ancorado na barra e a rolagem
+fica travada, mas se algo mudar (resize, teclado virtual) trocar a cor da barra
+com o menu por cima dela seria mudança de contraste sem causa visível.
+
+---
+
+### 1.2 Rodapé
+
+#### Situação encontrada, medida no navegador
+
+| coluna | o que estava lá | defeito |
+|---|---|---|
+| Produtos | Home · Sobre Nós · **Sobre Nós** | nenhum produto, e "Sobre Nós" duas vezes apontando para o mesmo lugar |
+| Ajuda | Fale conosco · Rastrear pedido · FAQ | faltava "Trocas e devoluções", que o cliente nomeia |
+| Institucional | Privacidade · Termos · **404** | a página de erro não é destino de ninguém |
+| 6 ícones de rede | `href="#" target="_blank"` | link que não leva a lugar nenhum e ainda abre aba |
+| "Melcam LTDA" | `href="#" target="_blank"` | idem, na linha de copyright |
+
+A coluna que deveria levar à Bee, à Polen e aos Acessórios não levava a nenhum
+deles — e são as três páginas que o site existe para vender.
+
+#### E um defeito maior, encontrado ao conferir os destinos
+
+**`/privacidade` e `/termos` serviam uma casca vazia do Framer.** Medido: `body`
+com 3.475 bytes e **zero** caracteres de texto útil, sem navbar e sem rodapé,
+porque são páginas que dependiam da hidratação React — que está desligada por
+decisão de arquitetura. Ou seja: dois links de suporte, presentes em todas as
+nove páginas, levavam a uma tela branca. As mesmas cascas existem em
+`contact.html` e `faq.html`; essas duas **não** estão linkadas de lugar nenhum
+(a ajuda aponta para `/sobre#contato` e `/polen#faq`), então ficaram como
+estavam e viraram pendência.
+
+#### O que foi feito
+
+**`tools/rodape.js`** (novo) — pós-processo sobre os HTML construídos, na mesma
+disciplina do `tools/rotas.js`: abre cada arquivo, mexe só no que precisa mudar,
+com fronteira verificada, e é **idempotente**.
+
+| coluna | como ficou |
+|---|---|
+| Produtos | Bee · Polen · Acessórios |
+| Ajuda | Rastrear pedido · Trocas e devoluções · Fale conosco · FAQ |
+| Institucional | Sobre Nós · Privacidade · Termos |
+
+Os ícones de rede **param de prometer**: continuam desenhados, mas sem `href`,
+sem `target` e com `aria-hidden`. Sem href não há link, o elemento sai da ordem
+de tabulação e o leitor de tela deixa de anunciá-lo como destino. A razão social
+virou texto puro.
+
+**`tools/demais.js`** ganhou `privacidade()` e `termos()`, e **`tools/build-legais.js`**
+(novo) gera as duas páginas por `paginas.gerar()`, o mesmo caminho determinístico
+do `build-produtos.js`. Elas **não escrevem texto jurídico**: dizem com todas as
+letras que o documento está sendo preparado, dizem o que ele vai cobrir e
+oferecem o caminho humano enquanto isso — o mesmo tratamento que a /acessorios
+já tinha e que o cliente aprovou. A `/termos` carrega a âncora `#trocas`, que é
+o destino de "Trocas e devoluções" no rodapé; o build reprova se ela sumir.
+
+Os apelidos em inglês entram junto: com `cleanUrls` ligado, `/privacy-policy` e
+`/terms-and-conditions` continuam sendo endereços válidos e serviriam a casca
+vazia. A página boa é copiada por cima.
+
+#### Duas armadilhas que morderam, e ficam registradas
+
+**🔴 SÃO TRÊS RODAPÉS, um por variante de breakpoint** (`div.ssr-variant`), e só
+o do breakpoint ativo renderiza. A primeira versão da ferramenta reprovou com
+"coluna aparece mais de uma vez" — a guarda pegou antes de gravar. Tratar apenas
+o primeiro corrigiria o desktop e deixaria tablet e celular com a coluna velha.
+É a mesma armadilha das duas `<nav>` e dos três `<footer>` já registrada em
+`tools/paginas.js`. Tudo agora é feito em todas as ocorrências, e de trás para
+frente, para os índices das anteriores não se deslocarem.
+
+**A linha acrescentada saiu `position:absolute`.** Medido: `top:51px`, por cima
+das vizinhas. A causa é uma regra genérica do template para
+`[data-framer-component-type="RichTextContainer"]` — no Framer todo
+RichTextContainer nasce posicionado, e quem o devolve ao fluxo é a classe
+hasheada, que só existe para as linhas do export. A linha nova declara o próprio
+layout, e há guarda que reprova se ela sair sem `position:relative`.
+
+E uma terceira, do próprio conserto: **corrigir o estilo não corrigia nada**. O
+laço reescreve texto e href das linhas existentes, mas não encostava no `style`
+delas — então na segunda passada a linha própria já era "linha existente" e
+mantinha o estilo velho. Hoje o estilo das linhas próprias é normalizado antes
+de tudo, toda vez.
+
+O rótulo é **"FAQ"**, que é o que estava lá. "Perguntas frequentes" foi tentado e
+medido: 158px de texto numa coluna cuja largura é `min-content` de 146px, ou
+seja, a linha nova passava a mandar na largura da coluna e invadia a calha da
+vizinha.
+
+---
+
+### 1.3 Páginas secundárias
+
+**Investigadas antes de decidir, e a conclusão foi preservar as duas.**
+
+- **`/acessorios`** já é exatamente o que o PDF pede: `h1` "Acessórios, em
+  breve", texto explicando que não há catálogo, formulário de aviso que **não
+  afirma** que o e-mail foi enviado (não há backend) e nota dizendo que os
+  produtos são "a decidir". Nada a fazer.
+- **`/sobre`** tem conteúdo institucional consistente — `h1` "Câmeras para quem
+  quer lembrar", três blocos (Fotografia intencional, Estética vintage,
+  Comunidade), a seção `#contato` com os dados que existem e os que são "a
+  decidir" declarados como tal, e a seção `#rastreio`. O pedido é explícito:
+  não reduzir a "Em breve" uma página que já tem material consistente. **Não foi
+  reduzida.**
+- A faixa "Sobre nós" **continua na Home** e **continua fora** de /polen e /bee
+  (a regressão de 14/08 segue corrigida — `qa-bee-modelos` confere isso).
+
+---
+
+### Arquivos
+
+| arquivo | o quê |
+|---|---|
+| `tools/perfil.js` | **fonte** — tokens do tema da navbar, as regras que os consomem e o controlador `iniciarTemaNavbar()` |
+| `tools/hero-carrossel.js` | **fonte** — uma linha: `iniciarTemaNavbar()` depois de `iniciarPerfil()` |
+| `tools/bee-interacoes.js` | **fonte** — o bloco estático da navbar da /bee saiu; o comentário explica para onde foi e por quê |
+| `tools/bee.js` | **fonte** — `data-mel-tema="claro"` nas três regiões claras |
+| `tools/demais.js` | **fonte** — `privacidade()` e `termos()` |
+| `tools/rodape.js` | **novo** — reestrutura o rodapé nos HTML construídos, idempotente |
+| `tools/build-legais.js` | **novo** — gera /privacidade e /termos e os apelidos em inglês |
+| `tools/png.js` | **novo** — leitor de PNG extraído do `qa-bee-cena.js`, agora compartilhado |
+| `tools/qa-navbar-tema.js` | **novo** — o QA do tema, descrito abaixo |
+| `tools/qa-rede.js` | as duas rotas novas entraram na lista padrão |
+| `tools/qa-bee-cena.js` | passou a usar `tools/png.js` em vez da cópia local |
+| builds | `melcam/identidade.css`, `melcam/interacoes.js`, os 11 HTML com rodapé, `privacidade.html`, `termos.html` e os dois apelidos |
+
+**Ordem de sincronia** (importa, e está provada): `sincronizar-perfil.js` →
+`build-produtos.js` → `sincronizar-bee-css.js` → `build-legais.js` →
+`rodape.js`. O `rodape.js` vem por último porque `gerar()` copia o `index.html`,
+e é ele quem acerta o `aria-current` de cada rota.
+
+⚠️ A primeira linha de `perfil.css()` — `/* ===== conta, sessão e sacola na
+navbar =====` — é **fronteira de build**, não título: `sincronizar-perfil.js`
+acha o bloco procurando por ela. Se ela deixar de ser a primeira coisa que
+`css()` emite, a segunda sincronia insere um bloco novo sem apagar o velho e a
+folha duplica em silêncio. Conteúdo novo entra depois dela.
+
+---
+
+### Testes e resultados medidos
+
+**`node tools/qa-navbar-tema.js` (novo, só lê) em 1440, 768 e 390 — os três
+[OK].** Ele esconde a navbar fixa, captura a página e lê do PNG o pixel que
+estava **embaixo** dela, em três colunas, com a mediana descrevendo a faixa.
+
+O que ele prova, nas sete rotas:
+
+1. **o mecanismo**: região marcada como clara sob a meia-altura da barra ⟺ barra
+   clara. Determinístico, lido do DOM;
+2. **o pixel**, numa direção só: região marcada como clara tem que ser mesmo
+   clara na tela;
+3. **contraste** de marca, links, botão de conta e hambúrguer contra o fundo da
+   própria barra, em todas as paradas — 15,51:1 em todas elas, e nenhuma tinta
+   abaixo de 3:1 (é a checagem que pegaria o defeito de 13/08, hambúrguer carvão
+   sobre faixa carvão, invisível e ainda clicável);
+4. **não pisca**: rolagem lenta de 40 em 40px contando trocas de tema contra
+   trocas de região. Na /bee: **2 trocas de tema para 4 de região**;
+5. **histerese**: parado na fronteira (y2080) tremendo ±6px, 24 vezes —
+   **0 trocas**;
+6. **rápido e reverso**: descer de 900 em 900 e voltar — fim `escuro`, topo
+   `claro`, ou seja, a decisão não depende do caminho;
+7. **primeiro paint sem JavaScript**: com execução de script desligada, a barra
+   nasce com o tema da região que está em scrollY 0. Combina nas sete rotas.
+
+Uma correção de método, e ela era do teste: a primeira versão classificava fundo
+por luminância (`L > 0,5`) e reprovava o hero da /bee. **O plano de mel
+(`#F2A900`) mede L=0,473**, meio ponto abaixo do corte, e seria chamado de fundo
+escuro. Ele não é: carvão sobre mel dá 8,25:1 e papel sobre mel dá 1,88:1. A
+régua certa é a mesma da direção de arte — o fundo é claro quando tinta de
+carvão contrasta melhor que tinta de papel.
+
+E uma decisão de escopo do QA, registrada para não parecer descuido: fora das
+regiões marcadas **não se cobra** que a barra combine com o pixel. Ali ela é uma
+faixa opaca por cima do que houver, e o que há na home é fotografia e vídeo —
+medido, `rgb(93,161,138)` em y0 e `rgb(232,103,56)` em y3600. Cobrar "combine
+com o pixel" seria pedir que a barra piscasse acompanhando foto, o oposto de
+estabilidade. Quem garante que barra clara nunca sobra em seção escura é a
+checagem 1, que é determinística.
+
+**Regressão, tudo [OK]:**
+
+- `qa-navbar-links`: **285 verificações, 0 falhas**;
+- `qa-navbar-mobile`: 5 larguras × 3 rotas, nenhuma falha, alvo de toque 44px
+  preservado;
+- `qa-sobre-navbar`: nenhuma parada com a faixa por cima da barra;
+- `qa-rede`: **9 rotas** (as duas novas incluídas), 0 imagens quebradas, 0
+  falhas de requisição, console limpo — o único registro é o 404 da própria
+  `/404`, que responde 404 de propósito;
+- `qa-bee-cena` 1440: [OK], gradiente e revelação intactos;
+- `qa-navegacao-bee`: h1=1, contraste 15,51, abridor do menu alcançável;
+- `node tools/preflight.js`: **limpo**.
+
+O rodapé foi conferido na tela em 1440 e 390: quatro colunas alinhadas no
+desktop, empilhadas no retrato, os quatro itens de Ajuda em linhas próprias e
+sem sobreposição.
+
+---
+
+### Pendências externas (nada disto foi inventado)
+
+Do rodapé, e continuam em `PENDENTES` do `melcam.config.json`:
+
+- **CNPJ** e **endereço físico** — o PDF pede os dois como dados cadastrais
+  obrigatórios. Não publicados: dado cadastral falso num rodapé é o lugar do
+  site onde mentir custa mais caro.
+- **WhatsApp de suporte** — o PDF pede o canal. "Fale conosco" aponta para
+  `/sobre#contato`, que é o canal real que existe hoje e diz na cara que o
+  WhatsApp é "a decidir".
+- **Perfis de rede social** — os seis ícones estão desenhados e mudos até
+  chegarem os endereços.
+- **Textos jurídicos de Privacidade, Termos e Trocas e devoluções** — as páginas
+  existem, dizem o que vão cobrir e não fingem cláusula.
+
+Achado novo, para decisão à parte: **`contact.html` e `faq.html` continuam sendo
+cascas vazias** e são alcançáveis por `/contact` e `/faq` com `cleanUrls`. Não
+estão linkadas de lugar nenhum. Apagar arquivo é decisão separada e não foi
+tomada aqui.
+
+`/privacidade` e `/termos` **não** entraram no `sitemap.xml` de propósito:
+enquanto forem página de "documento em preparação", indexá-las não ajuda
+ninguém.
+
+### Próximos passos
+
+Parte 2 (Home): grade de produtos Bee/Polen em fundo mel, consolidação de
+"Memórias da Colmeia" com "Por onde a Melcam passou", ocultação da seção de
+clipes na fonte e banner rotativo acessível. A grade amarela da home será a
+primeira região `data-mel-tema="claro"` fora da /bee — o mecanismo do header já
+está pronto para recebê-la.
+
+`tools/aplicar.js` **não** foi executado. Nenhum commit. Worktree preservado.
+
+---
+
+## 🟡 PDF DO CLIENTE — PARTE 2.1: A GRADE MEL DA HOME, CONFERIDA E REGISTRADA — 14/08/2026
+
+Primeira etapa da Parte 2. Esta passagem **não implementou** a grade: ela já
+estava aplicada e **faltava registro**. O que foi feito aqui é a conferência que
+o plano exige antes de dar uma etapa por fechada, e este registro.
+
+### Como o buraco apareceu
+
+A entrada da Parte 1 termina dizendo que "a grade amarela da home **será** a
+primeira região `data-mel-tema="claro"` fora da /bee". Só que ela já era: o
+`index.html` já trazia a marca na seção `Header Grid`, e
+`node tools/grade-mel.js --ver` responde **"já em dia"** nos onze arquivos.
+
+Ou seja: a ferramenta rodou, o resultado está no ar e o `progresso.md` ficou
+para trás. Registro atrasado é o mesmo que registro ausente para quem pega o
+handoff — a próxima pessoa reimplementaria.
+
+### O que a grade é hoje, medido
+
+| o que | medida |
+|---|---|
+| fundo da seção | `rgb(242, 169, 0)` — o mel da paleta, exato, sem gradiente |
+| altura | 1094px no desktop · 2245px no mobile |
+| marca de tema | `data-mel-tema="claro"` na `<section data-framer-name="Header Grid">` |
+| CTA da Bee | "Conheça" |
+| CTA da Polen | "Ver modelos" |
+
+Os dois CTAs vêm das constantes de `tools/bloco-bee.js` e `tools/bloco-polen.js`
+— o `grade-mel.js` **sincroniza** o build com elas, nunca digita a palavra. E a
+grafia em caixa mista é decisão registrada na fonte: quem põe a caixa alta na
+tela é o `text-transform` da pílula, então o leitor de tela ouve "Ver modelos" e
+não um grito.
+
+### A navbar por cima dela
+
+`node tools/qa-navbar-tema.js` — **[OK]**. Na home, com a barra por cima da
+grade:
+
+```
+y1600  tema claro  barra rgb(251,247,238)  atrás rgb(242,169,0)  região clara: sim  tinta 15,51:1
+y2000  tema claro  barra rgb(251,247,238)  atrás rgb(242,169,0)  região clara: sim  tinta 15,51:1
+y2400  tema claro  barra rgb(251,247,238)  atrás rgb(242,169,0)  região clara: sim  tinta 15,51:1
+```
+
+Fora dela a barra volta a carvão. Na fronteira de y2612 houve **1 troca durante
+a rolagem e 0 depois de assentar** — ou seja, sem oscilação. E sem JavaScript a
+barra nasce combinando com a região de y0, que é o contrato do controlador.
+
+Vale registrar por que a marca vai em **todas** as páginas e não só na home: as
+internas herdam a seção inteira do `index.html` (o `paginas.gerar()` copia), e
+lá ela é `display:none`. O controlador decide por `getBoundingClientRect`, e uma
+caixa 0x0 nunca cruza a meia-altura da barra — a marca é inerte fora da home.
+Marcar só o `index.html` daria o mesmo resultado na tela e onze arquivos fora de
+sincronia no primeiro `gerar()` que rodasse.
+
+### Estado
+
+`node tools/preflight.js`: limpo. **Nenhum arquivo foi alterado nesta etapa** —
+só este registro. Item 1 da Parte 2 fechado.
+
+Próximo: os clipes — que, conferido logo depois de escrever esta linha, também
+já estavam ocultos. Ver a etapa 2.2, abaixo.
+
+---
+
+## 🎬 PDF DO CLIENTE — PARTE 2.2: "A MELCAM POR AÍ" JÁ ESTAVA OCULTA — 14/08/2026
+
+Segunda etapa da Parte 2, e o segundo registro atrasado seguido. A ocultação
+temporária dos clipes **já estava implementada**, com o porquê inteiro escrito
+em `tools/comunidade.js` — o que faltava era a linha aqui.
+
+### O que está no ar
+
+```
+melcam.config.json → home.clipes.visivel = false
+index.html → <section class="mel-sec mel-clipes" ... hidden data-mel-oculta="sem clipes gravados">
+```
+
+Medido agora, nas duas larguras: a seção renderiza com **altura 0** no desktop e
+no mobile. Não sobra vão.
+
+O `_porque` está gravado no próprio config, junto do que falta para reativar:
+2 a 3 clipes verticais 1080x1920 com poster de cada. Para religar são duas
+ações — `visivel: true` e `node tools/sincronizar-clipes.js`.
+
+### Por que `hidden` e não `display:none` na folha
+
+A decisão está documentada em `tools/comunidade.js` e vale repetir aqui, porque
+é a diferença entre esconder e desligar:
+
+- `hidden` **tira do fluxo**: não sobra vão entre a comunidade e a barra de
+  segurança. Medido quando foi aplicado: a home encolheu de 8.436 para 7.223px
+  e nenhuma seção vizinha mudou de altura;
+- `hidden` esconde para leitor de tela e tira os links da ordem de tabulação —
+  `display:none` faria igual, mas `hidden` é atributo do **documento**: quem
+  abre o HTML vê que a seção está desligada sem precisar ler a folha;
+- e o pedido é explícito em não resolver isso só com CSS no build. Quem decide é
+  o config, a fonte lê o config, o build é sincronizado a partir da fonte.
+
+**Nada foi apagado.** Nem a função `clipes()`, nem a lista `CLIPES` com os três
+enquadramentos medidos, nem as fotos, nem o CSS de `.mel-clipe*`. As imagens
+continuam referenciadas no HTML, então continuam publicadas pelo
+`verificar-assets-deploy.js`, e voltam a aparecer no dia em que o interruptor
+virar.
+
+### Estado
+
+`node tools/preflight.js`: limpo. **Nenhum arquivo alterado nesta etapa** — só
+este registro e a correção de uma linha da etapa 2.1, que dizia que os clipes
+ainda estavam visíveis. Estava errada no minuto em que foi escrita.
+
+Itens 1 e 2 da Parte 2 fechados. Próximo: auditar o banner rotativo da home
+(setas, dots, teclado, swipe, pausa e autoplay) e depois olhar se "Memórias da
+Colmeia" e "Por onde a Melcam passou" contam a mesma história.
+
+---
+
+## 🎠 PDF DO CLIENTE — PARTE 2.3: AUDITORIA DO BANNER ROTATIVO — 14/08/2026
+
+Terceira etapa da Parte 2. Diferente das duas anteriores, esta **encontrou
+defeito** — dois, e nenhum deles aparecia lendo o código.
+
+### O que já existia
+
+O motor do carrossel (`iniciarCarrossel`, em `tools/hero-carrossel.js`) já
+trazia tudo que o PDF pede: setas, dots com `aria-current`, teclado, swipe com
+limiar de 45px e checagem de eixo, botão de pausa com `aria-pressed`, autoplay
+de 6s desligado sob `prefers-reduced-motion`, pausa no hover, no foco e com a
+aba escondida, e região viva anunciando "Banner N de M".
+
+Faltava a única coisa que o plano pedia: **conferir**. Ler o código não é
+auditar — um listener no elemento errado, um seletor que não casa ou um estado
+ARIA que não acompanha passam despercebidos numa leitura.
+
+### `tools/qa-carrossel.js` — novo, e ele OPERA os controles
+
+22 checagens, e cada uma aciona o controle de verdade e mede o efeito no
+`transform` do trilho e nos atributos. Nada é inferido da fonte. Roda em
+`[url] [largura] [altura]` e tem o contrato de `REDUCED=1`.
+
+### Defeito 1, meu, no próprio QA
+
+A primeira execução reprovou três checagens com "de undefined para 1". Não era o
+carrossel: no slide 0 a conta do índice dá **-0**, e o CDP devolve -0 como
+`unserializableValue` — o `result.value` chega `undefined`. Todas as três falhas
+envolviam o slide 0. Um `+ 0` no fim da sonda resolveu, e o comentário na fonte
+explica por quê para ninguém "limpar" aquilo depois.
+
+Vale o registro porque é a armadilha genérica de medir por CDP: valor que o
+JSON não representa some, e some parecendo defeito do produto.
+
+### Defeito 2, real: o foco não segurava a rotação
+
+Com a sonda corrigida sobrou **uma** falha, e ela era de verdade:
+
+```
+X  o foco dentro do carrossel pausa   <<< avançou de 2 para 0 com foco dentro
+```
+
+**Causa.** `focusin` chamava `parar()`, mas toda seta, dot e tecla termina
+chamando `agendar()` — e `agendar()` religava o timer sem olhar se a pessoa
+ainda estava dentro. Ou seja: quem navega por teclado apertava a seta e, seis
+segundos depois, o banner trocava sozinho debaixo da própria mão. Exatamente o
+que pausar no hover e no foco existe para impedir.
+
+Os listeners estavam certos; o que faltava era o guarda no **religamento**:
+
+```js
+if (sobre || raiz.contains(document.activeElement)) return;
+```
+
+Entrou junto um cuidado no `focusout`: se `relatedTarget` ainda está dentro do
+carrossel, o foco só andou de um controle para o outro e não há o que retomar —
+sem isso, tabular entre as setas religaria o timer por um instante a cada salto.
+
+Depois da correção, as 22 checagens passam.
+
+### Defeito 3, achado de graça: uma imagem quebrada em TODAS as rotas
+
+O `qa-rede` passou a acusar `9 problema(s)` — uma imagem quebrada em cada uma
+das nove rotas, com a contagem subindo de 152 para 153 na home. Não estava no
+HTML: nenhum `<img>` sem `src`, nenhum `src` apontando para arquivo ausente.
+
+Era criada em runtime. Medida no navegador:
+
+```
+<img alt="">   em   div.mel-com-lupa > figure.mel-com-fig > img
+```
+
+A lupa da galeria da comunidade é montada por JavaScript em **toda** página, e o
+`<img>` dela nascia sem `src`, esperando a foto que o clique traz. Um `<img>`
+sem `src` é contado como quebrado por qualquer auditoria e desenha o ícone de
+quebrado com o texto do alt por cima — **a mesma armadilha já registrada em
+`tools/polen.js`**, e agora com a mesma solução: o GIF transparente de 1x1
+embutido. Imagem válida, invisível, sem nenhuma ida à rede.
+
+Depois: **0 quebradas nas 9 rotas.**
+
+Conferido que a lupa continua inteira, operando-a: abre em `community-01.jpg`
+(1200x1600), mostra "1 de 8" e o crédito pendente, navega para a segunda foto e
+fecha.
+
+### Validação
+
+`node tools/preflight.js`: limpo.
+
+`node tools/qa-carrossel.js` nos três contratos, todos **[OK]**:
+
+| contrato | o que prova |
+|---|---|
+| 1440x900 | as 22 checagens, incluindo autoplay de 6s, um slide por vez e a pausa segurando |
+| 1440x900 `REDUCED=1` | **não gira sozinho** sob movimento reduzido, e setas/dots/teclado continuam funcionando |
+| 390x844 | mesma bateria no retrato estreito |
+
+`qa-rede`: 9 rotas, **0 imagens quebradas**. `qa-navbar-tema`: [OK].
+
+### Arquivos
+
+| arquivo | o quê |
+|---|---|
+| `tools/hero-carrossel.js` | **fonte** — o guarda no `agendar()`, a variável `sobre`, o `focusout` com `relatedTarget` e o GIF de 1x1 na lupa |
+| `melcam/interacoes.js` | build, por `node tools/build-produtos.js` |
+| `tools/qa-carrossel.js` | **novo** — a auditoria acima; opera os controles e só lê o resultado |
+
+`tools/aplicar.js` **não** foi executado. Nenhum commit.
+
+### Próximo
+
+Item 4 da Parte 2: olhar se "Memórias da Colmeia" e "Por onde a Melcam passou"
+contam a mesma história e, se contarem, propor a consolidação. A decisão de qual
+nome fica e quais fotos saem é editorial — será levada como pergunta, não
+escolhida sozinha.
+
+---
+
+## 🗺️ PDF DO CLIENTE — PARTE 2.4: "POR ONDE A MELCAM PASSOU" ESBARRA EM METADADO — 14/08/2026
+
+Quarta etapa da Parte 2. O plano manda checar se "Memórias da Colmeia" e "Por
+onde a Melcam passou" contam a mesma história e, se contarem, consolidar.
+
+### O que a home tem hoje
+
+Os títulos, em ordem de leitura:
+
+```
+h1  Chegou a Bee
+h2  A câmera que vive com você.        (a grade mel)
+h2  Conheça a Bee
+h2  Conheça a Polen
+h2  Todo o site em até 3x sem juros
+h2  DESTAQUES
+h2  Entre para a Colméia
+h2  Memórias da Colméia                (a galeria da comunidade, 8 fotos)
+h2  A Melcam por aí                    (clipes, oculta — ver 2.2)
+h2  Sobre Nós
+```
+
+**"Por onde a Melcam passou" não existe.** Ou seja, a pergunta do plano tem
+resposta simples: as duas galerias não contam a mesma história porque só há uma
+galeria. Não há o que consolidar.
+
+### Por que ela não pode ser construída agora
+
+A seção que o PDF pede é sobre **lugares**. O plano já tinha cravado a regra:
+"usar somente créditos e lugares confirmados; manter pendente o que não tiver
+metadado". Então a pergunta virou factual, e foi medida em vez de suposta —
+leitura direta do bloco APP1/EXIF dos oito arquivos:
+
+| foto | EXIF | GPS | data |
+|---|---|---|---|
+| community-01 | sim | **não** | 2026:06:20 |
+| community-02 | sim | **não** | — |
+| community-03 | sim | **não** | 2026:04:15 |
+| community-04 | sim | **não** | 2026:07:05 |
+| community-05 a 08 | sim | **não** | — |
+
+**0 de 8 fotos da comunidade carregam bloco de GPS.** Três trazem data, nenhuma
+traz lugar. O crédito que a lupa já exibe hoje diz a verdade sobre isso:
+"Autoria e cidade a confirmar com quem enviou."
+
+Montar a seção com essas fotos exigiria inventar cidade — que é exatamente o que
+os critérios de todas as partes proíbem.
+
+### A alternativa existe, e é decisão editorial
+
+Há um segundo acervo com lugar **nomeado em copy já aprovado**: as fotos da
+marca. O Pão de Açúcar e o Museu de Arte Contemporânea de Niterói aparecem
+identificados nos `alt` do scrollytelling da /polen; a fileira do topo tem "o
+mar do Rio de Janeiro" e "uma livraria".
+
+Uma "Por onde a Melcam passou" feita com essas fotos seria honesta — mas conta
+outra história: são fotos **da marca**, não envios da comunidade. Escolher se a
+seção é isso, quais fotos entram e como ela conversa com "Memórias da Colméia"
+sem virar duas galerias seguidas é decisão de conteúdo, não de implementação.
+
+**Levado como pergunta, não decidido aqui.**
+
+### Estado
+
+`node tools/preflight.js`: limpo. **Nenhum arquivo alterado nesta etapa** — só
+esta medição e este registro.
+
+### Pendências desta etapa
+
+- **Lugar das fotos da comunidade** — sem GPS e sem confirmação de quem enviou.
+  Enquanto não vier, a seção de lugares não pode ser montada com elas.
+- **Decisão editorial** sobre montar "Por onde a Melcam passou" com o acervo da
+  marca, e sobre a relação dela com "Memórias da Colméia".
+
+Com isso a Parte 2 fecha o que dependia só de implementação. O que sobrou
+depende de dado do cliente ou de decisão de conteúdo.
+
+---
+
+## 📏 O HERO DA /BEE PASSOU A OCUPAR A DOBRA INTEIRA — 14/08/2026
+
+Pedido: "abaixa ela um pouco, está muito alta e está aparecendo a próxima seção
+sem descer a página". As duas queixas tinham a mesma causa, e a causa estava
+escrita como decisão de projeto no comentário da própria regra.
+
+### O que estava lá, e por que não funcionou
+
+```css
+min-height:clamp(520px,80svh,820px);
+```
+
+Os 80svh eram deliberados: a ideia era deixar a seção seguinte — a escolha da
+cor, destino do CTA do hero — espiar o bastante para o eyebrow dela aparecer,
+"não só uma faixa". A aposta foi medida agora, em seis janelas:
+
+| janela | hero | próxima seção abre | espiada | eyebrow inteiro? |
+|---|---|---|---|---|
+| 1440x900 | 720px | y730 | **170px** | não (y876) |
+| 1920x1080 | 820px | y830 | **250px** | sim |
+| 1366x768 | 614px | y624 | **144px** | não |
+| 1280x800 | 640px | y650 | **150px** | não |
+| 810x1080 | 820px | y830 | **250px** | não |
+| 390x844 | 674px | y684 | **160px** | não |
+
+Ou seja: em cinco das seis o que espiava era papel vazio, porque o eyebrow
+caía fora da dobra do mesmo jeito. A única janela em que ele entrava inteiro
+era a de 1920x1080 — e ali o preço eram 250px de seção seguinte por cima da
+cena. A aposta não pagou em janela nenhuma de notebook.
+
+E o teto de 820px do clamp fazia o defeito PIORAR com a tela: de 1080 de
+altura para cima o hero parava de crescer e a espiada só aumentava.
+
+### O que entrou
+
+```css
+min-height:max(560px,100svh);
+```
+
+Sem teto em px, de propósito — era o teto que quebrava as janelas altas. O
+piso de 560px cobre janela baixa (1366x600, janela recortada), abaixo do qual
+a coluna de texto não cabe centrada.
+
+**As duas queixas caem juntas porque o hero é flex com `align-items:center`.**
+Crescer 180px não só empurra a próxima seção para fora da tela: recentra a
+composição. Em 1440x900 a manchete sai de y250 para y340, e o vazio de papel
+que sobrava embaixo da coluna de texto some, porque a forma de mel — absoluta,
+presa ao topo e à base — estica junto. "Abaixar" e "não deixar espiar" eram o
+mesmo conserto.
+
+### O retrato, que tinha o mesmo defeito e não podia levar o mesmo remédio
+
+Em ≤809.98px o hero era `display:block; min-height:0`, isto é, altura do
+conteúdo: 674px em 390x844, com os mesmos 170px de sobra mostrando a foto da
+Bee da seção seguinte.
+
+Repor só a altura ali criaria outro defeito: com `display:block` o conteúdo
+fica colado no topo e o que cresce é um vão de papel no rodapé do hero. Foi
+medido — 170px de buraco entre a linha de apoio e as câmeras. Trocar um
+defeito por outro não é conserto.
+
+O que ficou:
+
+```css
+display:flex; flex-direction:column; justify-content:space-between;
+align-items:stretch;
+min-height:max(560px,100svh);
+```
+
+com `.mel-bh-in{ flex:1 1 auto; display:flex; flex-direction:column;
+justify-content:center }` — o texto toma a altura que sobra e se centra dentro
+dela, então o excedente se divide acima e abaixo em vez de virar um vão só. O
+palco recebeu `flex:0 0 auto` para o space-between não esticá-lo e anular a
+altura em `clamp()` que mantém as duas Bees na proporção do recorte.
+
+Duas armadilhas que custariam uma passada cada:
+
+- **`align-items` precisa voltar para `stretch`.** O hero herda `center` do
+  desktop, e em coluna o `center` passa a ser HORIZONTAL: encolheria o texto e
+  o palco para a largura do conteúdo em vez da largura da tela.
+- **a ordem visual não muda** porque o DOM já é texto e depois palco. Não houve
+  `order`, que é o erro clássico de espelhar layout invertendo o fluxo.
+
+### O defeito que a mudança revelou na QA, e não na tela
+
+`node tools/qa-bee-cena.js` reprovou logo depois, apontando o pico do
+gradiente em y4442 e uma emenda em y4533. Nenhum dos dois existe em janela
+nenhuma de gente.
+
+**Causa:** para tirar uma coluna contínua de pixels da página inteira, a QA
+esticava a JANELA para a altura do documento
+(`setDeviceMetricsOverride` com `height = docH`) e tirava um print comum.
+Funcionava por acidente: o hero antigo tinha teto em px e não sentia uma janela
+de 7.000px. Com `100svh`, a janela sintética virou a "tela" que o svh mede — o
+hero foi para 7.000px de altura e a QA passou a medir uma página que não
+existe.
+
+Trocado por `captureBeyondViewport: true`, que tira a página inteira **sem
+mexer na janela de layout**: o svh continua valendo 900, a geometria medida é a
+que a pessoa vê, e a coluna sai contínua do mesmo jeito. Depois da troca os
+números batem com os do estado anterior — pico 32, emendas Δ1, topo 0, fim 0 —
+deslocados só pelos 180px do hero, que é exatamente o esperado.
+
+Fica a regra geral, e ela vale para a /polen também (hero em 92svh): **medida
+que muda o tamanho da janela não serve para página com unidade de viewport.**
+Conferido que nenhuma outra QA do projeto usa esse truque.
+
+### Validação
+
+Depois da mudança, **0px de espiada nas seis janelas** — 1440x900, 1920x1080,
+1366x768, 1280x800, 810x1080 e 390x844.
+
+| ferramenta | resultado |
+|---|---|
+| `preflight.js` | limpo |
+| `qa-bee-cena.js` 1440 e 390 | **[OK]** nos dois |
+| `qa-bee-modelos.js` 1440x900 e 390x844 | **[OK]** nos dois |
+| `qa-bee.js` 1440x900 | sem imagem quebrada, sem transbordo, 1 h1 |
+| `qa-hero-primeiro-paint.js` /bee 1440x900 e 1366x768 | hero em `0,0 1440x900` **já no primeiro quadro**, `ultimaMudanca: null` — sem salto |
+| `qa-navbar-tema.js` | **[OK]** |
+| `qa-rede.js` | 9 rotas, 0 imagens quebradas |
+| `qa-navegacao-bee.js` | sem transbordo, sem imagem quebrada |
+
+### Arquivos
+
+| arquivo | o quê |
+|---|---|
+| `tools/bee-interacoes.js` | **fonte** — a altura do hero no desktop e o bloco de retrato inteiro |
+| `melcam/identidade.css` | build, por `node tools/sincronizar-bee-css.js` |
+| `tools/qa-bee-cena.js` | a captura sem esticar a janela |
+
+`tools/aplicar.js` **não** foi executado. Nenhum commit.
+
+### Achado de graça, NÃO corrigido — a sangria acima de 1440
+
+Medindo em 1920x1080 apareceu outra coisa, e ela **é anterior a esta mudança**:
+o hero mede `0,0 1920x1080`, mas só PINTA de x240 a x1680. Sobram duas faixas
+carvão nas laterais e a legenda "Amarela · Branca" fica cortada.
+
+Quem recorta é o stack do Framer:
+
+```
+SECTION.mel-bh              x0    w1920   overflow hidden
+  ^ HEADER.framer-vrbx7h    x240  w1440   overflow hidden   max-width:1440px
+```
+
+O `sangrar()` faz o seu trabalho — dá 1920 ao elemento, e já aos 377ms. O que
+não adianta é largura maior que a do pai que recorta. **A /polen tem
+exatamente o mesmo** (`.mel-ph` dentro do mesmo header), então é global das
+internas, não da /bee.
+
+Conferido que a altura antiga produz o mesmo recorte (`1920x820`, também
+cortado), ou seja, não é efeito colateral desta etapa.
+
+**Não corrigido de propósito:** é outro defeito, em outra régua, e mexer no
+`max-width` do stack do Framer alcança todas as internas de uma vez. Fica como
+pendência para uma etapa própria.
+
+### Pendências desta etapa
+
+- **Sangria acima de 1440** nas duas internas, descrita acima.
+
+---
+
+## 🎬 O VÍDEO DA BEE NO HERO DA /BEE — 14/08/2026, **EM ANDAMENTO**
+
+**Interrompido a pedido, no meio da etapa. Este bloco é o handoff.** O desktop
+está de pé e medido; o RETRATO está quebrado e é a primeira coisa a consertar.
+Nada foi commitado, `tools/aplicar.js` não foi executado.
+
+### O material, medido antes de qualquer decisão
+
+`C:\Users\israe\Documents\MELCAM BEE.mp4` — HEVC 3840x2160, 30 fps, 138
+quadros (4,60 s), com faixa AAC que **não** foi para o site.
+
+| medida | resultado | como |
+|---|---|---|
+| fundo | **rgb(250,245,235) exato** | varredura pixel a pixel: mínimo = máximo nos 138 quadros |
+| conteúdo (alça + câmera) | x 1944..3416, y 0..1776 | limiar de diferença contra o fundo |
+| corpo amarelo da câmera | x 5,8%..93,8%, y **40,1%**..95,7% do recorte | varredura dos pixels amarelos, quadros 46 a 132 |
+| emenda do loop 1→138 | rms **31,4** | vetor de luminância por blocos |
+| melhor sub-loop | quadros **46→133, rms 6,76** | busca de todos os pares com ao menos 75 quadros |
+
+O rms médio entre quadros CONSECUTIVOS é 11,45. Ou seja: a emenda do arquivo
+inteiro (31,4) saltava à vista, e o corte em 46..132 emenda **mais suave que
+uma troca normal de quadro**. Por isso o vídeo publicado tem 2,87 s e não 4,6.
+
+**O fundo ser um valor só é o que destravou todo o resto** — ver a mistura,
+abaixo.
+
+### Conversão: comandos e parâmetros
+
+Recorte único para as quatro saídas: `crop=1664:1856:1856:0` (sobram 88px à
+esquerda, 104 à direita e 80 embaixo do conteúdo). A cadeia troca o fundo por
+**branco puro** e **assa a sombra de contato** a partir do alfa da própria peça:
+
+```
+[0:v]select='between(n\,45\,131)',setpts=N/FRAME_RATE/TB,fps=30,
+     crop=1664:1856:1856:0,scale=LARG:ALT:flags=lanczos,
+     format=rgba,colorkey=0xFAF5EB:0.02:0.02,split[k1][k2];
+[k2]alphaextract,boxblur=BLUR:2[m];
+color=c=0x4A340A:s=LARGxALT,format=rgba[c];
+[c][m]alphamerge,colorchannelmixer=aa=0.30[sh];
+color=c=white:s=LARGxALT,format=rgba[bg];
+[bg][sh]overlay=x=0:y=DESL:shortest=1[s1];
+[s1][k1]overlay=0:0:shortest=1,format=yuv420p[out]
+```
+
+A similaridade 0.02 do `colorkey` (cerca de 9 unidades) foi escolhida com
+número: o realce mais claro da câmera é 255,255,253, a 23 unidades do fundo —
+com 0.05 a chave abriria buraco dentro da peça.
+
+| saída | escala | BLUR | DESL | codec |
+|---|---|---|---|---|
+| `melcam/video/bee/bee-hero.webm` | 960x1070 | 14 | 18 | `libvpx-vp9 -crf 33 -b:v 0 -row-mt 1 -cpu-used 1 -g 87` |
+| `melcam/video/bee/bee-hero.mp4` | 960x1070 | 14 | 18 | `libx264 -profile:v high -level 4.0 -crf 21 -preset slow -g 87 -movflags +faststart` |
+| `melcam/video/bee/bee-hero-retrato.webm` | 576x642 | 8 | 11 | `libvpx-vp9 -crf 35 -b:v 0 -row-mt 1 -cpu-used 1 -g 87` |
+| `melcam/video/bee/bee-hero-retrato.mp4` | 576x642 | 8 | 11 | `libx264 -profile:v high -level 3.1 -crf 22 -preset slow -g 87 -movflags +faststart` |
+
+Todas com `-an` e `-r 30`. **O `-r 30` não é enfeite:** sem ele o `setpts` deixa
+a saída sem taxa fixa, o ffmpeg assume 25 fps e joga 15 quadros fora. Aconteceu
+na primeira leva e só apareceu no `nb_frames`.
+
+Pesos: **311.396** bytes (mp4 desktop), **230.110** (webm desktop), **133.822**
+(mp4 retrato), **107.095** (webm retrato). Poster
+`melcam/img/bee/bee-hero-video-poster.jpg`, **48.079** bytes, `-q:v 2`, gerado
+pela MESMA cadeia no primeiro quadro — poster e quadro 1 são o mesmo pixel, não
+há salto possível. Medido contra o PNG sem perda: 18 pixels de fundo em 1,027
+milhão ficariam abaixo do papel, ou 0,002%.
+
+### A mistura: por que a borda do quadro não existe
+
+O fundo virou branco puro na conversão, e branco puro é mais claro, canal a
+canal, do que tudo que existe atrás dele neste hero: papel 251,247,238; mel
+242,169,0; degrau mais escuro do cenário perto de 250,243,225. Com
+`mix-blend-mode:darken` o navegador pinta o MENOR dos dois — onde o quadro é
+branco, quem vence é o fundo do hero. **Não é máscara nem fade: é aritmética,**
+e por isso não há emenda para procurar. Confirmado na medição: o fundo
+decodificado sai 255,255,255 exatos no primeiro e no último quadro.
+
+Duas consequências, cada uma custou uma montagem:
+
+1. **`.mel-bh-palco` perdeu o `z-index:2`.** Todo elemento que cria contexto de
+   empilhamento isola a mistura. Com z-index o palco virava o grupo, o vídeo
+   misturava só com a forma de mel e o retângulo branco reaparecia sobre o
+   papel. Sem z-index o grupo passa a ser `.mel-bh`, que tem
+   `isolation:isolate` e cujo `background-color` é papel. A ordem de pintura não
+   mudou: o texto é z-index:3 e continua por cima.
+2. **A Bee amarela NÃO PODE cair sobre o plano de mel.** Darken deixa o fundo
+   passar onde a peça é mais clara, e o corpo da câmera (205,186,41) é mais
+   claro que o mel no canal verde: o traço do favo atravessava a câmera e ela
+   lia como vidro fumê. Foi visto na captura, não suposto. Como os 40% de cima
+   do quadro são só ALÇA, e alça é preta (sobre mel o darken devolve preto), a
+   forma de mel virou a FAIXA DE CIMA — `height:min(36%,19vw)` — e a Bee passou
+   a pendurar sobre o papel. Em 1440x900: faixa até y274, câmera começa em y311.
+
+### Estado medido (1440x900, a única janela conferida)
+
+```
+hero   0,0 1440x900     palco 547,0 893x900     forma 663,0 777x274
+copy 124,288 528x323    vídeo 726,0 696x900    quadro 726,0 696x776
+corpo da câmera  x 766..1379   y 311..742
+currentSrc bee-hero.webm   tocando   mistura darken
+<img> dentro do hero: NENHUMA      transbordo horizontal: não
+```
+
+### Arquivos tocados até aqui
+
+| arquivo | o quê |
+|---|---|
+| `tools/bee.js` | **fonte** — as duas `<img>` saíram, entrou o `<video>` e o `<script>` síncrono que escreve as `<source>` |
+| `tools/bee-interacoes.js` | **fonte** — CSS do vídeo, da faixa de mel, do retrato e do movimento reduzido; JS do `change` da preferência |
+| `melcam/video/bee/` (4 arquivos) e `melcam/img/bee/bee-hero-video-poster.jpg` | **novos**, ainda não versionados |
+| `bee.html`, `melcam/identidade.css`, `melcam/interacoes.js` | builds, por `build-produtos.js` → `sincronizar-bee-css.js` → `rodape.js` |
+
+O `<video>` nasce SEM `<source>`: quem as escreve é um `<script>` síncrono logo
+depois dele, que mede `prefers-reduced-motion` e `max-width:809.98px` antes de o
+navegador buscar byte nenhum. Com movimento reduzido não existe fonte, então não
+se baixa vídeo — fica o poster, que é o pedido. É o mesmo raciocínio do
+SINALIZADOR ANTIFLASH, com a mesma contrapartida honesta: sem JavaScript fica o
+poster, nunca um buraco.
+
+### O QUE FALTA, na ordem
+
+1. **O RETRATO ESTÁ QUEBRADO.** Capturado em 390x844: a `.mel-bh-forma` do bloco
+   `@media (max-width:809.98px)` continua sendo o bloco de baixo
+   (`bottom:0; height:80%; width:min(80%,400px)`) e a câmera cai EM CIMA dele —
+   o mesmo vidro fumê que o desktop já resolveu. A faixa de mel do retrato tem
+   de sair de baixo da câmera pela mesma régua: só a alça pode cruzar mel. A
+   máscara de topo do vídeo (os 14% que desvanecem, que existem porque no
+   retrato a alça não tem por onde sair de quadro) funcionou e pode ficar.
+2. **Conferir 1366x768, 1280x800, 1920x1080 e 810x1080.** A captura de 1366 já
+   está em `scratchpad/v2-1366.png` e não foi olhada. Atenção ao teto duplo
+   `min(36%,19vw)` da faixa: ele foi derivado da geometria, não medido em todas
+   as janelas.
+3. **`.mel-bh-cores`** (a legenda "Amarela · Branca") está em
+   `right:6%; bottom:2%`; no desktop caiu na área vazia embaixo da câmera —
+   conferir se não encosta nela em janela mais baixa.
+4. **Validação obrigatória que ainda não rodou:** carga fria e recarga, vídeo
+   bloqueado, conexão lenta, `prefers-reduced-motion` (o `shot.js` do scratchpad
+   já aceita `--reduz`), layout shift, console e rede, as duas seções Bee
+   Amarela e Bee Branca intactas, `qa-bee-cena.js`, `qa-bee-modelos.js`,
+   `qa-rede.js` e `qa-hero-primeiro-paint.js`.
+5. **`node tools/preflight.js` VAI REPROVAR** enquanto os cinco assets novos não
+   estiverem versionados: a etapa 7 exige `git ls-files`. `git add` dos cinco
+   resolve, e `git add` **não é commit** — era o passo seguinte.
+6. Fechar este bloco com os pesos finais, os arquivos e o resultado de cada QA.
+
+### Ferramentas de trabalho desta etapa
+
+Ficaram no scratchpad da sessão (`AppData\Local\Temp\claude\...\scratchpad`):
+`shot.js` (captura por CDP, aceita `--full` e `--reduz`), `medir.js` (geometria
+do hero, `currentSrc` e posição calculada do corpo da câmera) e a pasta `bee/`
+com os 138 quadros do original e os scripts de medição (`bbox.js`, `corpo.js`,
+`loop.js`, `fundo.js`, `chk.js`, `cadeia.sh`). Se forem úteis de novo, o lugar
+deles é `tools/`, não o temporário.
+
+---
+
+## ✅ O VÍDEO DA BEE NO HERO DA /BEE — FECHADO EM 14/08/2026
+
+Continuação direta do bloco anterior, que ficou aberto no meio. Os seis itens
+da lista "O QUE FALTA" foram fechados. Nada commitado ainda; `tools/aplicar.js`
+continua sem rodar.
+
+### 1. O retrato, que era o defeito grave
+
+Medido antes de mexer, em 390x844: a faixa de mel ia de y588 a y844 e o corpo
+da câmera de y652 a y830. **A peça inteira caía sobre o amarelo**, e o darken
+devolvia o mesmo vidro fumê que o desktop já tinha resolvido — o corpo
+(205,186,41) é mais claro que o mel (242,169,0) no canal verde, então o traço
+do favo atravessava a câmera.
+
+A régua do desktop vale aqui **sem conversão**, e isso é o achado que simplifica
+tudo: no retrato o quadro do vídeo tem exatamente a altura do palco. O vídeo é
+`height:100%` com `width:auto`, e a razão do recorte (576x642, ou 0,897) sempre
+deixa largura sobrando — 287px de quadro em 390px de palco, 484 em 810. Ou seja,
+o corpo começa nos mesmos 40,1% do palco em qualquer janela em pé, e um teto de
+36% passa por baixo sempre.
+
+```css
+/* era */ top:auto; bottom:0; height:80%;  width:min(80%,400px);
+/* é   */ top:0; bottom:auto; height:36%;  width:min(88%,620px);
+          border-radius:clamp(56px,14vw,110px) 0 0 clamp(56px,14vw,110px);
+```
+
+**Os dois cantos da esquerda arredondados, e não um só como no desktop.** Lá a
+faixa sangra pelo topo do hero e só a curva de baixo aparece; aqui o topo dela
+cai no meio da página, logo abaixo do texto, e um corte reto atravessando a tela
+seria uma emenda dura no lugar da curva que divide papel e mel no resto do site.
+Sangrando só pela direita, com as duas curvas, ela lê como uma aba de mel
+entrando pela borda.
+
+A máscara de topo do vídeo ganhou sentido novo de graça: os 14% que desvanecem
+são 45px, e a faixa tem 115px — **a máscara inteira acontece dentro do amarelo**,
+então a alça nasce da faixa em vez de aparecer do papel. É mais perto do desktop
+do que a montagem anterior conseguia ser.
+
+O resto do hero fica em papel, que é o que o desktop já fazia: a emenda com a
+seção de modelos, também clara, continua sem degrau.
+
+### 2. O tablet em pé, que estava pior que o retrato e ninguém tinha olhado
+
+810x1080 reprovou feio: câmera presa no alto e **quinhentos pixels de papel
+morto** embaixo dela. A causa é aritmética e não tinha conserto dentro daquele
+layout — ali o quadro é limitado pela LARGURA, não pela altura:
+
+| | conta | altura possível em 1080 |
+|---|---|---|
+| tablet (palco 70%, teto 96%) | 0,70 x 0,96 ÷ 0,897 = **0,749 x largura** | 607px |
+| desktop (palco 62%, teto 78%) | 0,62 x 0,78 ÷ 0,897 = **0,539 x largura** | 1035px |
+
+O produto não tem como preencher a dobra numa janela em pé, então o vazio é
+inevitável e a única escolha é **onde ele cai**. Sobreposto, cai todo no rodapé.
+Em coluna, se reparte entre texto e produto, que é o que a régua do retrato já
+resolve.
+
+Daí a condição do bloco de retrato ter deixado de ser só largura:
+
+```css
+@media (max-width:809.98px), (max-width:1024px) and (orientation:portrait){
+```
+
+`orientation` e não mais largura sozinha **porque o defeito é de proporção**: em
+1024x768, o mesmo tablet deitado, a sobreposição funciona e continua valendo.
+Conferido nas duas orientações.
+
+Junto veio o teto do palco, que era só largura e passou a ser o menor entre
+largura e meia dobra:
+
+```css
+height:clamp(300px,min(82vw,50svh),560px);   /* era clamp(300px,82vw,430px) */
+```
+
+Só 82vw entregaria 430px de palco em 810 — câmera de 386px, 48% da tela, contra
+os 74% que ela ocupa no celular. Com o `min()` o palco vai a 540px e a câmera
+volta a 484px, 60% da largura. **No celular nada muda:** abaixo de cerca de
+640px de altura quem manda continua sendo o 82vw, e 390x844 dá os mesmos 320px
+de antes. Medido, não deduzido.
+
+**Nota deliberada:** o `<script>` do `tools/bee.js` continua trocando para o
+recorte de retrato em 809.98px, então de 810 a 1024 em pé a coluna usa o arquivo
+de DESKTOP. Os dois saem do mesmo recorte, com a mesma razão; o de desktop tem
+960px de largura para um render de cerca de 480, e o de retrato tem 576, que
+ficaria no limite.
+
+### 3. A legenda das cores, que era o item 3 da lista e encostava mesmo
+
+Duas colisões, uma em cada layout, e **a mesma armadilha nas duas**: a legenda é
+absoluta DENTRO do palco, e no palco "embaixo" é onde a câmera termina. Mexer no
+palco a levava junto.
+
+| janela | corpo da câmera | legenda | antes |
+|---|---|---|---|
+| 1024x768 | até y734 | y739 | **5px**, sem contar a sombra |
+| 390x844 | até y830 | y828 | **sobrepostas** |
+
+Três mudanças, e as três são a mesma ideia — reservar uma faixa de papel que
+seja só da legenda, e tirar a legenda de dentro do palco:
+
+```css
+.mel-bh-palco{ inset:0 0 clamp(40px,5vh,60px) 38% }   /* era inset:0 0 0 38% */
+.mel-bh-cores{ top:calc(100% + 12px) }                /* era bottom:2% */
+.mel-bh{ padding:104px 0 30px }                       /* no retrato; era 104px 0 0 */
+```
+
+A faixa do palco em vh e não em px porque **o que aperta é janela baixa**, e é a
+altura que decide se o vídeo cabe pela altura ou pela largura. Onde o quadro é
+limitado pela largura — 1440x900, 1280x800 — ela não muda um pixel: a câmera
+continua terminando em y742 e y660.
+
+### 4. Estado medido, oito janelas
+
+Todas com o vídeo tocando, `mix-blend-mode:darken`, nenhuma `<img>` no hero e
+nenhum transbordo horizontal.
+
+| janela | faixa de mel | corpo da câmera | folga faixa→câmera | folga câmera→legenda |
+|---|---|---|---|---|
+| 1440x900 | y0..274 | y311..742 | 37 | 125 |
+| 1366x768 | y0..260 | y292..696 | 32 | 44 |
+| 1280x800 | y0..243 | y277..660 | 34 | 112 |
+| 1920x1080 | y0..365 | y411..982 | 46 | 56 |
+| 1024x768 | y0..195 | y292..696 | 97 | 44 |
+| 810x1080 | y510..704 | y726..1026 | 22 | 33 |
+| 430x932 | y549..676 | y690..886 | 14 | 25 |
+| 390x844 | y494..609 | y622..800 | 13 | 23 |
+
+**Nenhuma folga negativa, em janela nenhuma.** É a prova de que a Bee amarela
+nunca cai sobre o mel, que era o defeito de origem.
+
+### 5. Validação
+
+Rodada inteira, com o servidor local em 3030.
+
+| ferramenta | resultado |
+|---|---|
+| `preflight.js` | limpo, inclusive a etapa 7 (os cinco assets estão em `git add`) |
+| `qa-bee-video.js` | **[OK]** — novo, ver abaixo |
+| `qa-bee.js` 1440, 768, 390 | 0 invisíveis, 0 imagens quebradas, 0 console, sem transbordo |
+| `qa-bee-cena.js` | **[OK]** pico 32, topo 0, fim 0, emendas Δ1, 11/11 revelados, 0 piscadas |
+| `qa-bee-modelos.js` | **[OK]** as duas seções de pé, fotos carregadas, sem regressão |
+| `qa-hero-primeiro-paint.js` /bee | 1440x900, 1366x768, 390x844 e 810x1080: caixa certa **no primeiro quadro**, `ultimaMudanca: null` nas quatro |
+| `qa-navbar-tema.js` | **[OK]** |
+| `qa-navegacao-bee.js` | sem transbordo, sem imagem quebrada, console limpo |
+| `qa-rede.js` | 9 rotas, 0 imagens quebradas, 0 falhas de requisição |
+| `qa-polen.js` | ok — a mudança do palco é só `.mel-bh`, mas a /polen também usa `svh` e foi conferida |
+
+### 6. `tools/qa-bee-video.js` — a ferramenta que faltava
+
+O `<video>` é a única peça do site cujo conteúdo depende de **rede E de
+preferência do sistema**, e nada disso aparece numa captura normal. O teste
+roda quatro cenários em cada janela e compara a caixa dos quatro:
+
+| cenário | o que prova |
+|---|---|
+| normal | toca, `currentSrc` é o recorte certo, mistura darken |
+| `prefers-reduced-motion` | **zero bytes de vídeo baixados** e zero `<source>` escritas |
+| rede bloqueada (`Network.setBlockedURLs`) | poster buscado, `readyState:0`, caixa idêntica |
+| conexão lenta | poster buscado antes do vídeo, caixa idêntica |
+
+Resultado nas três janelas medidas (1440x900, 390x844, 810x1080): **[OK]**. Em
+movimento reduzido o navegador não pediu um único byte de `melcam/video/bee/`,
+que é o comportamento que o `<script>` síncrono do `tools/bee.js` existe para
+garantir.
+
+**Uma armadilha custou uma rodada:** filtrar por `/melcam/video/` acusa falso
+positivo, porque `melcam/video/hero.mp4` — o vídeo do hero da home, 5 MB — é
+pedido em toda página. O filtro e o bloqueio são por `/melcam/video/bee/`.
+
+O `tools/qa-bee.js` também foi corrigido: ele ainda media `.mel-bh-branca` e
+`.mel-bh-amarela`, as classes dos dois packshots que o vídeo substituiu. Como
+`querySelector` devolvia null, as duas apareciam na lista de "invisíveis" a cada
+rodada. Agora ele mede `.mel-bh-video`.
+
+### Arquivos
+
+| arquivo | o quê |
+|---|---|
+| `tools/bee-interacoes.js` | **fonte** — faixa de mel do retrato, condição do bloco de coluna, altura do palco, faixa reservada da legenda |
+| `tools/qa-bee-video.js` | **novo** |
+| `tools/qa-bee.js` | as duas classes mortas trocadas pelo `<video>` |
+| `melcam/identidade.css` | build, por `node tools/sincronizar-bee-css.js` |
+| `melcam/video/bee/` (4) e `melcam/img/bee/bee-hero-video-poster.jpg` | **em `git add`**, ainda não commitados |
+
+### Duas conferências que valeram a pena, e não mudaram nada
+
+**O poster É o primeiro quadro do vídeo.** Conferido, não aceito de palavra:
+extraído o quadro 1 do `bee-hero.mp4` e decodificado o JPEG, os dois em
+960x1070, a diferença média por canal é **2,96** e a máxima 34 — ruído de
+compressão, não quadro diferente. (Um quadro diferente daria média acima de 11,
+que é o rms entre quadros consecutivos, e máxima perto de 255 na alça.) Ou seja,
+não existe salto na troca do poster para o vídeo.
+
+**O rebordo claro em volta da câmera é a sombra, não falha da chave de cor.**
+Ampliado 3x em 1440x900 aparece uma linha clara de 3 ou 4px entre a peça e a
+sombra. Medido: aquela linha é `249,242,231`, que é o papel — e com
+`mix-blend-mode:darken` nada pode ficar MAIS CLARO que o fundo, por definição.
+É o vão entre o contorno da câmera e a sombra, que é assada deslocada 18px para
+baixo. Comportamento de sombra deslocada, igual ao que os packshots tinham em
+`drop-shadow`.
+
+### Pendências
+
+- **Sangria acima de 1440**, nas duas internas. Pendência anterior, descrita na
+  seção passada e não tocada aqui: o hero mede 1920 mas o stack do Framer
+  (`max-width:1440px`, `overflow:hidden`) só deixa pintar de x240 a x1680, e a
+  legenda "Amarela · Branca" fica cortada. Vale para a /bee e para a /polen.
+- **A pose do poster.** O quadro 46, que abre o sub-loop, é uma pose girada em
+  que a câmera lê cerca de 20% menor. Para quem carrega devagar isso dura um
+  instante; para quem usa **movimento reduzido é o estado permanente**. Trocar o
+  poster por uma pose mais frontal quebraria a igualdade com o primeiro quadro
+  e traria o salto de volta — só faz sentido junto com a escolha de outro
+  sub-loop. Fica como decisão, não como defeito.
+- **Nada foi commitado** e `tools/aplicar.js` não rodou.

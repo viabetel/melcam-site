@@ -17,8 +17,12 @@ const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
 const iB = process.argv.indexOf('--base');
 const BASE = iB >= 0 ? process.argv[iB + 1] : (process.env.BASE_URL || 'http://localhost:3030');
 const iR = process.argv.indexOf('--rotas');
+// /privacidade e /termos entraram na lista em 14/08/2026, quando deixaram de
+// ser cascas vazias do Framer e viraram páginas de verdade (tools/demais.js +
+// tools/build-legais.js). Elas são destino do rodapé em todas as páginas: se
+// alguma quebrar, quebra em nove lugares.
 const ROTAS = iR >= 0 ? process.argv[iR + 1].split(',')
-  : ['/', '/polen', '/bee', '/acessorios', '/sobre', '/sacola', '/404'];
+  : ['/', '/polen', '/bee', '/acessorios', '/sobre', '/sacola', '/404', '/privacidade', '/termos'];
 
 (async () => {
   const perfil = path.join(__dirname, 'edge-cdp-' + PORTA);

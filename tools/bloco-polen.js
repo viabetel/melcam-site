@@ -49,7 +49,13 @@ const polenUI = require('./polen-interacoes.js');
 // argumento — ESCOLHA. A Bee e que comunica novidade; nao repetir isso aqui.
 const EYEBROW = 'Polen';
 const TITULO = '7 cores. Uma decisão.';
-const CTA = 'Escolha sua Polen';
+// 14/08/2026: era "Escolha sua Polen". O topicos_alteracoes.pdf nomeia os dois
+// botoes da grade — "Conheca" e "Ver Modelos" — e e a palavra do cliente que
+// fica. A Polen leva "Ver modelos" porque e ela que tem 7 variantes; a Bee, que
+// tem duas e e o lancamento, leva "Conheca". Grafia em caixa mista: quem poe a
+// caixa alta na tela e o text-transform da pilula, e assim o texto continua
+// legivel para leitor de tela.
+const CTA = 'Ver modelos';
 
 const MARCA = 'data-mel-polen';
 

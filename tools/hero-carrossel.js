@@ -222,6 +222,9 @@ function js() {
     if (!trilho || slides.length < 2) return;
 
     var atual = 0, timer = null, pausado = false;
+    /* "sobre" é o ponteiro em cima. O foco não precisa de variável: o próprio
+       document.activeElement responde, e ele não mente sobre onde está. */
+    var sobre = false;
     var INTERVALO = 6000;
 
     function mostrar(i, anunciar) {
@@ -243,6 +246,18 @@ function js() {
       // Sem rotação automática para quem pediu menos movimento: o briefing
       // exige pausa acessível, e mover sozinho contraria a preferência.
       if (pausado || menosMovimento.matches) return;
+      /* NÃO RE-ARMA ENQUANTO A PESSOA ESTÁ DENTRO — ponteiro em cima ou foco
+         num dos controles.
+
+         Sem esta linha o carrossel tinha um furo que só aparece operando: cada
+         seta, dot e tecla termina chamando agendar(), e agendar() religava o
+         timer mesmo com o foco dentro. Medido pelo qa-carrossel: com o foco no
+         botão "seguinte", o banner pulou sozinho do slide 2 para o 0 seis
+         segundos depois. Quem navega por teclado via o conteúdo trocar debaixo
+         da própria mão — exatamente o que pausar no hover e no foco existe
+         para impedir. Os listeners de mouseenter/focusin já paravam; o que
+         faltava era o guarda no religamento. */
+      if (sobre || raiz.contains(document.activeElement)) return;
       timer = setInterval(function () { mostrar(atual + 1, false); }, INTERVALO);
     }
     function parar() { if (timer) { clearInterval(timer); timer = null; } }
@@ -271,10 +286,17 @@ function js() {
     });
 
     /* pausa ao passar o mouse e ao focar, retoma ao sair */
-    raiz.addEventListener('mouseenter', parar);
-    raiz.addEventListener('mouseleave', agendar);
+    raiz.addEventListener('mouseenter', function () { sobre = true; parar(); });
+    raiz.addEventListener('mouseleave', function () { sobre = false; agendar(); });
     raiz.addEventListener('focusin', parar);
-    raiz.addEventListener('focusout', agendar);
+    /* relatedTarget é para onde o foco FOI. Se ainda está dentro do carrossel,
+       o foco só andou de um controle para o outro e não há nada a retomar —
+       sem esta guarda, tabular entre as setas religaria o timer por um
+       instante a cada salto. */
+    raiz.addEventListener('focusout', function (e) {
+      if (raiz.contains(e.relatedTarget)) return;
+      agendar();
+    });
 
     /* swipe */
     var x0 = null, y0 = null;
@@ -1549,18 +1571,179 @@ ${require('./bee-interacoes.js').js()}
     });
   }
 
+  /* ------------- Memórias da Colméia: a galeria vira interativa -------------
+     O topicos_alteracoes.pdf pede, na home, "uma galeria INTERATIVA com
+     fotografias enviadas por usuários". Interativo aqui é o que a palavra
+     significa numa galeria: abrir a foto, andar entre elas, sair. Não é
+     animação a mais.
+
+     🔴 PROGRESSIVO, E É ISSO QUE DECIDE ONDE O MARKUP NASCE.
+     O que vem no HTML é <li><img></li>, e é isso que continua valendo sem
+     JavaScript: as oito fotos aparecem, e não há um único controle focável que
+     não faça nada. O botão de cada foto e o diálogo são criados AQUI — então só
+     existem onde podem funcionar. Foi a lição do "hero em branco" e a mesma
+     regra do portão da /bee, aplicada ao contrário: lá o JS ESCONDE o que ele
+     sabe revelar; aqui ele ACRESCENTA o que sabe operar.
+
+     A LEGENDA JÁ TEM O LUGAR DO CRÉDITO, e ele não é inventado. Enquanto não
+     houver "@usuário · cidade" autorizado (está em PENDENTES do
+     melcam.config.json), a linha diz que a identificação está a confirmar. Cada
+     <li> pode trazer data-mel-credito="..." e ele ganha da frase pendente — é
+     por ali que o dado real entra, sem tocar nesta função. */
+  function iniciarLupaComunidade() {
+    var grade = document.querySelector('.mel-com-grade');
+    if (!grade) return;
+    var itens = [].slice.call(grade.querySelectorAll('.mel-com-item'));
+    if (!itens.length) return;
+
+    var PENDENTE = 'Autoria e cidade a confirmar com quem enviou.';
+    var X = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    var ANT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4 L7 12 L15 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var PROX = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 L17 12 L9 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    /* Primeiro o inventário, depois os botões: um <li> sem <img> não vira foto,
+       e se o índice do botão viesse do forEach dos <li> ele passaria a apontar
+       para a foto errada a partir do primeiro buraco. */
+    var fotos = [];
+    itens.forEach(function (li) {
+      var img = li.querySelector('img');
+      if (!img) return;
+      fotos.push({
+        li: li, img: img,
+        src: img.getAttribute('src'),
+        alt: img.getAttribute('alt') || 'Foto da comunidade Melcam',
+        credito: li.getAttribute('data-mel-credito') || '',
+      });
+    });
+    if (!fotos.length) return;
+
+    var botoes = fotos.map(function (f, i) {
+      var bt = document.createElement('button');
+      bt.type = 'button';
+      bt.className = 'mel-com-botao';
+      bt.setAttribute('aria-haspopup', 'dialog');
+      bt.setAttribute('aria-label', 'Ampliar a foto ' + (i + 1) + ' de ' + fotos.length + ' da comunidade');
+      f.li.insertBefore(bt, f.img);
+      bt.appendChild(f.img);
+      bt.addEventListener('click', function () { abrir(i); });
+      return bt;
+    });
+
+    var lupa = document.createElement('div');
+    lupa.className = 'mel-com-lupa';
+    lupa.setAttribute('role', 'dialog');
+    lupa.setAttribute('aria-modal', 'true');
+    lupa.setAttribute('aria-label', 'Foto da comunidade, ampliada');
+    lupa.hidden = true;
+    lupa.innerHTML =
+      '<button type="button" class="mel-com-x" aria-label="Fechar">' + X + '</button>'
+      + '<button type="button" class="mel-com-nav mel-com-ant" aria-label="Foto anterior">' + ANT + '</button>'
+      + '<button type="button" class="mel-com-nav mel-com-prox" aria-label="Próxima foto">' + PROX + '</button>'
+      + '<figure class="mel-com-fig">'
+      /* GIF transparente de 1x1, embutido, e não src vazio. Um <img> SEM src é
+         contado como imagem quebrada por qualquer auditoria — o qa-rede
+         acusava uma quebrada nas NOVE rotas por causa desta linha, porque a
+         lupa é montada em toda página — e ainda desenha o ícone de quebrado
+         com o texto do alt por cima. É a mesma armadilha já registrada em
+         tools/polen.js, e a mesma solução: imagem válida, invisível e sem
+         nenhuma ida à rede. O src real entra quando alguém abre uma foto. */
+      +   '<img alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">'
+      +   '<figcaption class="mel-com-cap">'
+      +     '<span class="mel-com-conta"></span>'
+      +     '<span class="mel-com-cred"></span>'
+      +   '</figcaption>'
+      + '</figure>';
+    document.body.appendChild(lupa);
+
+    var alvo = lupa.querySelector('.mel-com-fig img');
+    var conta = lupa.querySelector('.mel-com-conta');
+    var cred = lupa.querySelector('.mel-com-cred');
+    var fig = lupa.querySelector('.mel-com-fig');
+    var btX = lupa.querySelector('.mel-com-x');
+    var btAnt = lupa.querySelector('.mel-com-ant');
+    var btProx = lupa.querySelector('.mel-com-prox');
+    var atual = 0;
+    var voltarPara = null;
+
+    /* Com uma foto só não há para onde ir: as setas saem de cena em vez de
+       ficarem lá girando no mesmo lugar. */
+    if (fotos.length < 2) { btAnt.hidden = true; btProx.hidden = true; }
+
+    function pintar(i) {
+      atual = (i + fotos.length) % fotos.length;
+      var f = fotos[atual];
+      alvo.src = f.src;
+      alvo.alt = f.alt;
+      conta.textContent = (atual + 1) + ' de ' + fotos.length;
+      cred.textContent = f.credito || PENDENTE;
+    }
+
+    function abrir(i) {
+      voltarPara = botoes[i] || null;
+      pintar(i);
+      lupa.hidden = false;
+      btX.focus();
+    }
+
+    function fechar() {
+      lupa.hidden = true;
+      if (voltarPara) voltarPara.focus();
+      voltarPara = null;
+    }
+
+    btX.addEventListener('click', fechar);
+    btAnt.addEventListener('click', function () { pintar(atual - 1); });
+    btProx.addEventListener('click', function () { pintar(atual + 1); });
+
+    /* Clicar no fundo fecha; clicar na foto, na legenda ou num botão, não. */
+    lupa.addEventListener('click', function (e) { if (e.target === lupa) fechar(); });
+
+    /* O foco fica preso enquanto o diálogo está aberto — sem isso o Tab escapa
+       para a página atrás, que continua no DOM. São quatro controles no máximo,
+       então a "armadilha" é a própria lista deles. */
+    lupa.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); fechar(); return; }
+      if (e.key === 'ArrowLeft' && fotos.length > 1) { e.preventDefault(); pintar(atual - 1); return; }
+      if (e.key === 'ArrowRight' && fotos.length > 1) { e.preventDefault(); pintar(atual + 1); return; }
+      if (e.key !== 'Tab') return;
+      var foco = [btX, btAnt, btProx].filter(function (b) { return !b.hidden; });
+      var k = foco.indexOf(document.activeElement);
+      e.preventDefault();
+      if (k < 0) { foco[0].focus(); return; }
+      foco[(k + (e.shiftKey ? -1 : 1) + foco.length) % foco.length].focus();
+    });
+
+    /* Arrastar no toque anda entre as fotos. 40px é o piso para não confundir
+       com o toque parado que só quis fechar. O eixo importa: um arrasto mais
+       vertical do que horizontal é rolagem, e não troca foto nenhuma. */
+    var x0 = null, y0 = null;
+    fig.addEventListener('touchstart', function (e) {
+      x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+    }, { passive: true });
+    fig.addEventListener('touchend', function (e) {
+      if (x0 === null || fotos.length < 2) return;
+      var dx = e.changedTouches[0].clientX - x0;
+      var dy = e.changedTouches[0].clientY - y0;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) pintar(atual + (dx < 0 ? 1 : -1));
+      x0 = null; y0 = null;
+    }, { passive: true });
+  }
+
   function iniciar() {
     document.querySelectorAll('[data-mel="carrossel"]').forEach(iniciarCarrossel);
     iniciarFileira();
     iniciarSobre();
+    /* Só faz algo onde existe .mel-com-grade, que hoje é só a home. */
+    iniciarLupaComunidade();
     /* Só fazem algo em /polen: os alvos data-mel="polen-*" não existem em
        nenhuma outra página, então saem no primeiro if. */
     iniciarHeroPolen();
     iniciarScrollytellingPolen();
     iniciarSeletorPolen();
-    /* Só faz algo em /bee: [data-mel="bee-hero"] não existe em nenhuma outra
-       página, então sai na primeira linha. */
+    /* Só fazem algo em /bee: [data-mel="bee-hero"] e [data-mel-rev] não existem
+       em nenhuma outra página, então as duas saem na primeira linha. */
     iniciarHeroBee();
+    iniciarRevelarBee();
     iniciarFaq();
     iniciarSacola();
     iniciarAviso();
@@ -1571,6 +1754,9 @@ ${require('./bee-interacoes.js').js()}
        do que o template já tem na faixa. */
     iniciarPerfil();
     iniciarNavRetratil();
+    /* Depois de iniciarPerfil: os links da barra nascem ali, e o tema pinta
+       eles. Sai sozinho em página sem região clara. */
+    iniciarTemaNavbar();
 
     /* O vídeo pode ser bloqueado pelo navegador: nesse caso fica o poster,
        que o atributo já garante. Com reduced-motion nem tenta tocar. */

@@ -16,6 +16,9 @@
     if (!trilho || slides.length < 2) return;
 
     var atual = 0, timer = null, pausado = false;
+    /* "sobre" é o ponteiro em cima. O foco não precisa de variável: o próprio
+       document.activeElement responde, e ele não mente sobre onde está. */
+    var sobre = false;
     var INTERVALO = 6000;
 
     function mostrar(i, anunciar) {
@@ -37,6 +40,18 @@
       // Sem rotação automática para quem pediu menos movimento: o briefing
       // exige pausa acessível, e mover sozinho contraria a preferência.
       if (pausado || menosMovimento.matches) return;
+      /* NÃO RE-ARMA ENQUANTO A PESSOA ESTÁ DENTRO — ponteiro em cima ou foco
+         num dos controles.
+
+         Sem esta linha o carrossel tinha um furo que só aparece operando: cada
+         seta, dot e tecla termina chamando agendar(), e agendar() religava o
+         timer mesmo com o foco dentro. Medido pelo qa-carrossel: com o foco no
+         botão "seguinte", o banner pulou sozinho do slide 2 para o 0 seis
+         segundos depois. Quem navega por teclado via o conteúdo trocar debaixo
+         da própria mão — exatamente o que pausar no hover e no foco existe
+         para impedir. Os listeners de mouseenter/focusin já paravam; o que
+         faltava era o guarda no religamento. */
+      if (sobre || raiz.contains(document.activeElement)) return;
       timer = setInterval(function () { mostrar(atual + 1, false); }, INTERVALO);
     }
     function parar() { if (timer) { clearInterval(timer); timer = null; } }
@@ -65,10 +80,17 @@
     });
 
     /* pausa ao passar o mouse e ao focar, retoma ao sair */
-    raiz.addEventListener('mouseenter', parar);
-    raiz.addEventListener('mouseleave', agendar);
+    raiz.addEventListener('mouseenter', function () { sobre = true; parar(); });
+    raiz.addEventListener('mouseleave', function () { sobre = false; agendar(); });
     raiz.addEventListener('focusin', parar);
-    raiz.addEventListener('focusout', agendar);
+    /* relatedTarget é para onde o foco FOI. Se ainda está dentro do carrossel,
+       o foco só andou de um controle para o outro e não há nada a retomar —
+       sem esta guarda, tabular entre as setas religaria o timer por um
+       instante a cada salto. */
+    raiz.addEventListener('focusout', function (e) {
+      if (raiz.contains(e.relatedTarget)) return;
+      agendar();
+    });
 
     /* swipe */
     var x0 = null, y0 = null;
@@ -1215,6 +1237,92 @@
      Ver o cabeçalho de tools/perfil.js para o que esta autenticação é (uma
      demonstração local honesta) e o que falta para virar autenticação de
      verdade. Aqui embaixo estão só as decisões de comportamento. */
+
+  /* ====== TEMA DA NAVBAR: um controlador, e só um ======
+     Escreve data-mel-nav="claro" ou "escuro" no <html>. Quem pinta é o CSS
+     (ver "TEMA DA NAVBAR" em tools/perfil.js); esta função não toca em cor,
+     em classe de elemento nem em estilo inline.
+
+     POR QUE GEOMETRIA E NÃO IntersectionObserver.
+     O IO responde "entrou/saiu de uma faixa", e só dispara nas bordas dessa
+     faixa. O que a barra precisa saber é outra coisa: "qual região está
+     debaixo da minha meia-altura AGORA", com uma zona morta em volta do limite
+     para não trocar de cor com um tremido de trackpad. Esses dois limiares — o
+     de virar claro e o de virar escuro — são pontos diferentes, e faixa de IO
+     só tem duas bordas: para expressar histerese com IO seriam necessários
+     sentinelas ou dois observadores, que é mais peça para manter e mais jeito
+     de dessincronizar. A conta geométrica dá a resposta exata com três
+     getBoundingClientRect, e a decisão é uma função pura da posição — o mesmo
+     scroll sempre dá o mesmo tema, rolando devagar, rápido ou para trás.
+
+     UM listener de rolagem, passivo, coalescido em requestAnimationFrame, e
+     ele só é instalado em página que TEM região clara. No site escuro inteiro
+     esta função sai na segunda linha sem instalar nada. */
+  function iniciarTemaNavbar() {
+    var claras = [].slice.call(document.querySelectorAll('[data-mel-tema="claro"]'));
+    if (!claras.length) return;
+
+    var raiz = document.documentElement;
+    var barra = document.querySelector('.framer-1gfj5qd-container')
+             || document.querySelector('nav[data-framer-name^="Navigation"]');
+    if (!barra) return;
+
+    /* FOLGA cobre o vão de 10px que o stack do template deixa ENTRE seções
+       (flex column com gap:10px). Sem ela, ao passar de uma região clara para
+       a região clara seguinte a barra piscaria de escuro por 10px de rolagem —
+       um defeito que só aparece na /bee, que tem três regiões claras seguidas.
+       HISTERESE é a zona morta: uma vez claro, o limite para voltar a escuro
+       desce 18px; uma vez escuro, o limite para virar claro sobe 18px. São 36px
+       de folga total, e é isso que impede a barra de alternar quando o usuário
+       para exatamente em cima de uma fronteira. */
+    var FOLGA = 14;
+    var HISTERESE = 18;
+    var tema = null;
+    var pendente = false;
+
+    function decidir() {
+      /* A meia-altura da barra, medida a cada quadro em que se decide: a altura
+         muda entre breakpoints e a barra retrátil translada, mas o que importa
+         é a faixa que ela ocupa quando visível, não onde ela está escondida. */
+      var meia = (barra.getBoundingClientRect().height || 81) / 2;
+      var linha = meia + (tema === 'claro' ? -HISTERESE : HISTERESE);
+      for (var i = 0; i < claras.length; i++) {
+        var r = claras[i].getBoundingClientRect();
+        if (r.top - FOLGA <= linha && r.bottom + FOLGA > linha) return 'claro';
+      }
+      return 'escuro';
+    }
+
+    function pintar() {
+      pendente = false;
+      /* Com o menu aberto o tema CONGELA. O painel é ancorado na barra e a
+         rolagem fica travada, então na prática nada muda debaixo dela — mas se
+         algo mudar (um resize, um teclado virtual abrindo), trocar a cor da
+         barra com o menu em cima dela é mudança de contraste sem causa visível
+         para quem está lendo o menu. */
+      if (document.querySelector('.mel-menu')) return;
+      var novo = decidir();
+      if (novo === tema) return;
+      tema = novo;
+      raiz.setAttribute('data-mel-nav', novo);
+    }
+
+    function agendar() {
+      if (pendente) return;
+      pendente = true;
+      requestAnimationFrame(pintar);
+    }
+
+    /* O primeiro cálculo é síncrono e não passa pelo rAF: se o navegador
+       restaurou a rolagem no meio da página, o tema certo tem que estar posto
+       antes do próximo quadro, não um quadro depois. */
+    pintar();
+    window.addEventListener('scroll', agendar, { passive: true });
+    window.addEventListener('resize', agendar, { passive: true });
+    /* As fotos entram depois e empurram o layout: sem remedir, as regiões
+       ficam com a geometria velha e o tema troca na altura errada. */
+    window.addEventListener('load', agendar);
+  }
 
   var PERFIL_ICONES = {"usuario":"M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z","entrar":"M141.66,133.66l-40,40A8,8,0,0,1,88,168V136H24a8,8,0,0,1,0-16H88V88a8,8,0,0,1,13.66-5.66l40,40A8,8,0,0,1,141.66,133.66ZM192,32H136a8,8,0,0,0,0,16h48V208H136a8,8,0,0,0,0,16h56a8,8,0,0,0,8-8V40A8,8,0,0,0,192,32Z","criar":"M256,136a8,8,0,0,1-8,8H232v16a8,8,0,0,1-16,0V144H200a8,8,0,0,1,0-16h16V112a8,8,0,0,1,16,0v16h16A8,8,0,0,1,256,136Zm-57.87,58.85a8,8,0,0,1-12.26,10.3C165.75,181.19,138.09,168,108,168s-57.75,13.19-77.87,37.15a8,8,0,0,1-12.25-10.3c14.94-17.78,33.52-30.41,54.17-37.17a68,68,0,1,1,71.9,0C164.6,164.44,183.18,177.07,198.13,194.85ZM108,152a52,52,0,1,0-52-52A52.06,52.06,0,0,0,108,152Z","sacola":"M216,64H176a48,48,0,0,0-96,0H40A16,16,0,0,0,24,80V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V80A16,16,0,0,0,216,64ZM128,32a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm88,168H40V80H216V200Z","sair":"M112,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h56a8,8,0,0,1,0,16H56V208h48A8,8,0,0,1,112,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L196.69,120H112a8,8,0,0,0,0,16h84.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,221.66,122.34Z","fechar":"M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"};
 
@@ -2420,6 +2528,23 @@
        rolagem, e o clientWidth medido ali fica maior que o real. */
     window.addEventListener('load', sangrar);
 
+    /* O VÍDEO. Quase nada sobra para cá, e isso é de propósito: quem escolhe a
+       versão (960 ou 576) e quem decide se existe <source> é o <script>
+       síncrono que vem logo depois do elemento no HTML — ele roda durante o
+       parse, antes de o navegador buscar byte nenhum. Ver tools/bee.js.
+
+       O que só dá para fazer daqui é o depois: se a pessoa LIGAR "menos
+       movimento" com a página aberta, o loop tem de parar sem recarregar. Volta
+       ao quadro 1, que é o mesmo do poster — parar no meio deixaria a Bee
+       torta e num quadro que ninguém escolheu. */
+    var video = hero.querySelector('[data-mel="bee-hero-video"]');
+    if (video && menosMovimento.addEventListener) {
+      menosMovimento.addEventListener('change', function (ev) {
+        if (ev.matches) { video.pause(); try { video.currentTime = 0; } catch (e) {} }
+        else if (video.querySelector('source')) { var p = video.play(); if (p && p.catch) p.catch(function () {}); }
+      });
+    }
+
     /* CTA: rola suave até a escolha da cor. Com movimento reduzido salta
        direto — a preferência vale para rolagem também, não só para animação. */
     var cta = hero.querySelector('[data-mel="bee-hero-cta"]');
@@ -2434,6 +2559,65 @@
         block: 'start'
       });
     });
+  }
+
+  /* ====== /bee — revelação por rolagem ======
+     UM observador para a página inteira, e nenhum listener de scroll: quem
+     conta quadro a quadro na rolagem é o navegador, de graça, fora da thread
+     principal. Sai imediatamente em qualquer outra rota — data-mel-rev não
+     existe em nenhum outro documento do site.
+
+     O QUE ESTA FUNÇÃO PODE E NÃO PODE FAZER. Ela só ESCREVE data-mel-visto.
+     Não esconde nada, nunca remove o atributo e não mexe em estilo inline: o
+     estado inicial é do CSS e depende de html.mel-bee-rev, que é escrito por um
+     <script> síncrono no topo do conteúdo (ver SINALIZADOR em tools/bee.js).
+     Se este arquivo não carregar, nada fica escondido.
+
+     REVELADO É DEFINITIVO — e é por isso que o unobserve vem junto do atributo,
+     na mesma linha. Sem ele, um elemento parado exatamente no limite da
+     viewport recebe entrada e saída a cada quadro de rolagem e fica piscando;
+     com ele, o navegador para de olhar para a peça no instante em que ela
+     aparece, e nem rolagem reversa nem resize trazem o estado escondido de
+     volta. */
+  function iniciarRevelarBee() {
+    var alvos = [].slice.call(document.querySelectorAll('[data-mel-rev]'));
+    if (!alvos.length) return;
+
+    function revelar(el) { el.setAttribute('data-mel-visto', ''); }
+
+    /* Motor sem IntersectionObserver, ou preferência por menos movimento:
+       tudo revelado de uma vez. A preferência vale para a espera também — quem
+       pediu menos movimento não deveria precisar rolar para ler. O CSS já
+       garante isto sozinho; aqui é a segunda tranca, para o atributo ficar
+       coerente com o que está na tela. */
+    if (!window.IntersectionObserver || menosMovimento.matches) {
+      alvos.forEach(revelar);
+      return;
+    }
+
+    var obs = new IntersectionObserver(function (ents) {
+      for (var k = 0; k < ents.length; k++) {
+        var e = ents[k];
+        /* boundingClientRect.top < 0 cobre o que JÁ passou por cima da tela:
+           recarga com âncora (#modelos vem do CTA do hero) e restauração de
+           rolagem do navegador. Sem esta metade, quem volta à página no meio
+           dela encontra buracos acima do ponto em que parou, e eles só
+           apareceriam rolando para trás. */
+        if (e.isIntersecting || e.boundingClientRect.top < 0) {
+          revelar(e.target);
+          obs.unobserve(e.target);
+        }
+      }
+    }, {
+      /* Margem e limiar fixos, escolhidos uma vez e iguais para todo mundo:
+         -10% embaixo faz a peça começar a entrar um pouco depois de encostar na
+         borda, que é o que dá a leitura de "revelada ao entrar" em vez de "já
+         estava lá"; 12% é baixo o bastante para o palco de 517px disparar cedo
+         e alto o bastante para uma linha de texto não disparar de raspão. */
+      rootMargin: '0px 0px -10% 0px',
+      threshold: 0.12
+    });
+    alvos.forEach(function (el) { obs.observe(el); });
   }
 
 
@@ -2566,18 +2750,179 @@
     });
   }
 
+  /* ------------- Memórias da Colméia: a galeria vira interativa -------------
+     O topicos_alteracoes.pdf pede, na home, "uma galeria INTERATIVA com
+     fotografias enviadas por usuários". Interativo aqui é o que a palavra
+     significa numa galeria: abrir a foto, andar entre elas, sair. Não é
+     animação a mais.
+
+     🔴 PROGRESSIVO, E É ISSO QUE DECIDE ONDE O MARKUP NASCE.
+     O que vem no HTML é <li><img></li>, e é isso que continua valendo sem
+     JavaScript: as oito fotos aparecem, e não há um único controle focável que
+     não faça nada. O botão de cada foto e o diálogo são criados AQUI — então só
+     existem onde podem funcionar. Foi a lição do "hero em branco" e a mesma
+     regra do portão da /bee, aplicada ao contrário: lá o JS ESCONDE o que ele
+     sabe revelar; aqui ele ACRESCENTA o que sabe operar.
+
+     A LEGENDA JÁ TEM O LUGAR DO CRÉDITO, e ele não é inventado. Enquanto não
+     houver "@usuário · cidade" autorizado (está em PENDENTES do
+     melcam.config.json), a linha diz que a identificação está a confirmar. Cada
+     <li> pode trazer data-mel-credito="..." e ele ganha da frase pendente — é
+     por ali que o dado real entra, sem tocar nesta função. */
+  function iniciarLupaComunidade() {
+    var grade = document.querySelector('.mel-com-grade');
+    if (!grade) return;
+    var itens = [].slice.call(grade.querySelectorAll('.mel-com-item'));
+    if (!itens.length) return;
+
+    var PENDENTE = 'Autoria e cidade a confirmar com quem enviou.';
+    var X = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    var ANT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4 L7 12 L15 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var PROX = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 L17 12 L9 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    /* Primeiro o inventário, depois os botões: um <li> sem <img> não vira foto,
+       e se o índice do botão viesse do forEach dos <li> ele passaria a apontar
+       para a foto errada a partir do primeiro buraco. */
+    var fotos = [];
+    itens.forEach(function (li) {
+      var img = li.querySelector('img');
+      if (!img) return;
+      fotos.push({
+        li: li, img: img,
+        src: img.getAttribute('src'),
+        alt: img.getAttribute('alt') || 'Foto da comunidade Melcam',
+        credito: li.getAttribute('data-mel-credito') || '',
+      });
+    });
+    if (!fotos.length) return;
+
+    var botoes = fotos.map(function (f, i) {
+      var bt = document.createElement('button');
+      bt.type = 'button';
+      bt.className = 'mel-com-botao';
+      bt.setAttribute('aria-haspopup', 'dialog');
+      bt.setAttribute('aria-label', 'Ampliar a foto ' + (i + 1) + ' de ' + fotos.length + ' da comunidade');
+      f.li.insertBefore(bt, f.img);
+      bt.appendChild(f.img);
+      bt.addEventListener('click', function () { abrir(i); });
+      return bt;
+    });
+
+    var lupa = document.createElement('div');
+    lupa.className = 'mel-com-lupa';
+    lupa.setAttribute('role', 'dialog');
+    lupa.setAttribute('aria-modal', 'true');
+    lupa.setAttribute('aria-label', 'Foto da comunidade, ampliada');
+    lupa.hidden = true;
+    lupa.innerHTML =
+      '<button type="button" class="mel-com-x" aria-label="Fechar">' + X + '</button>'
+      + '<button type="button" class="mel-com-nav mel-com-ant" aria-label="Foto anterior">' + ANT + '</button>'
+      + '<button type="button" class="mel-com-nav mel-com-prox" aria-label="Próxima foto">' + PROX + '</button>'
+      + '<figure class="mel-com-fig">'
+      /* GIF transparente de 1x1, embutido, e não src vazio. Um <img> SEM src é
+         contado como imagem quebrada por qualquer auditoria — o qa-rede
+         acusava uma quebrada nas NOVE rotas por causa desta linha, porque a
+         lupa é montada em toda página — e ainda desenha o ícone de quebrado
+         com o texto do alt por cima. É a mesma armadilha já registrada em
+         tools/polen.js, e a mesma solução: imagem válida, invisível e sem
+         nenhuma ida à rede. O src real entra quando alguém abre uma foto. */
+      +   '<img alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">'
+      +   '<figcaption class="mel-com-cap">'
+      +     '<span class="mel-com-conta"></span>'
+      +     '<span class="mel-com-cred"></span>'
+      +   '</figcaption>'
+      + '</figure>';
+    document.body.appendChild(lupa);
+
+    var alvo = lupa.querySelector('.mel-com-fig img');
+    var conta = lupa.querySelector('.mel-com-conta');
+    var cred = lupa.querySelector('.mel-com-cred');
+    var fig = lupa.querySelector('.mel-com-fig');
+    var btX = lupa.querySelector('.mel-com-x');
+    var btAnt = lupa.querySelector('.mel-com-ant');
+    var btProx = lupa.querySelector('.mel-com-prox');
+    var atual = 0;
+    var voltarPara = null;
+
+    /* Com uma foto só não há para onde ir: as setas saem de cena em vez de
+       ficarem lá girando no mesmo lugar. */
+    if (fotos.length < 2) { btAnt.hidden = true; btProx.hidden = true; }
+
+    function pintar(i) {
+      atual = (i + fotos.length) % fotos.length;
+      var f = fotos[atual];
+      alvo.src = f.src;
+      alvo.alt = f.alt;
+      conta.textContent = (atual + 1) + ' de ' + fotos.length;
+      cred.textContent = f.credito || PENDENTE;
+    }
+
+    function abrir(i) {
+      voltarPara = botoes[i] || null;
+      pintar(i);
+      lupa.hidden = false;
+      btX.focus();
+    }
+
+    function fechar() {
+      lupa.hidden = true;
+      if (voltarPara) voltarPara.focus();
+      voltarPara = null;
+    }
+
+    btX.addEventListener('click', fechar);
+    btAnt.addEventListener('click', function () { pintar(atual - 1); });
+    btProx.addEventListener('click', function () { pintar(atual + 1); });
+
+    /* Clicar no fundo fecha; clicar na foto, na legenda ou num botão, não. */
+    lupa.addEventListener('click', function (e) { if (e.target === lupa) fechar(); });
+
+    /* O foco fica preso enquanto o diálogo está aberto — sem isso o Tab escapa
+       para a página atrás, que continua no DOM. São quatro controles no máximo,
+       então a "armadilha" é a própria lista deles. */
+    lupa.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); fechar(); return; }
+      if (e.key === 'ArrowLeft' && fotos.length > 1) { e.preventDefault(); pintar(atual - 1); return; }
+      if (e.key === 'ArrowRight' && fotos.length > 1) { e.preventDefault(); pintar(atual + 1); return; }
+      if (e.key !== 'Tab') return;
+      var foco = [btX, btAnt, btProx].filter(function (b) { return !b.hidden; });
+      var k = foco.indexOf(document.activeElement);
+      e.preventDefault();
+      if (k < 0) { foco[0].focus(); return; }
+      foco[(k + (e.shiftKey ? -1 : 1) + foco.length) % foco.length].focus();
+    });
+
+    /* Arrastar no toque anda entre as fotos. 40px é o piso para não confundir
+       com o toque parado que só quis fechar. O eixo importa: um arrasto mais
+       vertical do que horizontal é rolagem, e não troca foto nenhuma. */
+    var x0 = null, y0 = null;
+    fig.addEventListener('touchstart', function (e) {
+      x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+    }, { passive: true });
+    fig.addEventListener('touchend', function (e) {
+      if (x0 === null || fotos.length < 2) return;
+      var dx = e.changedTouches[0].clientX - x0;
+      var dy = e.changedTouches[0].clientY - y0;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) pintar(atual + (dx < 0 ? 1 : -1));
+      x0 = null; y0 = null;
+    }, { passive: true });
+  }
+
   function iniciar() {
     document.querySelectorAll('[data-mel="carrossel"]').forEach(iniciarCarrossel);
     iniciarFileira();
     iniciarSobre();
+    /* Só faz algo onde existe .mel-com-grade, que hoje é só a home. */
+    iniciarLupaComunidade();
     /* Só fazem algo em /polen: os alvos data-mel="polen-*" não existem em
        nenhuma outra página, então saem no primeiro if. */
     iniciarHeroPolen();
     iniciarScrollytellingPolen();
     iniciarSeletorPolen();
-    /* Só faz algo em /bee: [data-mel="bee-hero"] não existe em nenhuma outra
-       página, então sai na primeira linha. */
+    /* Só fazem algo em /bee: [data-mel="bee-hero"] e [data-mel-rev] não existem
+       em nenhuma outra página, então as duas saem na primeira linha. */
     iniciarHeroBee();
+    iniciarRevelarBee();
     iniciarFaq();
     iniciarSacola();
     iniciarAviso();
@@ -2588,6 +2933,9 @@
        do que o template já tem na faixa. */
     iniciarPerfil();
     iniciarNavRetratil();
+    /* Depois de iniciarPerfil: os links da barra nascem ali, e o tema pinta
+       eles. Sai sozinho em página sem região clara. */
+    iniciarTemaNavbar();
 
     /* O vídeo pode ser bloqueado pelo navegador: nesse caso fica o poster,
        que o atributo já garante. Com reduced-motion nem tenta tocar. */

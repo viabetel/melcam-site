@@ -42,7 +42,12 @@ const BEE = cfg.produtos.bee;
 // Copy aprovada, a mesma do <h1> da /bee (tools/bee.js). Não é frase nova:
 // é a promessa do produto, repetida onde a decisão de compra começa.
 const CONCEITO = 'Pequena o bastante para ir junto.';
-const CTA = 'Conheça a Bee';
+// 14/08/2026: era "Conheça a Bee". O topicos_alteracoes.pdf nomeia os dois
+// botões da grade — "Conheça" e "Ver Modelos" —, e é a palavra do cliente que
+// fica. O nome do produto não se perde: o <h3> "Bee" está no mesmo cartão, e o
+// nome acessível do link é o texto inteiro dele ("Bee · Pequena o bastante para
+// ir junto. · R$ 299,00 · Conheça"), então ninguém ouve um "Conheça" solto.
+const CTA = 'Conheça';
 
 const MARCA = 'data-mel-bee-card';
 

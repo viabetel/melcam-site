@@ -82,9 +82,136 @@ function css() {
    Duas peças: o controle na barra e o painel que desce dele. O painel
    repete o vocabulário do menu de navegação (carvão, raio 6, a mesma
    sombra), porque são vizinhos de 40px e ler como dois sistemas diferentes
-   seria o defeito. Tudo com prefixo mel-, nada tocando classe do Framer. */
+   seria o defeito. Tudo com prefixo mel-, nada tocando classe do Framer.
 
-/* A linha da navbar tem 27px de altura e o botão precisa de 44px de alvo de
+   ⚠️ ESTA LINHA DE ABERTURA É FRONTEIRA DE BUILD, não título.
+   tools/sincronizar-perfil.js acha o bloco do perfil na folha procurando
+   exatamente por ela e substitui daqui até o marcador da /polen. Se ela deixar
+   de ser a PRIMEIRA coisa que css() emite, a segunda sincronia passa a inserir
+   um bloco novo sem apagar o velho, e a folha duplica em silêncio. Conteúdo
+   novo entra DEPOIS dela.
+
+   14/08/2026 — o bloco cresceu: além da conta e da sacola, ele carrega agora o
+   TEMA DA NAVBAR, logo abaixo. Os dois assuntos moram juntos porque são a
+   mesma barra, e porque o botão de conta é um dos elementos que invertem. */
+
+/* ============ TEMA DA NAVBAR: inversão por região — 14/08/2026 ============
+   O PDF pede header fixo com inversão dinâmica: marca, tipografia e ícones
+   claros sobre fundo escuro, escuros sobre fundo claro, conforme a rolagem.
+
+   O QUE HAVIA ANTES, e por que não bastava. A navbar era carvão com tinta de
+   papel em todo o site, e a /bee tinha um bloco próprio que a virava do avesso
+   — papel com tinta de carvão — **na página inteira**. Isso resolvia a primeira
+   dobra da /bee, que é clara, e criava outro defeito adiante: de "Destaques"
+   para baixo a /bee volta ao editorial escuro, e ali a barra clara virava uma
+   lasca acesa atravessando uma página escura. Medido em /bee, scrollY 2500:
+   fundo da nav rgb(251,247,238) sobre uma seção rgb(34,30,23).
+
+   COMO O TEMA É DECIDIDO. Não por página, não por índice de seção, não por
+   "primeira seção" e não por cor lida do fundo — todas essas quebram quando
+   uma página mistura claro e escuro, que é justamente o caso da /bee e o da
+   grade de produtos da home. Quem decide é uma **região explicitamente
+   marcada**: só quem é claro leva data-mel-tema="claro" no HTML. O resto do
+   site é escuro e continua sendo o padrão, sem marcação nenhuma.
+
+   TRÊS CAMADAS, NESTA ORDEM DE PRECEDÊNCIA:
+     1  os tokens em body — o escuro, que vale para tudo;
+     2  o padrão da página, por classe (body.mel-pagina-bee abre em claro).
+        É ELE que garante contraste certo no PRIMEIRO PAINT, sem JavaScript:
+        a barra já nasce com o tema da região que estará debaixo dela em
+        scrollY 0;
+     3  html[data-mel-nav], escrito pelo controlador. Vence a camada 2 por
+        construção — "html[...] body" tem uma especificidade a mais que
+        "body.classe" —, então nunca precisou de !important para se impor.
+
+   As regras abaixo consomem só os tokens. Nenhuma cor nova entra: os valores
+   claros são os mesmos que a /bee já usava, e os escuros são os que a barra já
+   tinha, medidos antes de mexer (fundo rgb(34,30,23), tinta rgb(251,247,238)). */
+body{
+  --mel-nav-fundo:${P.carvao};
+  --mel-nav-tinta:${P.papel};
+  --mel-nav-realce:${P.mel};
+  --mel-nav-realce-fundo:rgba(251,247,238,.10);
+  --mel-nav-borda:rgba(0,0,0,.05);
+  --mel-nav-foco:${P.mel};
+  /* O selo da sacola não inverte junto com a tinta: no escuro ele é mel sobre
+     carvão, no claro ele é carvão sobre papel. Nos dois casos o anel é da cor
+     da barra, que é o que o recorta do ícone. */
+  --mel-nav-selo-fundo:${P.mel};
+  --mel-nav-selo-tinta:${P.carvao};
+}
+/* O tema claro, num lugar só. #8A6A12 é o realce: mel sobre papel dá 1,88:1 e
+   sumiria; este dá 4,73:1, e é o mesmo eyebrow que a /bee já usa. */
+body.mel-pagina-bee,
+html[data-mel-nav="claro"] body{
+  --mel-nav-fundo:${P.papel};
+  --mel-nav-tinta:${P.carvao};
+  --mel-nav-realce:#8A6A12;
+  --mel-nav-realce-fundo:rgba(34,30,23,.06);
+  --mel-nav-borda:rgba(34,30,23,.12);
+  --mel-nav-foco:${P.carvao};
+  --mel-nav-selo-fundo:${P.carvao};
+  --mel-nav-selo-tinta:${P.papel};
+}
+/* E o caminho de volta: o controlador precisa conseguir DESFAZER o padrão
+   claro de uma página quando a barra sai da região clara. Sem esta regra a
+   /bee ficaria presa no claro, que é exatamente o defeito de origem. */
+html[data-mel-nav="escuro"] body{
+  --mel-nav-fundo:${P.carvao};
+  --mel-nav-tinta:${P.papel};
+  --mel-nav-realce:${P.mel};
+  --mel-nav-realce-fundo:rgba(251,247,238,.10);
+  --mel-nav-borda:rgba(0,0,0,.05);
+  --mel-nav-foco:${P.mel};
+  --mel-nav-selo-fundo:${P.mel};
+  --mel-nav-selo-tinta:${P.carvao};
+}
+
+/* 🔴 SÃO DUAS <nav>, COM NOMES DIFERENTES, e ignorar isso já custou uma
+   correção inteira (registrado em progresso.md, 13/08): o template traz
+   data-framer-name="Navigation Color" no desktop e "Navigation Mobile Coor" no
+   mobile, com o nome truncado assim mesmo no export. Escopar pela primeira
+   deixava o celular de fora — e como o ícone já tinha trocado de cor, o
+   resultado era hambúrguer invisível, ainda clicável. O seletor casa pelo
+   PREFIXO. O !important é porque o fundo vem de um token no atributo style da
+   <nav>, e folha só vence style inline com ele. */
+nav[data-framer-name^="Navigation"],
+.framer-1gfj5qd-container{
+  background-color:var(--mel-nav-fundo) !important;
+  /* A troca é suave para não piscar entre uma região e a seguinte, e some com
+     movimento reduzido (regra no fim deste bloco). 240ms é o tempo em que a
+     barra retrátil já se move: as duas mudanças ficam no mesmo compasso. */
+  transition:background-color 240ms ease;
+}
+nav[data-framer-name^="Navigation"]{ --border-color:var(--mel-nav-borda) }
+/* As três barrinhas do hambúrguer, pintadas por token no style inline. */
+[data-framer-name="Meniu"] [data-framer-name="1"],
+[data-framer-name="Meniu"] [data-framer-name="2"],
+[data-framer-name="Meniu"] [data-framer-name="3"]{
+  background-color:var(--mel-nav-tinta) !important;
+  transition:background-color 240ms ease;
+}
+/* O logo é um <symbol> só, referenciado por cinco <use> na página. Ele pinta em
+   currentColor (tools/logo.js), então trocar a cor AQUI, na instância da
+   navbar, não encosta na do rodapé. */
+nav [data-framer-name="MELCAM"]{ color:var(--mel-nav-tinta); transition:color 240ms ease }
+nav a:focus-visible,
+nav button:focus-visible,
+nav [tabindex]:focus-visible{ outline:2px solid var(--mel-nav-foco); outline-offset:3px }
+
+@media (prefers-reduced-motion:reduce){
+  nav[data-framer-name^="Navigation"],
+  .framer-1gfj5qd-container,
+  nav [data-framer-name="MELCAM"],
+  [data-framer-name="Meniu"] [data-framer-name="1"],
+  [data-framer-name="Meniu"] [data-framer-name="2"],
+  [data-framer-name="Meniu"] [data-framer-name="3"],
+  .mel-nav-link,
+  .mel-perfil-bt{ transition:none }
+}
+
+/* ---- o botão de conta e o painel que desce dele ----
+   A linha da navbar tem 27px de altura e o botão precisa de 44px de alvo de
    toque, então ele transborda ~8px para cada lado. Sem esta regra o transbordo
    é RECORTADO onde houver overflow:hidden: o clique funciona (a área existe),
    mas o realce redondo do hover aparece cortado em cima e embaixo. O :has
@@ -97,13 +224,13 @@ nav [data-framer-name="Section Icon"]:has(.mel-perfil-bt){ overflow:visible }
   position:relative; display:inline-flex; align-items:center; justify-content:center;
   width:44px; height:44px; margin:-10px 0;   /* 44px de alvo dentro de uma faixa de 24 */
   padding:0; border:0; background:none; cursor:pointer;
-  color:${P.papel}; border-radius:999px;
+  color:var(--mel-nav-tinta); border-radius:999px;
   transition:color 200ms ease, background 200ms ease, transform 200ms ease;
   -webkit-tap-highlight-color:transparent;
 }
-.mel-perfil-bt:hover{ color:${P.mel}; background:rgba(251,247,238,.08) }
+.mel-perfil-bt:hover{ color:var(--mel-nav-realce); background:var(--mel-nav-realce-fundo) }
 .mel-perfil-bt:active{ transform:scale(.94) }
-.mel-perfil-bt[aria-expanded="true"]{ color:${P.mel} }
+.mel-perfil-bt[aria-expanded="true"]{ color:var(--mel-nav-realce) }
 .mel-perfil-bt svg{ display:block; width:24px; height:24px }
 
 /* Contador da sacola: bolinha de mel no canto do ícone. Ela repete um número
@@ -112,9 +239,10 @@ nav [data-framer-name="Section Icon"]:has(.mel-perfil-bt){ overflow:visible }
 .mel-perfil-selo{
   position:absolute; top:5px; right:4px; min-width:16px; height:16px; padding:0 4px;
   display:none; align-items:center; justify-content:center;
-  background:${P.mel}; color:${P.carvao}; border-radius:999px;
+  background:var(--mel-nav-selo-fundo); color:var(--mel-nav-selo-tinta); border-radius:999px;
   font-family:"Area",sans-serif; font-size:.625rem; font-weight:700; line-height:1;
-  box-shadow:0 0 0 2px ${P.carvao};
+  /* o anel é da cor da barra: é ele que recorta o selo do ícone embaixo */
+  box-shadow:0 0 0 2px var(--mel-nav-fundo);
 }
 .mel-perfil-selo[data-tem]{ display:flex }
 
@@ -146,15 +274,15 @@ nav [data-framer-name="Section Icon"]:has(.mel-perfil-bt){ overflow:visible }
 .mel-nav-link{
   display:inline-flex; align-items:center; height:36px; margin-block:-5px;
   padding:0 14px; border-radius:999px;
-  text-decoration:none; white-space:nowrap; color:${P.papel};
+  text-decoration:none; white-space:nowrap; color:var(--mel-nav-tinta);
   font-family:"Area",sans-serif; font-size:.85rem; font-weight:600; letter-spacing:.02em;
   transition:color 200ms ease, background 200ms ease;
   -webkit-tap-highlight-color:transparent;
 }
-.mel-nav-link:hover,.mel-nav-link:focus-visible{ background:rgba(251,247,238,.10); color:${P.mel} }
+.mel-nav-link:hover,.mel-nav-link:focus-visible{ background:var(--mel-nav-realce-fundo); color:var(--mel-nav-realce) }
 /* A página atual não se distingue só por cor: leva aria-current, que o leitor
    de tela anuncia, e o peso muda junto. Cor sozinha reprova. */
-.mel-nav-link[aria-current="page"]{ color:${P.mel}; font-weight:700 }
+.mel-nav-link[aria-current="page"]{ color:var(--mel-nav-realce); font-weight:700 }
 
 @media (min-width:1024px){
   nav [data-framer-name="Section "]:has(.mel-nav-links){
@@ -369,6 +497,92 @@ function js() {
      Ver o cabeçalho de tools/perfil.js para o que esta autenticação é (uma
      demonstração local honesta) e o que falta para virar autenticação de
      verdade. Aqui embaixo estão só as decisões de comportamento. */
+
+  /* ====== TEMA DA NAVBAR: um controlador, e só um ======
+     Escreve data-mel-nav="claro" ou "escuro" no <html>. Quem pinta é o CSS
+     (ver "TEMA DA NAVBAR" em tools/perfil.js); esta função não toca em cor,
+     em classe de elemento nem em estilo inline.
+
+     POR QUE GEOMETRIA E NÃO IntersectionObserver.
+     O IO responde "entrou/saiu de uma faixa", e só dispara nas bordas dessa
+     faixa. O que a barra precisa saber é outra coisa: "qual região está
+     debaixo da minha meia-altura AGORA", com uma zona morta em volta do limite
+     para não trocar de cor com um tremido de trackpad. Esses dois limiares — o
+     de virar claro e o de virar escuro — são pontos diferentes, e faixa de IO
+     só tem duas bordas: para expressar histerese com IO seriam necessários
+     sentinelas ou dois observadores, que é mais peça para manter e mais jeito
+     de dessincronizar. A conta geométrica dá a resposta exata com três
+     getBoundingClientRect, e a decisão é uma função pura da posição — o mesmo
+     scroll sempre dá o mesmo tema, rolando devagar, rápido ou para trás.
+
+     UM listener de rolagem, passivo, coalescido em requestAnimationFrame, e
+     ele só é instalado em página que TEM região clara. No site escuro inteiro
+     esta função sai na segunda linha sem instalar nada. */
+  function iniciarTemaNavbar() {
+    var claras = [].slice.call(document.querySelectorAll('[data-mel-tema="claro"]'));
+    if (!claras.length) return;
+
+    var raiz = document.documentElement;
+    var barra = document.querySelector('.framer-1gfj5qd-container')
+             || document.querySelector('nav[data-framer-name^="Navigation"]');
+    if (!barra) return;
+
+    /* FOLGA cobre o vão de 10px que o stack do template deixa ENTRE seções
+       (flex column com gap:10px). Sem ela, ao passar de uma região clara para
+       a região clara seguinte a barra piscaria de escuro por 10px de rolagem —
+       um defeito que só aparece na /bee, que tem três regiões claras seguidas.
+       HISTERESE é a zona morta: uma vez claro, o limite para voltar a escuro
+       desce 18px; uma vez escuro, o limite para virar claro sobe 18px. São 36px
+       de folga total, e é isso que impede a barra de alternar quando o usuário
+       para exatamente em cima de uma fronteira. */
+    var FOLGA = 14;
+    var HISTERESE = 18;
+    var tema = null;
+    var pendente = false;
+
+    function decidir() {
+      /* A meia-altura da barra, medida a cada quadro em que se decide: a altura
+         muda entre breakpoints e a barra retrátil translada, mas o que importa
+         é a faixa que ela ocupa quando visível, não onde ela está escondida. */
+      var meia = (barra.getBoundingClientRect().height || 81) / 2;
+      var linha = meia + (tema === 'claro' ? -HISTERESE : HISTERESE);
+      for (var i = 0; i < claras.length; i++) {
+        var r = claras[i].getBoundingClientRect();
+        if (r.top - FOLGA <= linha && r.bottom + FOLGA > linha) return 'claro';
+      }
+      return 'escuro';
+    }
+
+    function pintar() {
+      pendente = false;
+      /* Com o menu aberto o tema CONGELA. O painel é ancorado na barra e a
+         rolagem fica travada, então na prática nada muda debaixo dela — mas se
+         algo mudar (um resize, um teclado virtual abrindo), trocar a cor da
+         barra com o menu em cima dela é mudança de contraste sem causa visível
+         para quem está lendo o menu. */
+      if (document.querySelector('.mel-menu')) return;
+      var novo = decidir();
+      if (novo === tema) return;
+      tema = novo;
+      raiz.setAttribute('data-mel-nav', novo);
+    }
+
+    function agendar() {
+      if (pendente) return;
+      pendente = true;
+      requestAnimationFrame(pintar);
+    }
+
+    /* O primeiro cálculo é síncrono e não passa pelo rAF: se o navegador
+       restaurou a rolagem no meio da página, o tema certo tem que estar posto
+       antes do próximo quadro, não um quadro depois. */
+    pintar();
+    window.addEventListener('scroll', agendar, { passive: true });
+    window.addEventListener('resize', agendar, { passive: true });
+    /* As fotos entram depois e empurram o layout: sem remedir, as regiões
+       ficam com a geometria velha e o tema troca na altura errada. */
+    window.addEventListener('load', agendar);
+  }
 
   var PERFIL_ICONES = ${JSON.stringify(ICONES)};
 

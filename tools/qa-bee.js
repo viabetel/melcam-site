@@ -58,7 +58,10 @@ const SONDA = `(function(){
     ctaAltura: rct ? Math.round(rct.height) : null,
     ctaDestino: cta ? cta.getAttribute('href') : null,
     ctaTemAlvo: !!(cta && document.querySelector(cta.getAttribute('href'))),
-    forma: cx('.mel-bh-forma'), branca: cx('.mel-bh-branca'), amarela: cx('.mel-bh-amarela'),
+    /* .mel-bh-branca e .mel-bh-amarela saíram em 14/08/2026: os dois packshots
+       viraram um <video> só. Medir classe que não existe mais devolvia null e
+       enchia a lista de 'invisiveis' com fantasma. */
+    forma: cx('.mel-bh-forma'), video: cx('.mel-bh-video'),
     imagens: imgs.map(function (i) {
       var b = i.getBoundingClientRect();
       return { arq: i.currentSrc.split('/').pop(), nat: i.naturalWidth + 'x' + i.naturalHeight,
@@ -78,7 +81,7 @@ const SONDA = `(function(){
     animandoAinda: document.getAnimations
       ? document.getAnimations().filter(function (a) { return a.playState === 'running'; }).length : -1,
     /* nada pode continuar invisivel depois da entrada */
-    invisiveis: ['.mel-bh-forma', '.mel-bh-branca', '.mel-bh-amarela', '.mel-bh-tit',
+    invisiveis: ['.mel-bh-forma', '.mel-bh-video', '.mel-bh-tit',
                  '.mel-bh-txt', '.mel-bh-cta', '.mel-bh-apoio', '.mel-bh-cores']
       .filter(function (s) { var e = h.querySelector(s);
         return !e || Number(getComputedStyle(e).opacity) < 0.99; }),

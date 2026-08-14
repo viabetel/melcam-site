@@ -145,6 +145,97 @@ function sacola() {
 </section>`;
 }
 
+// ------------------------------------------- privacidade e termos, 14/08/2026
+//
+// POR QUE ESTAS DUAS PÁGINAS NASCERAM AGORA.
+// Não foi capricho de escopo: o rodapé linka para /privacidade e /termos em
+// TODAS as nove páginas, e as duas rotas serviam uma casca vazia do Framer —
+// <div id="main"></div> e mais nada, porque a hidratação React está desligada
+// (ver DECISAO DE ARQUITETURA em tools/aplicar.js). Medido: body com 3.475
+// bytes e ZERO caracteres de texto útil, sem navbar e sem rodapé. Ou seja, dois
+// links de suporte em cada página levavam a uma tela branca — é o "CTA falso"
+// que o pedido proíbe, e o pedido do rodapé não fecha sem isto.
+// As mesmas cascas existem em contact.html e faq.html; essas duas NÃO estão
+// linkadas de lugar nenhum (a ajuda aponta para /sobre#contato e /polen#faq),
+// então ficaram como estavam e viraram pendência registrada.
+//
+// O QUE ESTAS PÁGINAS NÃO FAZEM: não escrevem política de privacidade nem
+// termos de uso. Texto jurídico é o item "textos jurídicos: Privacidade,
+// Termos, Trocas e devoluções" de PENDENTES, e redigir cláusula em nome de uma
+// empresa é exatamente o tipo de invenção que o projeto proíbe — aqui com risco
+// regulatório, não só editorial. O que elas fazem é o que a /acessorios já fazia
+// desde 13/08 e o cliente aprovou: dizer com todas as letras que o documento
+// está sendo preparado, dizer o que ele vai cobrir e oferecer o caminho humano
+// enquanto isso.
+//
+// Nenhuma classe nova entra: tudo aqui já existe na folha (.mel-sec, .mel-tit,
+// .mel-eyebrow, .mel-col-txt, .mel-contato, .mel-nota, .mel-404-links).
+function legal(eyebrow, id, titulo, lead, blocos, nota) {
+  const secoes = blocos.map((b) => `
+<section class="mel-sec" ${b.id ? `id="${b.id}" ` : ''}aria-labelledby="${b.rot}">
+  <h2 id="${b.rot}" class="mel-tit">${b.titulo}</h2>
+  <p class="mel-col-txt">${b.txt}</p>
+</section>`).join('');
+
+  return `
+<section class="mel-sec" aria-labelledby="${id}">
+  <p class="mel-eyebrow">${eyebrow}</p>
+  <h1 id="${id}" class="mel-tit">${titulo}</h1>
+  <p class="mel-col-txt">${lead}</p>
+  <p class="mel-nota">${nota}</p>
+  <div class="mel-404-links">
+    <a class="mel-bt mel-bt-mel" href="/sobre#contato">Falar com a gente</a>
+    <a class="mel-bt mel-bt-linha" href="/">Voltar para a home</a>
+  </div>
+</section>${secoes}`;
+}
+
+function privacidade() {
+  return legal(
+    'política de privacidade', 'mel-priv-tit', 'Privacidade',
+    'Esta é a página onde a política de privacidade da Melcam vai morar. O '
+    + 'documento está sendo preparado e ainda não foi publicado.',
+    [
+      { rot: 'mel-priv-o-que', titulo: 'O que o documento vai cobrir',
+        txt: 'Quais dados a Melcam coleta quando você navega, cria conta ou faz '
+           + 'um pedido, para que eles são usados, por quanto tempo ficam '
+           + 'guardados e como pedir a exclusão deles.' },
+      { rot: 'mel-priv-enquanto', titulo: 'Enquanto ele não sai',
+        txt: 'Qualquer dúvida sobre os seus dados pode ser enviada para o '
+           + 'e-mail de contato da marca, na página <a href="/sobre#contato">Fale conosco</a>. '
+           + 'Nenhum dado é compartilhado com terceiros para publicidade.' },
+    ],
+    'Texto jurídico <strong>a decidir</strong>. Nada foi redigido em nome da '
+    + 'empresa: cláusula de privacidade tem efeito legal e só entra no ar depois '
+    + 'que o cliente enviar o documento aprovado.'
+  );
+}
+
+function termos() {
+  return legal(
+    'termos e condições', 'mel-term-tit', 'Termos e condições',
+    'Esta é a página onde os termos de uso e as condições de compra da Melcam '
+    + 'vão morar. O documento está sendo preparado e ainda não foi publicado.',
+    [
+      { rot: 'mel-term-o-que', titulo: 'O que o documento vai cobrir',
+        txt: 'As condições de uso do site, as regras de compra, prazos de '
+           + 'entrega, formas de pagamento e a garantia das câmeras.' },
+      // O id "trocas" é destino do rodapé: a coluna "Ajuda" leva
+      // "Trocas e devoluções" para /termos#trocas (ver tools/rodape.js). Se
+      // este id sumir, aquele link vira âncora morta.
+      { id: 'trocas', rot: 'mel-term-trocas', titulo: 'Trocas e devoluções',
+        txt: 'A política de trocas e devoluções faz parte deste documento e '
+           + 'ainda não foi publicada. Prazos, condições do produto e quem paga '
+           + 'o frete de retorno são definidos por ela — e por isso não estão '
+           + 'escritos aqui antes da hora. Para um caso concreto, fale com a '
+           + 'gente pelo <a href="/sobre#contato">canal de atendimento</a>.' },
+    ],
+    'Texto jurídico <strong>a decidir</strong>. Prazos, condições e política de '
+    + 'devolução não foram inventados: eles têm efeito legal e valor comercial, '
+    + 'e entram quando o cliente enviar o documento aprovado.'
+  );
+}
+
 // --------------------------------------------------------------------- CSS
 function css() {
   return `
@@ -239,4 +330,4 @@ function css() {
 `;
 }
 
-module.exports = { acessorios, sobre, erro404, sacola, css };
+module.exports = { acessorios, sobre, erro404, sacola, privacidade, termos, css };
