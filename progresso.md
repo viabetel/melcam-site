@@ -11,7 +11,24 @@ Polen e Sobre Nós corrigida. Estado commitado em `48dda9d` e publicado em
 `https://melcam-site.vercel.app` — ver a última seção do arquivo. O hero da
 /bee foi junto **inacabado**: leia o "RETOMAR POR AQUI" antes de tocar nele.**
 
-**Pasta de trabalho:** `C:\Users\israe\Downloads\framer-teste`
+> **14/08/2026** — ver as TRÊS ÚLTIMAS seções do arquivo.
+> 1. O "flash da hero da home" nas internas foi medido, a causa apontada no
+>    pedido foi refutada, e no lugar dela entraram duas correções (hero com
+>    largura certa no primeiro paint e CSS crítico inline no `<head>`). Fica
+>    aberta a pendência do *paint holding*.
+> 2. O FOUT das heroes foi eliminado: `@import` fora, `fontes.css` por `<link>`
+>    no topo do `<head>`, preload por página e `font-display:block` nas faces
+>    críticas. **Junto veio um defeito grave de tipografia:** o mapa de pesos da
+>    Area lia só a família, então `font-weight:400` desenhava **Bold** e `700`
+>    caía em ExtraBold. Corrigido — o texto corrido do site ficou mais leve, e
+>    isso precisa passar pelo olho do cliente.
+> 3. A faixa "Sobre Nós" parou de abrir e fechar sozinha: o IntersectionObserver
+>    observava o próprio elemento cuja altura a animação muda. Agora observa a
+>    <section>, o gatilho não é mais razão e dispara uma vez só.
+
+**Pasta de trabalho:** `C:\Users\israe\viabetel\melcam-site`
+(a linha antiga dizia `Downloads\framer-teste`, que é a **cópia arquivada** —
+ver "DUAS CÓPIAS DO PROJETO" mais abaixo)
 **Backup intocado do template:** `_ORIGINAL\` (94 arquivos, 5,7 MB) — criado, confere
 **Congelamento em git:** commit `debf362`, 320 arquivos, estado pré-correção
 **Servidor local:** `node serve.js` → http://localhost:3030
@@ -5892,3 +5909,1489 @@ abaixo de 4,5:1.
 3. **`qa-perfil.js` segue instável** (63/66, mesmas falhas no commit limpo).
 4. Rodapé com "Sobre Nós" duplicado — anterior a esta passagem, conferido
    contra o commit 84a6c6b.
+
+---
+
+## 🫥 O "FLASH DA HERO DA HOME" NAS INTERNAS — 14/08/2026
+
+### O pedido
+
+> Ao abrir /polen e /bee, a hero antiga da Home aparece rapidamente antes da
+> hero nova da página interna. Isso acontece porque polen.html e bee.html são
+> geradas como cópias completas de index.html: o conteúdo antigo continua no DOM
+> e só é escondido pela regra externa de `melcam/identidade.css`. Durante o
+> carregamento ocorre um flash da estrutura antiga antes de o CSS definitivo
+> assumir.
+
+O sintoma é real. **A causa apontada não é a causa** — e no lugar dela há dois
+defeitos distintos, um deles exatamente o que a captura de referência mostra.
+Tudo abaixo foi medido com Edge headless por CDP, antes de qualquer edição.
+
+### Ferramentas novas
+
+| arquivo | o que faz |
+|---|---|
+| `tools/qa-flash.js` | screencast do carregamento + amostragem por `requestAnimationFrame`, **desde antes do primeiro script da página**, do estado computado dos blocos `SO_HOME`. `ATRASO_CSS=ms` segura a folha externa; `BLOQUEAR_CSS=1` derruba a folha; `VIA=/` faz o percurso real (home → clique → interna); `SEM_FREIO=1` desliga o freio de rede/CPU |
+| `tools/qa-hero-primeiro-paint.js` | mede a caixa do hero (`.mel-ph` / `.mel-bh`) quadro a quadro e diz se ela mudou depois do primeiro quadro |
+
+### A hipótese do pedido, refutada por medição
+
+O `<link rel="stylesheet" href="/melcam/identidade.css">` está no `<head>`, no
+byte 168 009 de um `<head>` que termina em 169 001. Folha em `<head>` é
+**render-blocking**: o Blink não pinta nada enquanto ela estiver pendente.
+
+| medida | valor |
+|---|---|
+| `identidade.css` termina em | **45 ms** |
+| primeiro paint da `/polen` | **368 ms** |
+| `domInteractive` | 382 ms |
+
+A folha chega **8 vezes antes** do primeiro paint. E não é sorte de timing: com
+`ATRASO_CSS=3500` a folha foi segurada 3,5 s de propósito, e o primeiro paint
+**esperou** até 3 864 ms — a estrutura da home não apareceu em nenhuma das 94
+amostras.
+
+Varredura completa, `/polen` e `/bee` × 3 breakpoints, cache desligado, rede a
+900 KB/s e CPU a 1/4: **0 amostras com estrutura da home**, em 88 a 177 amostras
+por combinação. O documento interno **nunca pinta a home**.
+
+### 🔴 Defeito 1 — o hero encaixotado no primeiro paint
+
+**É este o estado que a captura enviada mostra:** a fotografia num retângulo no
+meio da tela, com faixas escuras dos dois lados.
+
+A largura cheia dos heros de produto era escrita **só por JavaScript** —
+`sangrar()`, em `melcam/interacoes.js`, que mede
+`document.documentElement.clientWidth`. Entre o primeiro paint e a execução do
+script, o hero pinta na largura do conteúdo.
+
+Medido com `tools/qa-hero-primeiro-paint.js`:
+
+| rota | viewport | primeira caixa pintada | vira | quando |
+|---|---|---|---|---|
+| `/polen` | 1440×900 | `373,0 694x828` | `0,0 1440x828` | 365 ms |
+| `/polen` | 768×1024 | `55,0 659x942` | `0,0 768x942` | 349 ms |
+| `/polen` | 390×844 | `0,0 390x776` | — | já certo |
+| `/bee` | 1440×900 | `0,0 1440x720` | — | já certo |
+| `/bee` | 768×1024 | `55,0 659x721` | `0,0 768x721` | 287 ms |
+| `/bee` | 390×844 | `0,0 390x648` | `0,0 390x674` | 244 ms (só altura) |
+
+São ~210 ms de layout errado no desktop da `/polen`, com o hero claro da `/bee`
+dando o mesmo salto no tablet.
+
+**Correção:** `width:100%` em `.mel-ph` e `.mel-bh`.
+
+`width:100%` resolve contra a caixa de conteúdo do pai — o
+`<header class="framer-vrbx7h">`, o stack da página —, que já tem a largura da
+janela até 1440. **Não é `100vw`**: `100vw` inclui a barra de rolagem e criaria
+transbordo horizontal, que foi exatamente o motivo de a sangria ter ido parar no
+JS em 13/08.
+
+O `sangrar()` **fica, e não foi tocado**: continua respondendo a `resize` e
+cobrindo janela acima de 1440, onde o stack para em `max-width:1440px`. Até 1440
+ele agora encontra o hero já no lugar e a margem que calcula dá zero.
+
+Depois da correção, nas seis combinações: **largura e posição corretas já no
+primeiro quadro**, `saltouDepoisDoPrimeiroQuadro: false`. A única mudança que
+sobra é a altura da `/bee` em 390 (648 → 674), que é conteúdo assentando, não
+sangria.
+
+**Geometria final idêntica à de antes nas seis:** 1440×828 · 768×942 · 390×776 ·
+1440×720 · 768×721 · 390×674.
+
+### 🔴 Defeito 2 — o que aparece é a página ANTERIOR, não a estrutura antiga
+
+Reproduzido com `VIA=/`, que faz o percurso real: carrega a home, depois navega
+para `/polen`, com screencast do começo ao fim.
+
+| instante depois da navegação | tela |
+|---|---|
+| 25 ms · 170 ms · 262 ms (sem freio) | **home inteira**: vídeo do hero, navbar com Polen · Bee · Acessórios · Sobre |
+| 464 ms (freio 4x) | idem |
+| primeiro paint da `/polen` | 448 ms (sem freio) · 2 872 ms (com freio) |
+
+Isso é **paint holding**: o navegador segura os pixels da página anterior até a
+nova conseguir pintar. A URL já diz `/polen`, e o que está na tela ainda é a
+home. Lido de fora, é indistinguível de "a hero da home apareceu dentro da
+/polen" — mas o documento da `/polen` não pintou nada ainda.
+
+**Quem gera a espera é o peso do documento, não a folha externa**: `respEnd` aos
+9 ms, folha aos 45 ms, `domInteractive` aos 382 ms. São 446 KB de HTML com
+`<head>` de 169 KB e 165 KB de CSS inline para parsear antes do primeiro pixel.
+
+**Isto não se corrige por CSS crítico, nem por ordem de carregamento.** Só
+encolhendo o documento das internas — que hoje carregam o DOM inteiro da home
+por decisão de arquitetura ("cada página nasce como cópia do index.html"), e que
+esta passagem **não** mexeu: recortar bloco do DOM é justamente o que o pedido
+proíbe e o que o histórico deste arquivo já mostrou quebrar a árvore.
+Fica registrado como pendência, com o número: ~370 ms de parse.
+
+### A rede de segurança que faltava — CSS crítico inline
+
+Mesmo sem flash dentro do documento, a garantia de hoje é **acidental**: ela
+depende de um único detalhe do carregamento — a folha externa ser
+render-blocking. Um `media` no `<link>`, a troca por `preload`+`onload`, mover o
+`<link>` para o corpo, um 404 da folha, um proxy devolvendo erro: qualquer um
+derruba a única regra que esconde a home e joga o DOM inteiro dela na tela.
+
+Entrou então o que o pedido pediu, e ele vale por si:
+
+```html
+<head><!--mel:critico--><style data-mel="critico">
+body.mel-interna [data-framer-name="The first section"], … {display:none!important}
+body.mel-interna :has(> video[data-mel="hero-video"]){display:none!important}
+</style><!--/mel:critico-->
+```
+
+626 bytes, **primeiro filho do `<head>`** (conferido no DOM:
+`head.children[0]` é o `STYLE[data-mel=critico]`), `!important`, sem depender de
+rede nem de JavaScript.
+
+#### Prova de que serve para alguma coisa
+
+`BLOQUEAR_CSS=1` derruba `identidade.css` de vez. Aí só o bloco inline segura:
+
+| | amostras com a estrutura da home |
+|---|---|
+| `/polen`, **sem** o bloco crítico | **71 de 71** — `Header Section` 1440×964, `Header Info` 1440×112, `Header Grid` 1440×1872, `Header Grids` 1440×723, `The first section` 1440×900, `Shadow` 1440×900 |
+| `/polen`, **com** o bloco | **0** |
+
+Repetido com a folha bloqueada nas seis internas — `/polen`, `/bee`, `/sobre`,
+`/acessorios`, `/sacola`, `/404`, em 1440, 768 e 390: **0 em todas**.
+
+#### Duas regras, não uma — e isso não é estilo
+
+Numa lista de seletores separada por vírgula, **um seletor inválido para o motor
+invalida a regra inteira**. O `:has()` do container do vídeo é o único item que
+um motor antigo não entende. Junto dos outros onze, ele faria a rede de
+segurança cair por completo exatamente no navegador em que ela mais importa.
+Separado, o pior caso passa a ser só o container do vídeo continuar visível.
+
+(A regra da folha externa, em `paginas.js css()`, continua numa lista só. Lá o
+risco é o mesmo, mas com o bloco inline no lugar ele deixou de ter consequência:
+sem `:has()`, os onze seletores do bloco crítico seguem valendo.)
+
+### Idempotência
+
+`injetarCritico()` **remove o bloco antigo antes de inserir o novo**. Rodar duas
+vezes devolve o arquivo byte a byte igual — e a ferramenta não confia nisso: ela
+aplica a função no resultado e reprova se der diferente.
+
+```
+node tools/critico-internas.js      # idempotente, com guardas
+```
+
+Segunda execução: `[IGUAL]` nas seis. Nenhum estilo duplicado.
+
+Guardas antes de gravar, por página: balanço de `<div>`, `<section>` e
+`<header>` inalterado; a tag `<body>` intacta; número de `<h1>`, `<link>` e
+`<script>` inalterado; exatamente **+1 `<style>`**; um único bloco crítico; o
+bloco dentro do `<head>`. Se qualquer uma falhar, a página não é gravada.
+
+### Testes executados
+
+| teste | resultado |
+|---|---|
+| `tools/qa-flash.js`, `/polen` e `/bee` × 1440/768/390, cache off, rede 900 KB/s, CPU 1/4 | **0 amostras com estrutura da home** (88 a 177 amostras cada) |
+| idem, com `identidade.css` **bloqueada**, 6 internas | **0 em todas** |
+| `tools/qa-hero-primeiro-paint.js` × 6 combinações | largura e posição certas **no primeiro quadro**; geometria final idêntica à de antes |
+| `tools/qa-rede.js`, 7 rotas | 0 imagens quebradas, 0 requisições falhas, **0 erros de console** (o único é o 404 de `/404`, que é o status correto da rota) |
+| `tools/qa-polen.js`, 3 breakpoints × movimento normal e reduzido | hero 828/942/776, produto @838/952/786, palco 617/480/343, CTA 44px — **os mesmos números de 13/08** |
+| `tools/qa-bee.js`, 3 breakpoints | 1 `<h1>`, 0 imagens quebradas, 0 `<img>` sem alt, 0 transbordo, 0 console |
+| `tools/qa-navbar-links.js` | **285 verificações, 0 falhas** |
+| rodapé na `/polen` | visível, 1440×400, 16 links (as outras duas cópias são as `ssr-variant`, ocultas como sempre) |
+| blocos da home na `/polen` | `Header Section` · `Header Info` · `Header Grid` · `Header Grids` · `The first section` · `Shadow` · `Speed On` = **0 nós visíveis** |
+| `tools/preflight.js` | **pré-voo limpo**, CSS 702/702 |
+
+**Home intacta, e provado por ausência de alvo:** `index.html` e
+`melcam/interacoes.js` **não foram tocados** (`git status` os dá como não
+modificados), e a home não tem um único nó `.mel-ph` ou `.mel-bh` — as duas
+únicas regras de CSS alteradas. Conferido no navegador: `melPh: 0`, `melBh: 0`,
+`style[data-mel=critico]: 0`, 1 `<h1>`, sem transbordo, vídeo do hero 1440×900
+tocando.
+
+O `diff` real de `melcam/identidade.css` contra o HEAD, ignorando fim de linha,
+tem **exatamente 2 hunks** — `.mel-ph` e `.mel-bh`. Nada mais mudou.
+
+### Duas notas de honestidade
+
+1. **`medidas/medida-desfile-mobile-13ago.json` está obsoleta como baseline.** A
+   fileira da home foi refeita na sessão de 14/08 que antecedeu esta (grupo
+   8912×405, frames 270×405, `gap:28px`, contra os 4980×720 / 480×720 / 20px da
+   baseline). A divergência **é anterior a esta passagem** — está no
+   `identidade.css` já commitado no HEAD, e `index.html` e `interacoes.js` não
+   foram tocados aqui. Quem for aprovar a fileira nova precisa gravar uma
+   baseline nova; comparar com a de 13/08 vai acusar 300 diferenças que não são
+   regressão.
+2. **`melcam/identidade.css` teve o fim de linha normalizado.** O arquivo tinha
+   sequências `\r\r\n` espalhadas; a gravação deixou `\r\n` uniforme. É mudança
+   de espaço em branco, sem efeito em CSS, mas infla o `git diff` do arquivo.
+
+### Arquivos
+
+| arquivo | o quê |
+|---|---|
+| `tools/paginas.js` | **fonte** — `cssCritico()`, `injetarCritico()`, chamada dentro de `gerar()`, exportados |
+| `tools/critico-internas.js` | **novo** — aplica nas 6 internas já geradas, idempotente, com guardas |
+| `tools/polen-interacoes.js` · `tools/bee-interacoes.js` | **fonte** — `width:100%` em `.mel-ph` e `.mel-bh` |
+| `melcam/identidade.css` | build — as mesmas duas regras, por substituição cirúrgica (`aplicar()` **apenda** e duplicaria a folha) |
+| `polen.html` · `bee.html` · `acessorios.html` · `sobre.html` · `sacola.html` · `404.html` | build — bloco crítico no topo do `<head>` |
+| `tools/qa-flash.js` · `tools/qa-hero-primeiro-paint.js` | **novos** — só leem; capturas em `tools/shots-flash/` |
+
+### O que esta passagem NÃO fez
+
+Não recortou nenhum bloco do DOM. Não mexeu na hidratação, no `animator`, nos
+appear-ids nem no runtime. Não tocou em `index.html`, `melcam/interacoes.js`,
+`serve.js` nem em configuração de servidor. Não rodou `tools/aplicar.js`. Não
+alterou o `sangrar()`. Não mexeu na paleta, na navbar, no rodapé, nos
+breakpoints nem em animação nenhuma.
+
+**Nenhum commit, nenhum deploy.**
+
+### Pendência que fica aberta
+
+O **paint holding** do Defeito 2. Enquanto a interna levar ~370 ms de parse para
+o primeiro pixel, o navegador vai continuar mostrando a página anterior nesse
+intervalo — e, vindo da home, o que se vê é a hero da home. O caminho para
+encolher isso é reduzir o documento das internas, que hoje carregam o DOM
+completo da home. É mudança de arquitetura, com risco real na árvore do Framer,
+e precisa de decisão explícita antes de ser tentada.
+
+
+---
+
+## 🔤 A TROCA DE FONTE NAS HEROES — FOUT ELIMINADO — 14/08/2026
+
+### A cadeia real, confirmada antes de editar
+
+O pedido descrevia a cascata `HTML → identidade.css → @import fontes.css →
+.otf`. Confere, e a medição dá os números (Edge headless por CDP, cache
+desligado, rede a 700 KB/s, `tools/qa-fontes.js`):
+
+| evento | quando |
+|---|---|
+| `identidade.css` pedida | 447 ms |
+| `identidade.css` termina | 1 828 ms |
+| `fontes.css` pedida | **1 828 ms** — no instante exato em que a folha acima terminou |
+| `.otf` pedidos | **2 903 ms** |
+| **primeiro paint** | **2 960 ms** |
+| `.otf` terminam | 4 763 a 6 904 ms |
+
+O navegador só descobre o `@import` depois de baixar e analisar os 153 KB do
+`identidade.css`, e só descobre o `.otf` depois de analisar o `fontes.css`. Três
+idas à rede em série. O texto pintava aos 2 960 ms com **nenhuma** fonte oficial
+disponível, e as oficiais entravam até 4 s depois — com `font-display:swap`, que
+é literalmente "pinte com a de sistema e troque quando chegar".
+
+Reflow medido no título do hero: a caixa mudava até os **5 586 ms**.
+
+### 🔴 O que a investigação desenterrou: o mapa de pesos estava errado
+
+O pedido notou "declarações duplicadas para `font-weight:400`". A causa é pior
+do que duplicação, e explica um defeito tipográfico que estava no ar sem
+ninguém ver.
+
+`tools/identidade.js` deduzia o peso de cada arquivo pela **família** (nameID 1)
+da tabela `name` do `.otf`. Funciona para 18 das 22 fontes da Area, porque a
+família carrega o peso: "Area Extended Black", "Area Extended Medium". **Quatro
+fogem da regra** — nelas a família é a neutra "Area Extended" e o peso está no
+**estilo** (nameID 2):
+
+| arquivo | família | estilo | peso real | era declarado |
+|---|---|---|---|---|
+| `51691.otf` | Area Extended | Regular | 400 | 400 ✓ |
+| `51694.otf` | Area Extended | **Bold** | **700** | **400** ✗ |
+| `51687.otf` | Area Extended | Italic | 400 ital | 400 ital ✓ |
+| `51683.otf` | Area Extended | **Bold Italic** | **700 ital** | **400 ital** ✗ |
+
+Duas faces com o mesmo peso e estilo não dão erro: o navegador usa **a última
+declarada**, calado. Por ordem alfabética de arquivo, a última em 400/normal era
+a `51694` — a **Bold**. Consequências, as duas medidas no navegador:
+
+1. **Todo texto corrido em `font-weight:400` desenhava com Area Bold.**
+   Confirmado pela rede: a `51694` era baixada e a `51691` **nunca**.
+2. **`font-weight:700` não tinha face nenhuma**, então o motor caía na mais
+   próxima — a 800. Confirmado por `CSS.getPlatformFontsForNode`, que devolvia
+   `Area Extended ExtraBold` na navbar, e pela rede, que baixava a `51693`.
+
+Ou seja: o site pedia Regular e recebia Bold; pedia Bold e recebia ExtraBold.
+
+### A solução
+
+**1. O `@import` saiu de `melcam/identidade.css`** (fonte: `gerarIdentidade()`).
+Não pode voltar — o comentário no lugar dele explica por quê, com os números.
+
+**2. `fontes.css` entra por `<link>` próprio no topo do `<head>`**, antes de
+`identidade.css`. A cascata cai de três níveis para dois.
+
+**3. Preload das faces de cima da dobra**, no topo do `<head>`:
+
+```html
+<link rel="preload" as="font" type="font/otf" href="/melcam/fonts/…otf" crossorigin>
+```
+
+No **topo**, e não junto do `identidade.css` no fim: o scanner de pré-carga lê
+os bytes conforme chegam, então um preload no fim de um `<head>` de 169 KB só
+seria descoberto aos ~447 ms. No topo ele sai no primeiro pacote — medido, **231
+ms**. O `crossorigin` é obrigatório mesmo em mesma origem: fonte é sempre
+buscada em modo CORS anônimo, e sem ele o preload não casa com o pedido do CSS
+e o arquivo viria **duas vezes**.
+
+A lista é **por página**, medida percorrendo os nós de texto visíveis na
+primeira dobra das 7 rotas em 1440×900 e 390×844:
+
+| página | preloads |
+|---|---|
+| `/` | Area SemiBold 600 (navbar) — **só isso**: o hero da home é o `<video>`, não há texto acima da dobra |
+| `/bee` · `/sobre` · `/acessorios` · `/sacola` · `/404` | + Iowan Bold 700, Area Regular 400, Area Bold 700 |
+| `/polen` | + Brooklyn 600 (a palavra "Polen" no título) |
+
+Preload de arquivo que não é usado logo rouba banda do que é — por isso a home
+não carrega os 717 KB das outras.
+
+**4. `font-display: block` nas 5 faces críticas, `swap` nas 19 restantes.**
+
+`swap` é o FOUT por definição: pinta com a de sistema e troca. `block` segura o
+texto por até ~3 s e então pinta com a oficial; se estourar o prazo, cai na de
+sistema e **ainda troca** — nunca fica permanentemente invisível, que era a
+ressalva do pedido. `block` sozinho seria trocar FOUT por FOIT; o que o torna
+seguro é o preload, que faz a fonte chegar antes do primeiro paint.
+
+As 19 restantes ficam em `swap` de propósito: nenhuma aparece acima da dobra, um
+swap lá embaixo não é visto, e `block` nelas arriscaria texto invisível num
+lugar que não medimos.
+
+**5. Guarda contra a volta do defeito.** `gerarFontes()` agora **estoura** se
+dois arquivos disputarem o mesmo peso+estilo, e também se aparecer família ou
+estilo fora do mapa. Ou o mapa é completo, ou a geração falha — nunca mais
+"escolher arbitrariamente".
+
+**6. O ponto de inserção respeita o `<meta charset>`.** Injetar cru logo após
+`<head>` empurrou o charset da `/polen` do byte 337 para o 1388, fora da janela
+de 1024 bytes que a especificação exige. Hoje o cabeçalho HTTP do `serve.js` e
+da Vercel manda `charset=utf-8` e vence o meta, então nada quebrou — mas ficaria
+uma armadilha esperando uma troca de servidor para virar acento trocado.
+`pontoNoHead()` insere **depois** da declaração de charset.
+
+### Resultado, medido
+
+Mesma condição de antes — cache desligado, 700 KB/s, 150 ms de latência:
+
+| | antes | depois |
+|---|---|---|
+| `.otf` críticos pedidos em | 2 903 ms | **231 ms** |
+| `.otf` críticos prontos em | 4 763–6 904 ms | **1 097–1 856 ms** |
+| primeiro paint | 2 960 ms | 2 488 ms |
+| fonte disponível antes do paint? | **não** | **sim, todas** |
+| reflow tipográfico | **sim, até 5 586 ms** | **não** |
+
+**A garantia é estrutural, não sorte de timing.** Forçando 120 KB/s, as fontes
+críticas terminam aos 8 688 ms e o primeiro paint só acontece aos 13 072 ms —
+porque quem trava o paint é o `identidade.css`, de 155 KB, que é maior que
+qualquer fonte e é render-blocking. As fontes correm em paralelo e chegam
+primeiro, sempre.
+
+Fontes realmente usadas, por `CSS.getPlatformFontsForNode` nas quatro
+combinações `/polen` e `/bee` × 1440×900 e 390×844:
+
+| nó | família desenhada |
+|---|---|
+| título do hero `/polen` | `Brooklyn Heritage Script Sm Bd` (5 glifos) + `Iowan Old Style BT` (25 glifos) |
+| título do hero `/bee` | `Iowan Old Style BT` (32 glifos) |
+| parágrafo do hero | `Area Extended` (99 a 112 glifos) |
+| navbar | `Area Extended` / `Area Extended SemiBold` |
+
+Todas marcadas como **web font** pelo motor — nenhuma de sistema.
+
+### 🟡 Consequência visual a declarar: o texto corrido ficou mais leve
+
+Com o peso corrigido, `font-weight:400` passa a desenhar **Area Regular** onde
+antes desenhava **Area Bold**, e `700` passa a desenhar **Bold** onde desenhava
+ExtraBold. É a correção de um defeito, não uma mudança de desenho: o CSS sempre
+pediu 400, e o desenho aprovado continua "títulos Iowan Bold, texto e navegação
+Area". Mas o que está na tela muda de espessura, e isso precisa ser visto pelo
+cliente.
+
+O impacto de **layout** é desprezível — a Area tem métricas quase idênticas
+entre pesos. Medido no parágrafo do hero da `/polen`, mesmo texto e mesmo corpo:
+
+| | largura |
+|---|---|
+| Area Regular (`51691`) | 1 145 px |
+| Area Bold (`51694`) | 1 150 px |
+| diferença | **0,4 %** |
+
+Por isso a correção não moveu nada: nenhuma altura de página mudou.
+
+Ganho de rede de quebra: a `51693` (ExtraBold, 184 KB) **deixou de ser baixada**
+— ela só entrava porque o peso 700 não existia.
+
+Captura em `tools/shots-fontes/polen-depois-1440.png` e `bee-depois-1440.png`.
+
+### ❌ WOFF2: tentado, medido e DESCARTADO — não repetir sem ferramenta de verdade
+
+O requisito pedia converter as fontes críticas para WOFF2 "se as ferramentas já
+disponíveis permitirem". **Não permitem**, e isto fica registrado para o próximo
+não gastar o mesmo tempo.
+
+Não há Python, `fontTools`, `woff2_compress` nem `node_modules` nesta máquina.
+O Node tem Brotli nativo, e estas fontes são OpenType/**CFF** — sem `glyf`/`loca`,
+que são as únicas tabelas cuja transformação o WOFF2 exige. Em tese, dá para
+escrever o encoder à mão: cabeçalho, diretório de tabelas e um bloco Brotli.
+
+Escrevi. Comprime bem: **780 KB → 341 KB, −56 %**. E o motor recusa.
+
+Validação feita entregando os bytes direto ao construtor `FontFace` (sem
+servidor, sem CSS): **1 dos 5 arquivos carregou; 4 deram `Invalid font data`.**
+Bissecção com 9 variantes (ordem por tag, ordem física, com e sem DSIG, tag
+explícita, quatro parâmetros de Brotli) não achou regra: o resultado é
+determinístico mas **depende do conteúdo de cada fonte** — a mesma variante
+passa numa e reprova noutra. Descartadas por medição: `totalSfntSize` (as duas
+fórmulas dão o mesmo valor e batem com o tamanho do arquivo nas cinco fontes) e
+o `UIntBase128` (conferido dígito a dígito).
+
+Um encoder que passa em 1 de 5 não se publica. Os `.woff2`, o conversor e o
+validador foram **removidos**. Se um dia o ganho de 56 % valer a pena, o caminho
+é `fonttools`/`woff2_compress` de verdade — e o `@font-face` deve manter o
+`.otf` como segunda fonte do `src`, para que uma recusa vire perda de tamanho e
+nunca perda de fonte.
+
+### 🟡 Achado colateral, NÃO corrigido: o rodapé não é Area
+
+Medindo os nós visíveis, o rodapé de todas as páginas desenha em **Sora**, pesos
+400 e 600, baixada de `fonts.gstatic.com` (33 KB por página). É fonte do
+template Framer que sobreviveu à troca de identidade — a mesma categoria de
+"fonte antiga" que o pedido menciona.
+
+Não foi mexido: trocá-la é alterar o desenho tipográfico de um bloco aprovado, o
+que o requisito 9 proíbe nesta passagem. Fica anotado como pendência real, com
+duas consequências: um pedido externo em toda página, e um bloco do site fora da
+tipografia da marca.
+
+### Idempotência
+
+```
+node tools/fontes-head.js       # bloco de fontes no topo do <head> das 7 páginas
+node tools/critico-internas.js  # bloco crítico, logo depois dele
+```
+
+`injetarFontes()` remove o bloco anterior **e** qualquer `<link>` solto de
+`fontes.css` ou preload de `/melcam/fonts/` antes de inserir. Segunda execução:
+`[IGUAL]` nas sete, zero bytes de diferença.
+
+A ordem entre os dois blocos é estável **em qualquer ordem de execução**:
+`injetarCritico()` entra depois do marcador `<!--/mel:fontes-->` quando ele
+existe. Rodar as duas ferramentas em qualquer sequência dá o mesmo arquivo.
+
+Guardas antes de gravar, por página: balanço de `<div>`, `<section>`, `<header>`;
+número de `<style>`, `<script>` e `<h1>`; a tag `<body>`; o bloco crítico
+intacto; `identidade.css` exatamente uma vez e **ainda no fim do `<head>`**
+(subi-la quebraria a paleta inteira — ela vence o CSS inline do Framer por ordem
+de fonte); `fontes.css` exatamente uma vez e **antes** de `identidade.css`;
+número de preloads igual ao esperado da página; todo preload com `crossorigin`;
+todo preload apontando para arquivo que existe em disco.
+
+### Testes executados
+
+| teste | resultado |
+|---|---|
+| `tools/qa-fontes.js` — `/polen` e `/bee` × 1440×900 e 390×844, cache off, 700 KB/s | **reflow tipográfico: não** · **0 fontes 404** · **0 erros de console** · fontes oficiais confirmadas por `getPlatformFontsForNode` nas 4 |
+| idem a **120 KB/s** | fontes críticas prontas aos 8 688 ms, primeiro paint aos 13 072 ms — a fonte chega antes do paint mesmo no extremo |
+| `tools/qa-rede.js`, 7 rotas | 0 imagens quebradas, 0 requisições falhas, **0 erros de console**, **95 fontes carregadas em cada rota** (mesmo número de antes: nenhuma face se perdeu) |
+| `tools/qa-polen.js`, 3 breakpoints × movimento normal e reduzido | hero 828/942/776, produto @838/952/786, palco 617/480/343, CTA 44px — **idênticos aos de antes** |
+| `tools/qa-navbar-links.js` | **285 verificações, 0 falhas** |
+| `tools/qa-flash.js` (regressão da passagem anterior) | `/polen` 1440 e `/bee` 390: **0 amostras com estrutura da home** |
+| `tools/qa-hero-primeiro-paint.js` | `/polen` 1440 e `/bee` 768: caixa certa no primeiro quadro, sem salto |
+| `tools/preflight.js` | **pré-voo limpo**, CSS 702/702 |
+| home | 1 `<h1>`, 1 preload (só a navbar), 1 `fontes.css`, `identidade.css` ainda por último no `<head>`, sem transbordo, altura **8 104 px — igual à de antes**, vídeo do hero 1440×900 tocando |
+
+Ordem final do `<head>`, conferida nas três páginas: `charset` (byte 153) →
+bloco de fontes (175) → bloco crítico (761) → … → `identidade.css` (~169 000) →
+`</head>`.
+
+### Arquivos
+
+| arquivo | o quê |
+|---|---|
+| `tools/identidade.js` | **fonte** — peso pelo estilo quando a família é neutra; guarda anti-duplicata; `font-display` por face; `@import` fora; `blocoFontes()`, `injetarFontes()`, `pontoNoHead()` |
+| `tools/aplicar.js` | **fonte** — chama `injetarFontes()` na volta que monta o `<head>` de cada página |
+| `tools/paginas.js` | **fonte** — `gerar()` injeta o bloco de fontes; `injetarCritico()` passa a entrar depois dele |
+| `tools/fontes-head.js` | **novo** — aplica nas 7 páginas já geradas, idempotente, com guardas |
+| `melcam/fonts/fontes.css` | build — regerado: 24 faces, pesos corretos, `block` nas 5 críticas |
+| `melcam/identidade.css` | build — só o `@import` saiu (substituição cirúrgica; `gerarIdentidade()` reescreve o arquivo inteiro e apagaria tudo que outros geradores apendaram) |
+| `index.html` + as 6 internas | build — bloco de fontes no topo do `<head>` |
+| `tools/qa-fontes.js` | **novo** — mede rede, geometria e família realmente desenhada; `KBPS=` para o caso extremo |
+
+### O que esta passagem NÃO fez
+
+Não mudou o desenho tipográfico: títulos seguem Iowan Old Style Bold, texto e
+navegação seguem Area. Não tocou em `melcam/interacoes.js`, `serve.js`, paleta,
+navbar, rodapé, animações, hidratação nem em nenhum bloco de conteúdo. Não rodou
+`tools/aplicar.js` nem `gerarIdentidade()`. Não instalou dependência nenhuma.
+
+**Nenhum commit, nenhum deploy.**
+
+### Pendências que ficam
+
+1. **O rodapé em Sora**, acima. Decisão de design, não de mecânica.
+2. **WOFF2**, se o ganho de 56 % interessar — com ferramenta de verdade, nunca
+   com o encoder à mão.
+3. O **paint holding** registrado na seção anterior continua aberto: ~370 ms de
+   parse até o primeiro pixel das internas.
+
+
+---
+
+## 🔁 A FAIXA "SOBRE NÓS" QUE ABRIA E FECHAVA SOZINHA — 14/08/2026
+
+### A causa, comprovada por contagem
+
+O `iniciarSobre()` observava **o próprio elemento animado**:
+
+```js
+var palco = document.querySelector('[data-mel-sobre-palco]');
+var obs = new IntersectionObserver(function (ents) {
+  if (manual) { obs.disconnect(); return; }
+  pintar(ents[0] && ents[0].isIntersecting);   // abre E FECHA
+}, { threshold: 0.55 });
+obs.observe(palco);
+```
+
+E o CSS muda a altura desse mesmo elemento:
+
+```css
+.mel-sobre-palco             { height: clamp(400px, 42vw, 600px) }
+.mel-sobre-palco[data-aberto]{ height: clamp(700px, 63vw, 900px) }
+```
+
+`threshold` é uma **razão**: parte visível ÷ altura total. Ao abrir, o
+denominador cresce (600 → 900 no desktop, 400 → 700 no tablet e no mobile) sem
+que a parte visível cresça junto, porque o palco cresce **para baixo**, além da
+dobra. A razão cai abaixo de 0,55, o observador manda fechar, a altura volta ao
+valor pequeno, a razão sobe acima de 0,55, ele manda abrir. O observador media o
+que a própria animação acabava de mudar.
+
+**Elemento observado antes:** `[data-mel-sobre-palco]` — o palco, que é
+exatamente o nó cuja altura a animação altera.
+
+### Medido antes de tocar em qualquer arquivo
+
+`tools/qa-sobre.js` (novo) instala um `MutationObserver` em `[data-aberto]` e
+conta cada troca, com instante e `scrollY`. Chega à seção em passos de 24 px,
+para **80 px além do gatilho antigo** e fica **10 segundos imóvel**:
+
+| tela | scrollY do gatilho antigo | alternâncias com o scroll PARADO | aberturas | fechamentos |
+|---|---|---|---|---|
+| desktop 1440×900 | 5 777 | **152** | 94 | 94 |
+| tablet 768×1024 | 9 987 | **202** | 124 | 124 |
+| mobile 390×844 | 7 351 | **202** | 125 | 125 |
+
+Uma troca a cada ~35 ms, indefinidamente, sem o usuário mexer em nada. Ao sair e
+voltar à viewport, mais 35 a 47 trocas.
+
+> Nota de método: a primeira rodada da sonda parava **exatamente** no gatilho, e
+> ali a razão é 0,55 cravado — o observador pode não considerar cruzado.
+> Desktop e tablet deram zero e só o mobile acusou o defeito. Parar 80 px
+> adiante expôs os três. Um teste que para em cima do limiar mede o limiar, não
+> o comportamento.
+
+### A solução
+
+Três mudanças em `iniciarSobre()`, e cada uma sozinha já quebraria o laço:
+
+**1. O alvo passa a ser a `<section data-mel-sobre>`, não o palco.** O palco
+cresce para baixo, então o **topo da seção não se move** quando a animação roda.
+É a geometria estável que o gatilho precisa.
+
+**2. O gatilho deixa de ser razão.** `threshold: 0` com `rootMargin: '0px 0px
+-28% 0px'` pergunta apenas se o topo da seção cruzou uma linha a 72% da janela —
+e altura nenhuma influencia isso.
+
+Os 72% saem de medição. O gatilho antigo caía em ponto **diferente em cada
+tela**, justamente porque dependia da altura do palco:
+
+| tela | palco | topo da seção no disparo |
+|---|---|---|
+| desktop 1440×900 | 600 px | 63,3% da janela |
+| tablet 768×1024 | 400 px | 78,5% |
+| mobile 390×844 | 400 px | 73,9% |
+
+72% é a média dos três e a linha que menos desloca o momento da abertura:
+desvio máximo de **8,7 pontos**, contra 15,5 se eu fixasse no valor do desktop.
+
+> A primeira tentativa usou `-37%` — os 63,3% do desktop — e o QA cobrou o
+> preço: no tablet e no mobile a faixa **deixava de abrir sozinha** na posição
+> testada, porque o gatilho novo ficava 160 px de scroll adiante do antigo.
+> Ficou registrado como o segundo erro que a medição pegou nesta passagem.
+
+De quebra some uma falha latente: com razão, uma seção mais alta que a janela
+nunca alcançaria 0,55 e a faixa **jamais** abriria.
+
+**3. Dispara uma vez por carregamento e desconecta.** Dentro do observador só
+existe `pintar(true)` — nunca `pintar(isIntersecting)`, nunca fechamento
+automático. `automaticoFeito` + `encerrarObs()`.
+
+**4. O clique vence a qualquer momento.** O `click` marca `manual = true` e
+chama `encerrarObs()` **na hora**, mesmo antes de a abertura automática ter
+acontecido.
+
+Nada de debounce, timeout ou tolerância. Nenhuma altura, transição ou regra
+visual foi tocada — o obturador é o mesmo.
+
+### Testado
+
+`node tools/qa-sobre.js` — cinco cenários, todos passaram:
+
+| cenário | aberturas automáticas | fechamentos automáticos | parado 10 s no limiar antigo | parado 10 s com a faixa ABERTA | sair e voltar | console |
+|---|---|---|---|---|---|---|
+| desktop 1440×900 | **1** | **0** | **0** | **0** | **0** | 0 |
+| tablet 768×1024 | **1** | **0** | **0** | **0** | **0** | 0 |
+| mobile 390×844 | **1** | **0** | **0** | **0** | **0** | 0 |
+
+`scrollY` usados: desktop repouso em **5 857** e chegada em **6 212** (faixa em
+y=6 347); tablet **10 067** e **10 637** (faixa em y=10 791); mobile **7 431** e
+**7 848** (faixa em y=7 975).
+
+A segunda parada de 10 s é a que fecha o argumento: ela acontece com a faixa
+**já aberta** e o scroll imóvel — o estado exato em que o laço vivia, altura
+grande e razão baixa. Zero trocas nos três.
+
+O histórico completo de cada breakpoint tem **4 entradas**: 1 automática e 3
+manuais, que são o teste do botão e o do Escape. Nada mais mexeu no atributo.
+
+Mais dois cenários:
+
+- **Clique antes do disparo automático** (desktop): clicando com a seção ainda
+  a mais de duas janelas de distância, a faixa abre pelo clique e depois
+  disso há **0 trocas automáticas** — o manual venceu e o observador não voltou
+  a opinar.
+- **`prefers-reduced-motion: reduce`** (desktop): **1** abertura automática,
+  **0** fechamentos, `transition-duration` do palco em `1e-05s`, ou seja
+  efetivamente desligada pela regra global do projeto. O comportamento é o
+  mesmo; só o movimento sai, como já era.
+
+> Nota de método, de novo: duas asserções minhas reprovaram comportamento
+> correto antes de eu ajustá-las. A primeira contava a abertura automática
+> legítima como "alternância com scroll parado" — o `IntersectionObserver`
+> entrega a callback de forma assíncrona, e o disparo provocado pela aproximação
+> às vezes só chega depois de o scroll ter parado. A segunda comparava
+> `transition-duration` como texto e reprovava `1e-05s`, que é notação
+> científica de `.01ms`. As duas foram corrigidas para medir o que interessa.
+
+Ainda conferidos: botão alterna nos dois sentidos com `aria-expanded` e rótulo
+("Abrir"/"Fechar") em sincronia; Escape fecha, devolve `aria-expanded="false"` e
+o foco ao botão. **0 erros de console** em todos os cenários.
+
+Regressão geral: `tools/qa-rede.js` nas 7 rotas — 0 imagens quebradas, 0
+requisições falhas, **0 erros de console** (o único é o 404 da própria `/404`).
+`node tools/preflight.js` antes e depois: **pré-voo limpo**, CSS 702/702.
+
+### Arquivos modificados
+
+| arquivo | o quê |
+|---|---|
+| `tools/hero-carrossel.js` | **fonte** — `iniciarSobre()`: alvo, gatilho, disparo único, `encerrarObs()` no clique |
+| `melcam/interacoes.js` | build — regerado a partir da fonte |
+| `tools/qa-sobre.js` | **novo** — a sonda de contagem; só lê |
+
+O build foi regerado com `require('./tools/hero-carrossel.js').js()`, passando
+por `new Function(src)` **antes** de gravar. Duas conferências antes de aceitar:
+
+1. o gerado, comparado ao build anterior, tinha **um único trecho diferente** —
+   o bloco `iniciarSobre()`. Prova de que a fonte estava em dia com o build e de
+   que nada do worktree foi perdido;
+2. o fim de linha foi preservado. O build sempre foi CRLF e o gerador emite LF;
+   gravar cru trocaria as 2 433 linhas do arquivo e afogaria a mudança real num
+   diff de arquivo inteiro. `git diff` final: **74 inserções, 10 remoções**,
+   todas entre as linhas 2 360 e 2 434.
+
+Idempotente por construção: gerar duas vezes dá byte a byte o mesmo arquivo,
+conferido.
+
+`tools/aplicar.js` **não** foi executado. Nenhum commit.
+
+## 🪟 O "SOBRE NÓS" POR CIMA DA NAVBAR — 14/08/2026
+
+Queixa: com a faixa aberta, o conteúdo ("Sobre Nós", a linha, o parágrafo e o
+CTA) cobria a navbar.
+
+### A primeira medição deu ZERO, e estava medindo o estado errado
+
+`tools/qa-sobre-geometria.js` mediu os retângulos de tudo no estado aberto e
+devolveu "sem interseção" nas três telas. Parecia que não havia defeito. O
+número que denunciou o engano estava na própria saída:
+
+```
+navbar  top=-81  bottom=0
+```
+
+A barra é **retrátil** (`iniciarNavRetratil`): ao rolar para baixo ela sai de
+cena, e volta com o mouse perto do topo (desktop) ou com a rolagem para cima
+(toque). Medir depois de rolar até a seção é medir a barra **escondida** — o
+defeito só existe com ela revelada.
+
+`tools/qa-sobre-navbar.js` monta esse estado na mão. E aí um segundo tropeço:
+revelar a barra com `document.dispatchEvent(new MouseEvent('mousemove'))` **não
+funciona** — todas as paradas continuavam dando `top=-81`. Evento sintético de
+DOM não é evento de entrada; foi preciso `Input.dispatchMouseEvent` pelo CDP.
+Duas asserções minhas, portanto, aprovaram um defeito real antes de eu
+consertá-las.
+
+### A causa, medida
+
+Com a barra revelada e o texto na faixa dos 81px do topo, `elementFromPoint` em
+4 pontos da barra devolvia, nas **três** telas:
+
+```
+centro=h2.mel-sobre-tit      esquerda=div.mel-sobre-capa
+direita=div.mel-sobre-capa   logo=h2.mel-sobre-tit
+```
+
+A barra não estava só encoberta: **não recebia mais clique**. Das cinco
+hipóteses levantadas no pedido, a medição elimina quatro:
+
+| hipótese | veredito |
+|---|---|
+| a navbar fica transparente | **não** — o container fixo é transparente, mas a `<nav>` dentro dele é `#221E17` opaco |
+| o scroll é reposicionado ao abrir | **não** — salto medido de **0px** nas três telas; nenhum `scroll-margin-top` foi necessário |
+| layout shift na abertura | **não** — a seção cresce para baixo, o topo não se move |
+| o conteúdo escapa do palco | **não** — capa, miolo, CTA e botão sempre dentro do palco |
+| **ordem de pilha (z-index)** | **é esta** |
+
+O container fixo da navbar tem `z-index:2`. A capa e o miolo tinham `z-index:2`
+e o botão, `3`. Como o palco era `position:relative` com `z-index:auto`, ele
+**não abria contexto de empilhamento** — os três subiam para a pilha da raiz e
+disputavam com a barra de igual para igual. Empatados em 2, ganha quem vem
+depois no DOM, e a faixa vem depois. O `overflow:hidden` do palco não ajuda:
+enquanto se rola, o palco atravessa o topo da janela, então o recorte dele
+inclui a faixa da barra.
+
+### Um segundo defeito, achado pela mesma medição
+
+Em **390x844** o miolo invadia **71px da cortina de baixo**. Capa e miolo eram
+posicionados com coordenada fixa:
+
+```css
+.mel-sobre-palco[data-aberto] .mel-sobre-capa  { top: calc(cortina + 34px) }
+.mel-sobre-palco[data-aberto] .mel-sobre-miolo { top: calc(cortina + 154px) }
+```
+
+Os 34 e os 154 valiam para a quebra de linha do desktop e mais nada. O vão
+aberto era 300px fixos em toda tela, e no mobile o texto precisa de 354.
+
+### A correção — duas mudanças no palco, nenhuma na navbar
+
+**1. `isolation:isolate` no palco.** `z-index` 2 e 3 passam a significar
+"dentro do palco". A ordem interna (cortinas < texto < botão) fica intacta e
+nada global muda: a navbar continua com o `z-index` do template e nenhum
+componente do Framer foi tocado. Subir o `z-index` da barra resolveria a
+aparência e deixaria a doença — qualquer outro bloco com `z-index` alto voltaria
+a passar por cima.
+
+**2. A geometria sai do conteúdo, não de números fixos.** O palco virou grade
+de três fileiras: cortina, vão, cortina. A do meio vai de `0fr` a `1fr` e é ela
+que anima. Em grade de altura indefinida `1fr` resolve para o `max-content` da
+fileira, então a altura aberta passa a ser **cortina + conteúdo + cortina**,
+calculada pelo navegador em cada tela. Uma `<div class="mel-sobre-vao">` — coluna
+flex centrada — recebe capa e miolo, que trocam de `position:absolute` (fechado,
+capa centrada na emenda) para `position:static` (aberto, em fluxo). Não sobrou
+nenhuma coordenada vertical.
+
+Um único número governa tudo: `--mel-cortina`. Fechado, o palco é
+`2 x cortina` — exatamente o `clamp(400px,42vw,600px)` de antes, porque
+`2 x clamp(200px,21vw,300px)` é a mesma expressão.
+
+> `min-height:0` e `overflow:hidden` no vão **não estão lá para cortar texto**:
+> são o que faz `0fr` valer zero (sem eles a fileira herda o mínimo automático
+> do conteúdo e a faixa nunca fecha). Em repouso nada é cortado, e o teste mede
+> isso: `scrollHeight == clientHeight`. Durante a transição o recorte **é** o
+> efeito — o texto nasce da fresta em vez de aparecer por cima das fotos.
+
+### Medições, depois
+
+Estado aberto, com as fontes oficiais já carregadas (`document.fonts.ready`):
+
+| | vão antes | vão depois | palco aberto | conteúdo cortado |
+|---|---|---|---|---|
+| desktop 1440x900 | 300px | **312px** | 600 → 911px | 311 de 311 — **0** |
+| tablet 768x1024 | 300px | **252px** | 400 → 652px | 252 de 252 — **0** |
+| mobile 390x844 | 300px (faltavam 54) | **354px** | 400 → 754px | 354 de 354 — **0** |
+
+O vão agora encolhe no tablet e cresce no mobile sozinho — é o conteúdo que
+manda.
+
+`tools/qa-sobre-navbar.js`, 9 paradas (3 telas x capa/miolo/CTA na faixa do
+topo), barra revelada em todas: **a barra é dona dos 4 pontos em 9/9**. Antes:
+0/9. Captura confirma: `tools/shots-sobre/desktop-4-aberta-navbar.png` mostra a
+barra opaca e inteira por cima do texto.
+
+`tools/qa-sobre-geometria.js`: nas três telas, capa/miolo/CTA/botão **dentro do
+palco** e **dentro do vão**, capa e miolo sem sobreposição entre si nem com o
+botão, salto de scroll **0px**, transbordo horizontal **0px**, **0 erros de
+console** — fechada, durante a transição e aberta.
+
+> Uma ressalva honesta sobre "zero interseção com a navbar": os retângulos
+> **continuam** se cruzando enquanto a seção rola por baixo de uma barra fixa —
+> isso é inerente a qualquer header fixo e nenhuma correção elimina. O que é
+> zero é a interseção que importa: pintura e clique. A barra pinta por cima e
+> recebe o clique em todos os pontos testados.
+
+`tools/qa-sobre-animacao.js`: a abertura continua **animando**, não saltando —
+altura monotônica e, das alturas distintas amostradas, 10/11 no desktop, 16/17
+no tablet e 38/39 no mobile são intermediárias. Com
+`prefers-reduced-motion:reduce` salta direto (`transition-duration` em `1e-05s`)
+e o conteúdo cabe igual.
+
+> Nota de método: a primeira asserção desse teste exigia 10 alturas
+> intermediárias e reprovou o desktop com 9 — mas ali o headless só conseguiu 15
+> quadros em 1,1 s, e 9 das 10 alturas distintas eram intermediárias. Critério
+> absoluto de quadros mede a máquina, não a animação; virou proporção.
+
+Comportamento preservado, `tools/qa-sobre.js` nas três telas: **1** abertura
+automática, **0** fechamentos, **0** alternâncias com o scroll parado (nos dois
+repousos de 10 s), **0** ao sair e voltar da viewport; botão alterna nos dois
+sentidos com `aria-expanded` e rótulo em sincronia; Escape fecha e devolve o
+foco; clique antes do disparo automático continua vencendo o observador;
+`prefers-reduced-motion` igual. **0 erros de console**.
+
+Regressão: `tools/qa-navbar-links.js` — **285 verificações, 0 falhas**;
+`tools/qa-navbar-mobile.js` — 5 larguras x 3 rotas, barra em `fixed,0,81`, 3/3
+controles, 0 transbordo, 0 console. `node tools/preflight.js` antes e depois:
+**pré-voo limpo** (CSS 703/703).
+
+### Arquivos modificados
+
+| arquivo | o quê |
+|---|---|
+| `tools/identidade.js` | **fonte** — `isolation:isolate`, grade de 3 fileiras, `.mel-sobre-vao`, fim das coordenadas fixas |
+| `melcam/identidade.css` | build — mesmas edições, conferidas byte a byte contra a fonte |
+| `tools/sobre-faixa.js` | **fonte** — o `<div class="mel-sobre-vao">` no markup |
+| `index.html` | build — mesmo wrapper, com guarda de balanço de `<div>` |
+| `tools/hero-carrossel.js` | **fonte** — comentário de `iniciarSobre()`: citava as alturas antigas |
+| `melcam/interacoes.js` | build — mesma edição |
+| `tools/qa-sobre-geometria.js` | **novo** — retângulos, interseções, corte; só lê |
+| `tools/qa-sobre-navbar.js` | **novo** — barra revelada e `elementFromPoint`; só lê |
+| `tools/qa-sobre-animacao.js` | **novo** — prova que o obturador anima; só lê |
+| `tools/shot-sobre.js` | **novo** — capturas dos 4 estados x 3 telas |
+
+Nenhum arquivo foi regerado por inteiro: só edições dirigidas, para não perder
+o que já estava no worktree. As duas sincronias foram conferidas por comparação
+e não por confiança — o bloco `.mel-sobre` da fonte e do build batem **byte a
+byte** (11 799 caracteres dos dois lados), e o markup gerado por
+`sobre-faixa.js` bate **byte a byte** com o trecho do `index.html`. O
+`interacoes.js` não foi regravado com `js()` porque o gerador emite LF e o build
+é CRLF: gravar cru trocaria as 2 511 linhas do arquivo. A mesma edição foi
+aplicada à mão, e a comparação ignorando fim de linha confirma fonte e build
+idênticos.
+
+`tools/aplicar.js` **não** foi executado. Nenhum commit.
+
+## 🎞️ "A MELCAM POR AÍ": AS FOTOS NO LUGAR DOS CLIPES — 14/08/2026
+
+Os três cards da seção mostravam `a-decidir.svg` com a legenda "1080 × 1920 ·
+8 a 20 s" e o alt "Clipe N: vídeo a decidir". Entraram no lugar três fotos do
+ensaio, como pôster provisório.
+
+**O que NÃO mudou: os clipes continuam não existindo.** Não há MP4, MOV nem
+WebM no material local — conferido — e o briefing proíbe vídeo de banco. Então
+nada aqui finge ser vídeo: **0** `<video>`, **0** `<source>`, **0** botões,
+nenhum ícone de play, nenhuma barra de progresso. O teste mede isso a cada
+rodada, e não é retórica: um play falso seria a saída fácil e mentiria sobre o
+que o cliente tem em mãos.
+
+### O recorte é horizontal, e é isso que decide o `object-position`
+
+As três fotos são **1600 × 2400** (2:3 = 0,667) e o card é **9:16** (0,563).
+Com `cover` o navegador escala pela dimensão que falta — aqui, a altura — e
+sobra largura. Medido em página:
+
+| | caixa | corte horizontal | corte vertical |
+|---|---|---|---|
+| desktop 1440 | 451 × 801 | 83px — **15,6%** | 0px — **0%** |
+| mobile 390 / tablet 768 | 340 × 604 | 63px — **15,6%** | 0px — **0%** |
+
+**Não há corte vertical nenhum.** O segundo valor do `object-position` é inerte
+nesta proporção; ficou declarado por clareza e para o dia em que o card mudar,
+mas quem faz trabalho é o primeiro. Achar que se estava "subindo o
+enquadramento" seria mexer num número que não faz nada.
+
+Os valores, um por foto:
+
+| foto | `--mel-foco` | por quê |
+|---|---|---|
+| `bee-lp-0689` mãos fotografando | `50% 50%` | o corpo da Bee ocupa de 39% a 67% da largura; 50% mantém as duas mãos inteiras e o recorte simétrico |
+| `bee-lp-1171` duas Bees no Rio | `50% 50%` | as câmeras ficam em 35% e 66%, e o par se centra em 51%; o punho da esquerda e o antebraço da direita encostam nas bordas, então 50% é o único valor que não sacrifica um pelo outro |
+| `bee-lp-0761` Bee no jeans | `62% 50%` | a câmera está em 67% da largura da foto; 62% come mais da esquerda e traz a câmera para 68% da largura do card em vez de 70%, na linha do terço da direita — a janela passa a começar em 9,7% da foto, e a mão apoiada no bolso, que começa em 15%, continua inteira |
+
+O valor viaja no próprio `<img>`, em `--mel-foco`: o dado é de cada foto, mas a
+declaração de `object-fit`/`object-position` continua uma só, na folha.
+
+> Direção do eixo, para não errar da próxima vez: **subir** o percentual desloca
+> a janela para a DIREITA da foto, o que faz o assunto andar para a ESQUERDA
+> dentro do card. Escrevi o comentário ao contrário na primeira passada.
+
+### O que saiu de texto e de moldura
+
+- alt "Clipe N: vídeo a decidir" → alt descritivo de cada cena;
+- legenda "1080 × 1920 · 8 a 20 s" → **"Clipe em produção"**, discreta, no rodapé
+  do card;
+- a nota ao pé da seção deixou de dizer "3 clipes verticais **a decidir**" e
+  passou a dizer o que é verdade: as imagens são fotos do ensaio, os clipes
+  ainda não foram gravados, e cada um precisa entregar MP4 ou WebM, 1080 × 1920,
+  8 a 20 s, sem texto essencial embutido;
+- **a borda tracejada em mel saiu.** Ela era a moldura do "a decidir": sobre um
+  retângulo cinza, tracejado diz *caixa vazia* e dizia a verdade. Sobre uma foto
+  de verdade passaria a dizer outra coisa — erro de carregamento, algo quebrado.
+  Ficou um fio de `rgba(251,247,238,.07)`, o mesmo da barra de segurança, só
+  para assentar a foto no fundo carvão. O estado provisório agora está escrito,
+  que é onde se lê sem ambiguidade.
+
+A etiqueta ganhou véu: `#9A9083` solto sobre jeans claro ou sobre céu não se lê.
+O gradiente morre antes da metade do card para não virar tarja.
+
+### Como a fonte e o build foram sincronizados
+
+`aplicar()` do `comunidade.js` **só sabe inserir** — não recorta nada. Rodá-lo
+de novo colaria uma segunda cópia das três seções no `index.html` e uma segunda
+cópia da folha em `identidade.css`. Então `clipes` e `css` saíram exportados e
+entrou `tools/sincronizar-clipes.js`, que recorta a seção atual por contagem
+equilibrada de `<section>` e põe no lugar o que `clipes()` devolve.
+
+Guardas antes de gravar, porque recorte errado num HTML de 400 KB não dá erro —
+dá página quebrada: contagem de `<section>` igual, balanço de `<div>`, `<li>` e
+`<ul>` igual, e **o resto do arquivo idêntico byte a byte**. Depois de gravar, a
+prova é relida do disco. Idempotente: a segunda execução responde "já em dia".
+
+O CSS foi editado à mão em `melcam/identidade.css` e conferido do mesmo jeito —
+o bloco `css()` do `comunidade.js` aparece no build **byte a byte**.
+
+### Testes
+
+`tools/qa-clipes.js` (novo, só lê) nas três telas — desktop 1440×900, tablet
+768×1024, mobile 390×844:
+
+- as três fotos **carregaram** (`naturalWidth > 0`; src errado não dá erro
+  visível, dá caixa vazia sobre carvão — a cara do placeholder que saiu);
+- `object-fit: cover` e `object-position` igual ao `--mel-foco` declarado nas 9
+  combinações;
+- caixa em **0,563** nas três telas — a proporção 9:16 dos cards não mudou;
+- grade em **3 colunas** no desktop e **1** abaixo de 810px, que é o
+  comportamento que já existia;
+- **0** `<video>`/`<source>`/play, **0** botões, **0** `<img>` sem alt;
+- nenhuma ocorrência de "a decidir" no texto visível nem em alt;
+- **0px** de transbordo horizontal, **0** erros de console.
+
+`tools/shot-clipes.js` (novo) para o que a medição não decide — se o recorte
+preservou câmera, mãos e rosto. Confere nas três: a Bee e as duas mãos inteiras
+na primeira (com o rosto na telinha legível), as duas câmeras e o Pão de Açúcar
+na segunda, a câmera na passante e a mão no bolso na terceira. A etiqueta se lê
+sobre as três.
+
+> A primeira leva de capturas saiu em carvão puro: o `clip` do
+> `Page.captureScreenshot` é em coordenada de **documento**, não de viewport, e
+> eu passei `getBoundingClientRect()` cru. Somado o scroll e ligado o
+> `captureBeyondViewport`, veio o recorte certo.
+
+Regressão: `tools/qa-rede.js` nas 7 rotas — **0 imagens quebradas**, 0
+requisições falhas, 0 erros de console (o único é o 404 da própria `/404`).
+`node tools/preflight.js` antes e depois: **pré-voo limpo**; os assets do deploy
+subiram de 97 para **100 referenciados, todos publicáveis** — as três fotos
+novas.
+
+### Arquivos modificados
+
+| arquivo | o quê |
+|---|---|
+| `tools/comunidade.js` | **fonte** — a tabela `CLIPES` (src, foco, alt), `clipes()` sem placeholder, CSS de `cover` + véu da etiqueta, `clipes`/`css` exportados |
+| `index.html` | build — seção sincronizada pelo gerador |
+| `melcam/identidade.css` | build — mesmo bloco de CSS, conferido byte a byte |
+| `tools/sincronizar-clipes.js` | **novo** — recorta e substitui a seção com guardas; idempotente |
+| `tools/qa-clipes.js` | **novo** — carga, recorte, proporção, ausência de vídeo/play, alt, transbordo; só lê |
+| `tools/shot-clipes.js` | **novo** — capturas da grade no desktop e card a card no mobile |
+
+Os dois `a-decidir.svg` que restam no `index.html` são `og:image` e
+`twitter:image`, que são outra pendência e não foram tocados. Nada de
+pagamentos, redes sociais ou integrações foi alterado.
+
+`tools/aplicar.js` **não** foi executado. Nenhum commit.
+
+---
+
+## 🚫 O "UMA FOTO. 8 FILTROS" SAIU DA /POLEN — 14/08/2026
+
+Pedido direto: remover o bloco inteiro da LP Polen — a linha "experimente seu
+filtro favorito", o título "Uma foto. 8 filtros", o palco com a foto grande e
+as oito pílulas (Retro, Mono, Natural, Polar, Vintage, Filmic, Noir, Boost) e a
+legenda "Filtros aplicados na hora do clique, direto na câmera."
+
+### O que saiu, fonte E build
+
+Seguindo a regra do `AGENTS.md`, os dois lados na mesma passada:
+
+| arquivo | o quê |
+|---|---|
+| `tools/polen.js` | **fonte** — `filtros()` removida, tirada do `conteudo()` e do `module.exports` |
+| `polen.html` | build — a `<section id="filtros">` inteira |
+| `tools/hero-carrossel.js` | **fonte** — `iniciarFiltros()` e a chamada dela em `iniciar()` |
+| `melcam/interacoes.js` | build — a mesma função e a mesma chamada |
+| `tools/paginas.js` | **fonte** — `.mel-filtro-palco`, `.mel-pills`, `.mel-pill` e as duas linhas de media query |
+| `melcam/identidade.css` | build — as mesmas regras |
+| `tools/polen-interacoes.js` + `melcam/identidade.css` | `#filtros` fora do `scroll-margin-top`, a âncora não existe mais |
+
+### As duas coisas que ficaram, de propósito
+
+**A tira de filtros da home continua.** É outro desenho e outra marcação:
+`.mel-filtros-*` no plural, `data-mel-filtros`, eyebrow "Na própria câmera",
+dentro da coluna 3 da grade. O pedido foi sobre a /polen. Como as duas coisas
+se chamam "filtros", vale registrar que **nunca compartilharam código**: o
+seletor de atributo casa exato, então `[data-mel-filtro]` jamais pegou um nó
+marcado com `data-mel-filtros`.
+
+**Os oito filtros continuam ditos na página**, em dois lugares que não foram
+tocados: a lista de benefícios ("8 opções de filtro direto na câmera") e a
+linha de apoio do hero, que é montada de `POLEN.filtros.length`. Por isso a
+lista de filtros do catálogo ficou onde estava, e mexer nela agora quebraria
+essas duas frases. As imagens em `melcam/img/filtros/` também
+ficaram: são as mesmas que a home usa.
+
+### Regressão
+
+`node tools/preflight.js`: **pré-voo limpo**. O balanceamento de CSS caiu de
+703/703 para **695/695** — oito regras a menos, fechadas, que é exatamente o
+que se espera de remoção de bloco inteiro e não de corte no meio de uma regra.
+
+`node tools/qa-polen.js`: 6 cenários ok (desktop, tablet e mobile, cada um com
+o par reduzido). `node tools/qa-story.js`: 9 capítulos ok, subida 8→8 até 0→0,
+0 erros de console — o scrollytelling é o vizinho de baixo do bloco removido e
+era o candidato natural a quebrar. `node tools/qa-rede.js`: 7 rotas, **0
+imagens quebradas**, 0 requisições falhas.
+
+Conferido também que o gerador e o build dizem a mesma coisa:
+`require('./tools/polen.js').conteudo()` não emite mais nada do bloco, e
+`curl /polen` não traz nenhuma ocorrência de `filtro favorito`, `mel-pill` ou
+`mel-filtro-palco`. A home segue com os seus 6 `data-mel-filtros`.
+
+`tools/aplicar.js` **não** foi executado. Nenhum commit.
+
+---
+
+## 🕯️ AMBIENTAÇÃO DO FUNDO DO SCROLLYTELLING DA /POLEN — 14/08/2026
+
+Pedido: a estrutura e a animação do produto já estavam boas, mas o fundo da
+seção "O diferencial" era carvão chapado. Entra profundidade editorial —
+gradiente radial atrás da câmera, spotlight que acompanha a etapa, formas
+desfocadas em planos, grão, transição gradual de paleta e movimento de repouso
+—, com a câmera continuando a ser o assunto.
+
+### De onde vem o progresso, já que não havia nenhum
+
+O scrollytelling não tinha progresso normalizado: ele é IntersectionObserver
+com faixa de 4% no centro da tela, e o que ele produz é um índice discreto. O
+comentário no topo de `iniciarScrollytellingPolen()` dizia, com razão, que ali
+não havia rAF nem leitura de layout em listener.
+
+Então o fundo passou a derivar **duas** grandezas, as duas da mesma seção:
+
+| grandeza | o que é | quem escreve |
+|---|---|---|
+| `q` | contínua, 0..1, a seção atravessando a viewport | um scroll passivo coalescido em rAF |
+| `cap` | o capítulo ativo, **interpolado** | persegue `ativo`, que continua sendo escrito só por `ativar()` |
+
+Não há segunda autoridade sobre qual capítulo vale. `ativar()` ganhou uma linha
+— `acordarFundo()` — e é só isso: o fundo é avisado de que o alvo mudou e
+caminha até lá. Um único listener de scroll, no mesmo padrão do hero da página:
+geometria medida em `medirFundo()`, fora do laço; escritor único; nenhuma
+leitura de layout dentro do quadro.
+
+**O laço para.** Quando `q` e `cap` assentam no alvo, o rAF sai de cena. O que
+continua com a página parada são cinco keyframes de CSS de 34s a 61s, todos em
+`alternate` — durações primas entre si, para nunca voltarem a se alinhar, e
+`alternate` porque um loop simples salta do fim para o começo a cada volta.
+
+### As camadas
+
+Cinco `<div>` absolutos, `pointer-events:none`, `aria-hidden`, dentro de um
+`.mel-story-fundo` com `overflow:clip` (não `hidden`: hidden criaria caixa de
+rolagem e quebraria o sticky do palco, a mesma armadilha já documentada).
+
+- **Foco** — duas camadas sempre pintadas, âmbar e brasa; a troca de paleta é
+  crossfade de opacidade, nunca interpolação de hex, que produziria degrau.
+- **Três massas** — gradientes radiais, **sem `filter:blur()`**: parada suave
+  de gradiente já entrega o desfoque na mesma pintura, em vez de custar uma
+  passada de filtro numa caixa de 600px. Parallax de 44/96/156px, e é a
+  diferença entre as três que produz profundidade.
+- **Grão** — `feTurbulence` de 160x160 rasterizado uma vez e repetido.
+
+O transform do pai é o parallax (JS); o do pseudo-elemento é a deriva de
+repouso (CSS). Separados de propósito: dois escritores no mesmo transform seria
+um sobrescrevendo o outro a cada quadro.
+
+### Três coisas que a medição corrigiu
+
+**1. O holofote varrendo o palco.** A primeira versão punha o foco em .32/.68
+conforme o lado do capítulo. Como os capítulos alternam de lado, eram oito
+travessias de 500px numa descida — o oposto de discreto. Em .44/.56 o
+deslocamento total é de 167px: a luz *inclina* para o lado da câmera.
+
+**2. Histerese sem folga.** Com lerp de 0,085 o salto máximo por amostra do
+`qa-story-fundo` dava 127px contra um teto de 130. Em 0,065 caiu para 110, e a
+travessia passa a levar ~0,75s.
+
+**3. A emenda do grão, que era real e quase invisível.** A máscara era
+`radial(118% 96% at 50% 46%)` com opaco até 52%: no topo da seção a distância
+relativa é 0,48, ou seja **dentro** do trecho opaco — o grão chegava inteiro na
+beirada. Medido pixel a pixel contra o carvão: uma linha horizontal de delta
+3/255 atravessando os 1440px. Baixo, e mesmo assim visível, porque o olho
+encontra linha reta antes de encontrar diferença de tom. Em `76% 58%` com opaco
+até 10%, delta **0**.
+
+### Regressão
+
+`node tools/preflight.js` — pré-voo limpo, CSS balanceado 721/721.
+
+`node tools/qa-story-fundo.js` (novo, só lê) nas quatro combinações:
+**1440x900, 390x844 e as duas sob `prefers-reduced-motion`** — todas [OK].
+Ele prova, em cada largura: fundo `absolute` sem eventos e com `aria-hidden`,
+**seção em 6425px, idêntica à medida antes do fundo existir**, altura da página
+constante durante a rolagem inteira (que é a definição de não haver layout
+shift), salto máximo por amostra de 110px na descida e na subida contra uma
+rolagem de 229px por amostra — ou seja, o fundo sempre fica **atrás** da página
+—, salto longo do pé ao topo sem oscilar, e o laço parado com a página parada.
+
+Sob movimento reduzido: **0 animações vivas**, parallax zerado, o foco no
+transform de repouso e o fundo inteiro de pé — é o quadro final, estático, e
+não um estado de espera.
+
+`node tools/qa-story.js` — 9 capítulos ok, subida 8→8 até 0→0, 0 erros.
+`node tools/qa-polen.js` — 6 cenários ok. `node tools/qa-rede.js` — 7 rotas, 0
+imagens quebradas. `node tools/qa-clipes.js` — todas as telas passaram.
+
+**Legibilidade, medida em pixel composto e não em CSS.** O `qa-paleta` resolve
+a cor de fundo pela cascata, e um gradiente pintado por cima não aparece ali —
+ele acusaria 0 mesmo se o fundo tivesse estragado o texto. Então a conferência
+foi outra: recortar a caixa de cada passo da captura, tirar a mediana de
+luminância (o texto nunca é maioria da caixa) e calcular o contraste real.
+
+| largura | pior caso | mínimo | folga |
+|---|---|---|---|
+| 1440x900 | 6,96:1 (número em mel, cap 5) | 4,5 | +2,46 |
+| 810x1080 | 7,63:1 (cap 4) | 4,5 | +3,13 |
+| 390x844 | 7,62:1 (cap 5) | 4,5 | +3,12 |
+
+O fundo custa no máximo 1,3 ponto de contraste e nunca chega perto do limite.
+
+### Arquivos
+
+| arquivo | o quê |
+|---|---|
+| `tools/polen-interacoes.js` | **fonte** — driver do fundo em `js()`, camadas e keyframes em `css()`, e as regras sob `prefers-reduced-motion` |
+| `tools/polen.js` | **fonte** — as cinco camadas no HTML de `diferencial()` |
+| `polen.html` · `bee.html` · `melcam/interacoes.js` · `melcam/identidade.css` | builds, sincronizados por `node tools/build-produtos.js` |
+| `tools/qa-story-fundo.js` | **novo** — o QA descrito acima; só lê |
+
+`tools/aplicar.js` **não** foi executado. Nenhum commit.
+
+### Duas coisas encontradas, nenhuma delas tocada
+
+**A árvore tinha trabalho não commitado de outra frente.** O merge de 913b16e
+entrou às 09:21; `404.html`, `index.html`, `fontes.css`, `tools/identidade.js`,
+`tools/comunidade.js` e outros têm mtime entre 10:26 e 11:40, depois do merge.
+Regerar os derivados aplicou esse trabalho também a `polen.html` e `bee.html`,
+que estavam atrasados em relação às próprias fontes — daí a faixa `mel-sobre`
+de 975px ter aparecido na /polen e a página ter ido de 11200 para 12186px.
+Medido: com o fundo escondido a página continua com 12186, ou seja **a
+ambientação contribui 0px**. Nada foi perdido: `.mel-clipes` está no byte 77155
+e o bloco regerado começa no 109304, e o `qa-clipes` passa.
+
+**`/bee` reprova em contraste, e é anterior a isto.** `.mel-bh-cores i` tem
+`opacity:.42` e dá 2,56:1 no separador "·", nas três larguras. A regra é byte a
+byte igual à do HEAD e mora fora do bloco regerado. Fica registrado, não
+corrigido — o pedido era não mexer nas demais seções.
+
+---
+
+## 🏷️ OS TÓPICOS DO SCROLLYTELLING: DESCRIÇÃO EM TODOS E O NÚMERO VIRANDO ETIQUETA — 14/08/2026
+
+Dois pedidos na mesma passada: escrever a linha de apoio dos capítulos que só
+tinham título, e transformar o destaque em amarelo de cada tópico numa etiqueta
+visual não interativa, com o vocabulário do "Escolha sua cor".
+
+### 1. As cinco descrições
+
+Em 13/08 quatro capítulos tinham linha de apoio e cinco não, por decisão
+registrada: o copy vinha verbatim do cliente, e inventar frase para emparelhar
+visualmente seria criar afirmação sobre o produto. O pedido de hoje é explícito
+em manter a proibição — nada de especificação, número ou promessa nova —, então
+cada frase foi **ancorada em conteúdo que já existe no projeto**, e a âncora
+está escrita no comentário em cima dela, no `tools/polen.js`.
+
+| cap | descrição criada | de onde saiu |
+|---|---|---|
+| 03 | Recarrega pelo mesmo cabo USB-C que transfere as fotos. Quanto ela dura depende de quanto você usa o flash. | FAQ desta página ("Quanto dura a bateria?") + capítulo 8 |
+| 04 | As três medidas da Polen, sem arredondamento. É uma câmera pequena, e o desenho sobre a foto mostra o quanto. | a própria cena: as cotas em SVG sobre o packshot |
+| 05 | O flash é parte da câmera, ao lado do visor. Quando a luz cai, ele entra sem você acoplar nada. | benefício aprovado no `melcam.config.json` + alt da foto |
+| 06 | Esta foto saiu da Polen, sem edição nenhuma. São os 12 MP num clique só. | título aprovado da galeria + alt da foto do capítulo |
+| 07 | O cartão já vem na caixa, junto com o cabo. Não precisa comprar nada à parte para começar. | nota do produto ("cartão SD incluso") + FAQ |
+
+Nenhum número novo: os que aparecem já estavam no título do capítulo. No 04 não
+foi escrito "cabe no bolso" — é plausível e não está conferido em lugar nenhum,
+então a frase ficou no que a cena mostra.
+
+**A procedência continua diferente, e isso importa.** As quatro de 13/08 são
+copy do cliente, verbatim. As cinco de hoje são redação nossa sobre fato
+aprovado e **ainda não passaram pelo cliente**. Pendência de validação, não copy
+fechado.
+
+"Esta foto" e não "a foto ao lado" no capítulo 06: no mobile a imagem fica
+ACIMA do texto, não ao lado.
+
+### 2. A etiqueta
+
+O inventário do amarelo foi medido, não deduzido do CSS: uma varredura de cor
+computada nó a nó. Dentro da seção há cinco coisas em mel — o eyebrow "o
+diferencial", os nove números de capítulo, o "01" do contador do palco, e o
+número grande e o rótulo "imagem oficial a inserir" do placeholder do cap. 3.
+
+**Foram os nove números de capítulo.** São o destaque de cada *tópico*, que é o
+que o pedido pede que fique consistente entre todos. `<p>` continua sendo o
+lugar; quem carrega forma e cor é um `<span class="mel-story-etiq">` dentro
+dele — e o `<p>` já era `aria-hidden` desde 13/08.
+
+Os outros quatro ficaram, com motivo:
+
+- **eyebrow "o diferencial"** — é o estilo compartilhado de TODA seção do site.
+  Virar pílula só aqui deixaria esta seção diferente das irmãs da mesma página
+  ("dúvidas", "Feitas com a Polen"), e o pedido diz para não mexer nas demais.
+- **contador "01 / 09"** — é uma fração; empilhar pílula em metade dela quebra a
+  leitura do próprio indicador. E não é um tópico.
+- **os dois do placeholder do cap. 3** — é andaime de produção, esperando a foto
+  oficial do cliente. Vestir andaime de elemento de design o faz parecer
+  permanente, que é o contrário do que ele comunica.
+
+### O preenchimento que reprovava, e por que a pílula é vazada
+
+A primeira versão usou mel a 10% de fundo, como um `.mel-bt-mel` suavizado.
+Reprovou: no desktop o capítulo inativo tem `opacity` menor que 1, e o número em
+mel **já vivia em 4,72:1**, com sete centésimos de folga sobre o mínimo. Clarear
+o fundo derruba tudo. Calculado alfa por alfa:
+
+```
+0,00 -> 4,73   0,03 -> 4,49   0,06 -> 4,24
+0,02 -> 4,57   0,04 -> 4,41   0,10 -> 3,91
+```
+
+Nem 3% cabe. A pílula ficou vazada — que é exatamente o que a `.mel-bt-linha` do
+próprio sistema faz (fundo transparente, contorno de 1px). Esta é a irmã dela em
+mel, e o amarelo segue sendo o destaque.
+
+### O defeito de ontem que esta medição encontrou
+
+Ao conferir a etiqueta, apareceu um problema **da ambientação de fundo entregue
+horas antes**: a luz quente clareia o backdrop, e o `opacity` do capítulo
+inativo mistura o texto com esse backdrop. No ponto mais claro medido em pixel,
+`rgb(54,42,24)`, o mel a 0,70 dá **4,21:1** — reprova.
+
+A verificação de ontem não pegou porque calculou o contraste do mel CHEIO
+(#F2A900), sem aplicar o `opacity` do capítulo inativo. Deu 6,96:1 e passou.
+
+Duas saídas, medidas:
+
+| saída | resultado |
+|---|---|
+| subir o `opacity` do passo inativo | 0,74 -> 4,53 · **0,78 -> 4,86** |
+| baixar a luz do fundo | precisaria cortar para **40%**, desmontando a ambientação, e ainda pararia em 4,53 |
+
+Escolhido **0,70 -> 0,78**, que é o mesmo remédio das outras duas vezes em que
+este número subiu (0,66 -> 0,70 em 13/08, quando o fundo da página virou
+carvão). A distinção entre ativo e inativo fica mais discreta, e legibilidade
+não se negocia com estilo. O histórico completo está no comentário da regra.
+
+### Regressão
+
+`node tools/preflight.js` — pré-voo limpo, CSS balanceado 722/722.
+
+`node tools/qa-story-etiquetas.js` (novo, só lê) em **1440x900 e 390x844**,
+os dois [OK]. Ele prova, sem depender de olho:
+
+- **9 de 9 tópicos com título e descrição**, cada uma em 1 ou 2 frases;
+- a etiqueta é `<span>`, e **zero** com `tabindex`, `role`, `href`, `onclick`,
+  atributo `aria-`, dentro de `a`/`button`/`label`, ou na lista de focáveis do
+  documento;
+- `cursor auto`, `transition` com duração `0s`, sombra **só inset** (sombra
+  externa é o que dá cara de elevação), 45x23px contra o teto de 30px de altura;
+- **hover de verdade**: dispara `mouseover`/`mouseenter`/`mousemove` e compara o
+  estilo computado antes e depois — não muda. Tenta `.focus()` — não pega foco.
+  Dispara `click` — não navega;
+- não cruza a câmera, a navegação nem o título, não sai da coluna do tópico e
+  não quebra em duas linhas.
+
+**Contraste medido em pixel, varrendo a seção em 24 posições.** Centralizar
+capítulo a capítulo mediria só o ativo: no desktop cada passo tem 68vh, então
+quando um está no centro os vizinhos estão fora da tela — e o caso difícil é
+justamente o inativo. Varrendo, o QA vê as duas opacidades:
+
+| largura | medições | opacidades vistas | pior caso |
+|---|---|---|---|
+| 1440x900 | 31 | 0,78 e 1 | **5,20:1** (inativo, backdrop rgb(44,36,25)) |
+| 390x844 | 42 | 1 | **7,29:1** |
+
+`node tools/qa-paleta.js` — 0 reprovações na /polen (as 3 que restam são de
+`/bee`, anteriores e fora de escopo). `qa-story` 9/9 com subida ok e seção
+ainda em 6425px. `qa-story-fundo` [OK] no desktop e sob `prefers-reduced-motion`
+— a ambientação de ontem segue intacta. `qa-rede` 7 rotas, 0 imagens quebradas.
+
+### Arquivos
+
+| arquivo | o quê |
+|---|---|
+| `tools/polen.js` | **fonte** — as cinco descrições em `CAPITULOS` com a âncora de cada uma, o `<span>` da etiqueta em `passo()` e o comentário de arquitetura atualizado |
+| `tools/polen-interacoes.js` | **fonte** — `.mel-story-etiq`, o `.mel-story-num` reduzido a container, e o `opacity` do passo inativo de .70 para .78 |
+| `polen.html` · `bee.html` · `melcam/interacoes.js` · `melcam/identidade.css` | builds, por `node tools/build-produtos.js` |
+| `tools/qa-story-etiquetas.js` | **novo** — o QA acima; só lê |
+
+`tools/aplicar.js` **não** foi executado. Nenhum commit.
+
+---
+
+## 🩹 A FAIXA "SOBRE NÓS" VIRANDO HERO NA /POLEN E NA /BEE — 14/08/2026
+
+Regressão relatada: as duas páginas de produto passaram a abrir com "Sobre nós"
+ocupando a tela, com o hero verdadeiro empurrado para baixo da dobra.
+
+### Causa raiz
+
+Não é CSS genérico, não é `:first-child`, não é seletor por cor e não é JS
+pegando a primeira seção. É o mecanismo de geração das internas:
+
+**`tools/paginas.js`, `gerar()`, primeira linha: toda página interna nasce como
+cópia completa do `index.html`.** O que segura o DOM da home invisível nelas é
+uma lista só, o `SO_HOME`, que vira `body.mel-interna <seletor>{display:none}`
+no CSS crítico inline e na folha externa.
+
+`tools/sobre-faixa.js` inseriu a seção nova no `index.html` e parou aí — é o que
+ele faz, ele só escreve na home. A entrada correspondente nunca foi acrescentada
+ao `SO_HOME`. Resultado: a faixa viajou para dentro de toda interna regerada.
+
+E não caiu no meio da página. O conteúdo próprio de cada interna é inserido no
+**fim** do stack, então tudo que veio da home fica **acima** dele. Medido:
+
+| página | onde a faixa caiu | altura | primeiro elemento visível |
+|---|---|---|---|
+| `/` (home) | y 6368 | 664px | correto, é o lugar de projeto dela |
+| `/polen` | **y 0** | **975px (1,08 tela)** | `mel-sobre`, com o hero `mel-ph` em y 985 |
+| `/bee` | **y 0** | **975px (1,08 tela)** | `mel-sobre`, com o hero `mel-bh` em y 985 |
+
+Vale registrar o que **não** era: `position` static, sem `absolute`, sem
+`fixed`, sem `100vh`, sem `min-height`, sem animação rodando e sem `z-index`. A
+cara de hero vinha só de estar em primeiro lugar e ser alta. Procurar por
+propriedade de hero não teria achado nada.
+
+As outras internas (`acessorios`, `sobre`, `sacola`, `404`) não tinham a faixa
+**só porque não foram regeradas** desde que ela nasceu. A armadilha estava
+armada para a próxima regeração de qualquer uma delas.
+
+### Correção
+
+Uma entrada em `SO_HOME`, no `tools/paginas.js`: `'.mel-sobre'`. Seção da home
+sai da interna por CSS, nunca por recorte de DOM — é a regra aprendida já
+registrada aqui. Corrigir na lista conserta as duas páginas afetadas **e**
+desarma a armadilha para as outras quatro.
+
+A mesma linha foi acrescentada à regra da folha externa em
+`melcam/identidade.css`, porque o `build-produtos.js` só regenera o bloco da
+/polen e não passa por ela.
+
+**A home não foi tocada.** A faixa continua em y 6368 com 664px, e o
+`qa-sobre.js` passa em todos os cenários, inclusive sob `prefers-reduced-motion`.
+
+### Escopo das etiquetas amarelas
+
+Pedido junto: prender as etiquetas novas ao scrollytelling da Polen. Elas já não
+vazavam — a `/bee` não tem marcação `mel-story-*` nenhuma —, mas o seletor era
+só `.mel-story-etiq`, sem contêiner. Agora:
+
+```
+body.mel-pagina-polen [data-mel="polen-story"] .mel-polen-story-etiq
+```
+
+Os dois primeiros degraus não são decorativos: `body.mel-pagina-polen` só a
+/polen tem, e `[data-mel="polen-story"]` é o contêiner do scrollytelling,
+escrito por `tools/polen.js` num lugar só. A classe também mudou de nome, para
+carregar o escopo nela mesma, e é aplicada explicitamente no HTML gerado.
+
+Ficou `mel-polen-story-etiq` e não `polen-scrolly__tag`, que era o exemplo do
+pedido: a folha usa o prefixo `mel-` nas 722 regras e nenhuma usa BEM. Trocar é
+uma linha se preferirem o outro nome.
+
+### O defeito que eu mesmo introduzi no meio da correção
+
+Ao escrever o comentário do escopo, o `*/` novo caiu **dentro** do comentário
+que já existia. O texto seguinte virou lixo solto na folha e o navegador engoliu
+em silêncio a regra da etiqueta: os 9 `<span>` continuaram no HTML, com a classe
+certa, e **zero estilo aplicado**.
+
+O pré-voo passou. Ele conta chaves, e as chaves continuavam 722/722 — contar
+chave não enxerga comentário.
+
+Entrou uma etapa nova no `tools/preflight.js`: **comentários do CSS**. Varredura
+caractere a caractere que acusa `*/` órfão e comentário que nunca fecha. Ela
+pula string, porque sem isso um `url("data:image/svg+xml,...*/...")` reprovaria
+— testado, junto com o defeito real, o comentário normal, o não-fechado e a
+folha inteira do projeto: seis casos, todos com o veredito certo.
+
+### Validação
+
+`node tools/preflight.js` — pré-voo limpo, 12 etapas, agora com
+`comentários do CSS (sem "*/" órfão)`.
+
+**Ordem das seções, medida nas duas larguras.** Cada página abre com o seu hero
+e só com ele:
+
+| página | primeiro visível | antes |
+|---|---|---|
+| `/polen` desktop | `mel-ph` em y 0, 828px | `mel-sobre` em y 0, 975px |
+| `/polen` mobile | `mel-ph` em y 0, 776px | idem |
+| `/bee` desktop | `mel-bh` em y 0, 720px | `mel-sobre` em y 0, 975px |
+| `/bee` mobile | `mel-bh` em y 0, 674px | idem |
+
+A `/polen` voltou de 12186px para **11200px**, que é exatamente a altura medida
+antes de a faixa entrar.
+
+**Escopo da etiqueta, varrido em 7 rotas e nas duas larguras.** Elementos com a
+classe e elementos com *cara* de pílula (raio total + texto em mel + contorno,
+que é como um seletor solto se manifestaria):
+
+```
+/            0 com a classe · 0 com cara de pílula
+/polen       9 com a classe · 9 estiladas · 0 fora de um tópico · 9 com cara, todas em tópico do scrollytelling
+/bee         0 · 0
+/acessorios  0 · 0      /sobre  0 · 0      /sacola  0 · 0      /404  0 · 0
+```
+
+**Auditoria de seletor genérico**, o que o pedido mandou procurar: `:first-child`
+aparece uma vez na folha e está **dentro de um comentário** dizendo que foi
+removida em 13/08; `:first-of-type`, `:last-of-type` e `[style*=]` não existem;
+nenhuma regra começa em tag nua que alcance seção (as duas que começam em tag
+são `h1,h2` de tipografia e o `:focus-visible` de acessibilidade); nenhuma casa
+por cor. No JS, nada seleciona "a primeira seção" nem "todo elemento amarelo" —
+os `#F2A900` que aparecem são **atribuição** de cor em links que o próprio
+script cria para o menu mobile.
+
+`qa-story-etiquetas` [OK] em 1440x900 e 390x844, com contraste em pixel de
+5,37:1 no pior capítulo inativo. `qa-story` 9/9 com subida ok. `qa-story-fundo`
+[OK]. `qa-sobre` todos os cenários. `qa-bee` sem invisíveis e sem console.
+`qa-rede` 7 rotas, 0 imagens quebradas.
+
+### Arquivos
+
+| arquivo | o quê |
+|---|---|
+| `tools/paginas.js` | **fonte, a correção da regressão** — `.mel-sobre` no `SO_HOME` |
+| `melcam/identidade.css` | build — a mesma entrada na regra da folha externa |
+| `tools/polen-interacoes.js` | **fonte** — seletor da etiqueta escopado no contêiner, e o comentário que eu havia quebrado |
+| `tools/polen.js` | **fonte** — a classe nova no HTML gerado |
+| `tools/preflight.js` | etapa nova de comentários do CSS |
+| `tools/qa-story-etiquetas.js` | acompanha o nome novo da classe |
+| `polen.html` · `bee.html` · `melcam/interacoes.js` | builds, por `node tools/build-produtos.js` |
+
+`tools/aplicar.js` **não** foi executado. Nenhum commit.

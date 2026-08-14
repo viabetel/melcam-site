@@ -747,45 +747,11 @@ function js() {
     });
   }
 
-  /* ---------------- troca de filtro (LP Polen) ----------------
-     Troca a foto sem recarregar, com crossfade. A imagem nova só entra depois
-     de decodificar, senão pisca em branco no meio da transição. */
-  function iniciarFiltros() {
-    var alvo = document.querySelector('[data-mel-filtro-img]');
-    var pills = Array.prototype.slice.call(document.querySelectorAll('[data-mel-filtro]'));
-    var vivo = document.querySelector('[data-mel-filtro-vivo]');
-    if (!alvo || !pills.length) return;
-
-    pills.forEach(function (p) {
-      p.addEventListener('click', function () {
-        pills.forEach(function (o) { o.setAttribute('aria-selected', String(o === p)); });
-        var src = p.getAttribute('data-src');
-        var nome = p.textContent.trim();
-        var pre = new Image();
-        pre.onload = function () {
-          alvo.classList.add('mel-trocando');
-          setTimeout(function () {
-            alvo.src = src;
-            alvo.alt = 'A mesma foto com o filtro ' + nome;
-            alvo.classList.remove('mel-trocando');
-            if (vivo) vivo.textContent = 'Filtro ' + nome + ' aplicado';
-          }, menosMovimento.matches ? 0 : 190);
-        };
-        pre.src = src;
-      });
-
-      /* setas navegam entre os filtros, como tablist manda */
-      p.addEventListener('keydown', function (e) {
-        var i = pills.indexOf(p), d = 0;
-        if (e.key === 'ArrowRight') d = 1;
-        else if (e.key === 'ArrowLeft') d = -1;
-        else return;
-        e.preventDefault();
-        var n = pills[(i + d + pills.length) % pills.length];
-        n.focus(); n.click();
-      });
-    });
-  }
+  /* iniciarFiltros() saiu em 14/08/2026 junto com o bloco "Uma foto. 8
+     filtros" da LP Polen. Era o único consumidor de [data-mel-filtro]. Note
+     que a tira de filtros da home é outra coisa: marca [data-mel-filtros], no
+     plural, e não tem comportamento — é CSS. Seletor de atributo casa exato,
+     então uma nunca respondeu pela outra. */
 
   /* ---------------- FAQ ---------------- */
   function iniciarFaq() {
@@ -1473,27 +1439,105 @@ ${require('./bee-interacoes.js').js()}
     }
 
     var manual = false;
+    var automaticoFeito = false;
+    var obs = null;
+
+    function encerrarObs() {
+      if (obs) { obs.disconnect(); obs = null; }
+    }
 
     bt.addEventListener('click', function () {
+      /* O clique manda a partir daqui, e o observador sai de cena na hora —
+         mesmo que a abertura automática ainda não tenha acontecido. Sem isso,
+         fechar a faixa e rolar de leve a reabriria na cara de quem acabou de
+         fechá-la. */
       manual = true;
+      encerrarObs();
       pintar(!palco.hasAttribute('data-aberto'));
     });
 
-    /* O OBTURADOR DISPARA SOZINHO QUANDO A FAIXA CHEGA.
+    /* O OBTURADOR DISPARA SOZINHO QUANDO A FAIXA CHEGA — UMA VEZ SÓ.
        Como accordion parado ela era só um retângulo com um botão: o efeito
        existia, mas ninguém via sem clicar. Numa marca de câmera o gesto certo é
        o contrário — a exposição acontece quando o assunto entra no quadro.
 
-       O clique continua mandando: a partir do primeiro toque no botão a
-       abertura vira decisão da pessoa e o observador para de opinar. Sem isso,
-       fechar a faixa e rolar de leve a reabriria na cara de quem acabou de
-       fechá-la. */
+       🔴 A OSCILAÇÃO, E POR QUE ELA ERA INEVITÁVEL — corrigido em 14/08/2026.
+
+       A versão anterior observava o PRÓPRIO PALCO com "threshold: 0.55" e
+       escrevia "pintar(isIntersecting)". Só que o CSS muda a altura desse mesmo
+       elemento ao abrir — na época por "height", hoje pela fileira do meio da
+       grade, que vai de 0fr ao tamanho do conteúdo; o que segue vale igual nas
+       duas formas, porque o problema é a altura mudar, não como ela muda:
+
+         fechado   altura = 2 x cortina            (600 no desktop, 400 no mobile)
+         aberto    altura = 2 x cortina + conteúdo (~909 e ~764, medidos)
+
+       O "threshold" é uma RAZÃO — parte visível dividida pela altura total. Ao
+       abrir, o denominador cresce (600 -> 909 no desktop, 400 -> 764 no mobile)
+       sem que a parte visível cresça junto, porque o palco cresce para BAIXO,
+       além da dobra. A razão despenca abaixo de 0,55, o observador manda fechar,
+       a altura volta ao valor pequeno, a razão sobe acima de 0,55 e ele manda
+       abrir. O ciclo se sustenta com o scroll PARADO: o observador mede o que a
+       própria animação acabou de mudar.
+
+       Medido antes da correção (tools/qa-sobre.js), com o scroll imóvel por 10s:
+
+         desktop 1440x900   152 alternâncias    94 aberturas + 94 fechamentos
+         tablet  768x1024   202 alternâncias   124 aberturas + 124 fechamentos
+         mobile  390x844    202 alternâncias   125 aberturas + 125 fechamentos
+
+       Uma troca a cada ~35 ms, indefinidamente.
+
+       DUAS mudanças, e cada uma sozinha já quebraria o laço — juntas, ele não
+       tem por onde voltar:
+
+       1. O ALVO passa a ser a <section data-mel-sobre>, não o palco. O palco
+          cresce para baixo, então o TOPO da seção não se move quando a animação
+          roda. É a geometria estável que o gatilho precisa.
+
+       2. O GATILHO deixa de ser razão. "threshold: 0" com a borda de baixo da
+          raiz puxada para 72% da janela ("rootMargin" -28%) pergunta apenas se
+          o topo da seção cruzou uma linha — e altura nenhuma influencia isso.
+
+          Os 72% saem de medição, não de gosto. O gatilho antigo caía em pontos
+          DIFERENTES em cada tela, justamente porque dependia da altura do
+          palco:
+
+            desktop 1440x900   palco 600px   topo em 63,3% da janela
+            tablet   768x1024  palco 400px   topo em 78,5%
+            mobile   390x844   palco 400px   topo em 73,9%
+
+          72% é a média dos três, e é a linha que menos desloca o momento da
+          abertura: desvio máximo de 8,7 pontos, contra 15,5 se eu fixasse no
+          valor do desktop. A primeira tentativa usou -37% (os 63,3% do
+          desktop) e o QA pegou o preço: no tablet e no mobile a faixa deixava
+          de abrir sozinha na posição testada.
+
+          De quebra some uma falha latente: com razão, uma seção mais alta que a
+          janela nunca alcançaria 0,55 e a faixa jamais abriria.
+
+       3. Dispara UMA VEZ por carregamento e desconecta. Nunca fecha sozinha:
+          dentro do observador só existe pintar(true). Sair e voltar à viewport
+          não reabre nem fecha — depois da primeira exposição, quem manda é o
+          botão. */
+    var secao = palco.closest ? palco.closest('[data-mel-sobre]') : null;
+    /* Sem a seção o palco volta a ser o alvo, mas o laço não volta com ele: o
+       disparo único e o disconnect abaixo já o impedem sozinhos. */
+    var alvoObs = secao || palco;
+
     if (window.IntersectionObserver) {
-      var obs = new IntersectionObserver(function (ents) {
-        if (manual) { obs.disconnect(); return; }
-        pintar(ents[0] && ents[0].isIntersecting);
-      }, { threshold: 0.55 });
-      obs.observe(palco);
+      obs = new IntersectionObserver(function (ents) {
+        if (manual || automaticoFeito) { encerrarObs(); return; }
+        for (var i = 0; i < ents.length; i++) {
+          if (ents[i].isIntersecting) {
+            automaticoFeito = true;
+            pintar(true);
+            encerrarObs();
+            return;
+          }
+        }
+      }, { threshold: 0, rootMargin: '0px 0px -28% 0px' });
+      obs.observe(alvoObs);
     }
 
     /* Escape fecha, como o menu e o painel de conta ja fazem. */
@@ -1517,7 +1561,6 @@ ${require('./bee-interacoes.js').js()}
     /* Só faz algo em /bee: [data-mel="bee-hero"] não existe em nenhuma outra
        página, então sai na primeira linha. */
     iniciarHeroBee();
-    iniciarFiltros();
     iniciarFaq();
     iniciarSacola();
     iniciarAviso();

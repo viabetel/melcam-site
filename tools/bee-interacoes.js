@@ -96,10 +96,18 @@ function css() {
      mesmo defeito que a /polen levou três passadas para resolver). */
   min-height:clamp(520px,80svh,820px);
   display:flex; align-items:center;
-  /* A largura cheia é escrita por JS (sangrar(), em interacoes.js), medida em
-     document.documentElement.clientWidth — que NÃO inclui a barra de rolagem.
-     100vw incluiria e criaria transbordo horizontal. Sem JS o hero fica na
-     largura do container: mais estreito, nunca quebrado. */
+  /* LARGURA CERTA JÁ NO PRIMEIRO PAINT — 14/08/2026.
+     Até aqui a largura cheia vinha SÓ do JS (sangrar(), em interacoes.js).
+     Medido com tools/qa-hero-primeiro-paint.js: em 768 o hero pintava em
+     "55,0 659x721" e só virava "0,0 768x721" aos 287 ms — o hero claro
+     encaixotado, com faixas escuras dos dois lados, antes do layout definitivo.
+     width:100% resolve contra a caixa de conteúdo do pai — o
+     <header class="framer-vrbx7h">, o stack da página — que já tem a largura da
+     janela até 1440. NÃO é 100vw: 100vw inclui a barra de rolagem e criaria
+     transbordo horizontal, que foi o motivo de a sangria ter ido para o JS.
+     O sangrar() FICA e não foi tocado: continua respondendo a resize e cobrindo
+     janela acima de 1440, onde o stack para em max-width:1440px. */
+  width:100%;
 }
 
 /* --- o palco ---

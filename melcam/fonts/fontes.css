@@ -1,17 +1,20 @@
-/* Fontes oficiais MELCAM. Gerado por tools/identidade.js — nao editar a mao. */
+/* Fontes oficiais MELCAM. Gerado por tools/identidade.js — nao editar a mao.
+   O peso de cada arquivo da Area sai da tabela 'name' do proprio .otf:
+   da familia quando ela o declara, do estilo quando a familia e a neutra
+   "Area Extended". Ver o bloco de comentario em tools/identidade.js. */
 
-@font-face{font-family:"Area";src:url("/melcam/fonts/area/51683.otf") format("opentype");font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:"Area";src:url("/melcam/fonts/area/51683.otf") format("opentype");font-weight:700;font-style:italic;font-display:swap}
 @font-face{font-family:"Area";src:url("/melcam/fonts/area/51684.otf") format("opentype");font-weight:600;font-style:italic;font-display:swap}
 @font-face{font-family:"Area";src:url("/melcam/fonts/area/51685.otf") format("opentype");font-weight:900;font-style:normal;font-display:swap}
 @font-face{font-family:"Area";src:url("/melcam/fonts/area/51686.otf") format("opentype");font-weight:900;font-style:italic;font-display:swap}
 @font-face{font-family:"Area";src:url("/melcam/fonts/area/51687.otf") format("opentype");font-weight:400;font-style:italic;font-display:swap}
 @font-face{font-family:"Area";src:url("/melcam/fonts/area/51688.otf") format("opentype");font-weight:200;font-style:italic;font-display:swap}
 @font-face{font-family:"Area";src:url("/melcam/fonts/area/51689.otf") format("opentype");font-weight:200;font-style:normal;font-display:swap}
-@font-face{font-family:"Area";src:url("/melcam/fonts/area/51690.otf") format("opentype");font-weight:600;font-style:normal;font-display:swap}
-@font-face{font-family:"Area";src:url("/melcam/fonts/area/51691.otf") format("opentype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Area";src:url("/melcam/fonts/area/51690.otf") format("opentype");font-weight:600;font-style:normal;font-display:block}
+@font-face{font-family:"Area";src:url("/melcam/fonts/area/51691.otf") format("opentype");font-weight:400;font-style:normal;font-display:block}
 @font-face{font-family:"Area";src:url("/melcam/fonts/area/51692.otf") format("opentype");font-weight:800;font-style:italic;font-display:swap}
 @font-face{font-family:"Area";src:url("/melcam/fonts/area/51693.otf") format("opentype");font-weight:800;font-style:normal;font-display:swap}
-@font-face{font-family:"Area";src:url("/melcam/fonts/area/51694.otf") format("opentype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Area";src:url("/melcam/fonts/area/51694.otf") format("opentype");font-weight:700;font-style:normal;font-display:block}
 @font-face{font-family:"Area";src:url("/melcam/fonts/area/60636.otf") format("opentype");font-weight:500;font-style:normal;font-display:swap}
 @font-face{font-family:"Area";src:url("/melcam/fonts/area/60637.otf") format("opentype");font-weight:500;font-style:italic;font-display:swap}
 @font-face{font-family:"Area";src:url("/melcam/fonts/area/60638.otf") format("opentype");font-weight:950;font-style:italic;font-display:swap}
@@ -23,5 +26,5 @@
 @font-face{font-family:"Area";src:url("/melcam/fonts/area/60648.otf") format("opentype");font-weight:100;font-style:italic;font-display:swap}
 @font-face{font-family:"Area";src:url("/melcam/fonts/area/60649.otf") format("opentype");font-weight:100;font-style:normal;font-display:swap}
 
-@font-face{font-family:"Iowan Old Style";src:url("/melcam/fonts/iowan-old-style-bold.otf") format("opentype");font-weight:700;font-style:normal;font-display:swap}
-@font-face{font-family:"Brooklyn Heritage";src:url("/melcam/fonts/brooklyn-heritage-semibold.otf") format("opentype");font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:"Iowan Old Style";src:url("/melcam/fonts/iowan-old-style-bold.otf") format("opentype");font-weight:700;font-style:normal;font-display:block}
+@font-face{font-family:"Brooklyn Heritage";src:url("/melcam/fonts/brooklyn-heritage-semibold.otf") format("opentype");font-weight:600;font-style:normal;font-display:block}

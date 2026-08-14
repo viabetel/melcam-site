@@ -125,6 +125,45 @@ if (!cssBuf) {
   const fecha = (css.match(/\}/g) || []).length;
   abre === fecha ? ok(`CSS balanceado  (${abre}/${fecha})`)
                  : erro('CSS balanceado', `${abre} "{" contra ${fecha} "}"`);
+
+  // ---- comentários de CSS, e por que esta etapa existe ----
+  //
+  // 14/08/2026: um comentário longo ganhou um "*/" no meio, por edição. O que
+  // vinha depois virou texto solto na folha, e o navegador engoliu em silêncio
+  // a regra seguinte — a etiqueta do scrollytelling ficou com a classe no HTML
+  // e NENHUM estilo aplicado. As chaves continuavam 722/722, então a etapa
+  // acima passou. Contar chave não vê comentário.
+  //
+  // A varredura é caractere a caractere e PULA STRING, porque contar "/*" e
+  // "*/" com regex acusaria qualquer data:URI que tivesse essas letras juntas.
+  // Testado: sem o salto, uma url("data:image/svg+xml,...*/...") reprovava.
+  {
+    const problemasCom = [];
+    let dentro = false, aspas = null, linha = 1, abriuNaLinha = 0;
+    for (let i = 0; i < css.length; i++) {
+      const c = css[i];
+      if (c === '\n') linha++;
+
+      if (aspas) {                                  // dentro de string
+        if (c === '\\') i++;
+        else if (c === aspas) aspas = null;
+        continue;
+      }
+      if (!dentro && (c === '"' || c === "'")) { aspas = c; continue; }
+
+      if (!dentro && c === '/' && css[i + 1] === '*') { dentro = true; abriuNaLinha = linha; i++; }
+      else if (dentro && c === '*' && css[i + 1] === '/') { dentro = false; i++; }
+      // "*/" fora de comentário e fora de string: a assinatura exata do defeito.
+      else if (!dentro && c === '*' && css[i + 1] === '/') {
+        problemasCom.push(`"*/" sem "/*" aberto, linha ${linha}`);
+        i++;
+      }
+    }
+    if (dentro) problemasCom.push(`comentário aberto na linha ${abriuNaLinha} nunca fecha`);
+    problemasCom.length
+      ? erro('comentários do CSS', problemasCom.slice(0, 5).join('\n'))
+      : ok('comentários do CSS  (sem "*/" órfão)');
+  }
 }
 
 // ------------------------------------------------------- 5. sintaxe do JS

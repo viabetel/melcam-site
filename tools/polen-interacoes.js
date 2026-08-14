@@ -192,11 +192,15 @@ function js() {
      nenhuma outra pagina. NAO toca em iniciarFileira nem em variavel dela —
      tudo aqui e local a esta funcao.
 
-     O QUE ESTE SCRIPT FAZ: liga uma classe na secao e troca um atributo no
-     capitulo ativo. So isso. Quem anima e o CSS, por transition. Nao ha
-     requestAnimationFrame, nao ha escrita de transform e nao ha leitura de
-     layout dentro de listener de scroll — o unico calculo de geometria roda
-     UMA vez, na largada, para o caso de a pagina abrir no meio da secao.
+     O QUE ESTE SCRIPT FAZ COM O PALCO: liga uma classe na secao e troca um
+     atributo no capitulo ativo. So isso. Quem anima a cena e o painel e o
+     CSS, por transition. Nenhuma leitura de layout dentro de listener.
+
+     O FUNDO, acrescentado em 14/08/2026, e a unica parte com laco: ele precisa
+     de progresso continuo, que o IntersectionObserver nao da. E um so scroll
+     passivo, coalescido em rAF, que para de rodar assim que os valores
+     assentam. A geometria dele tambem e lida fora do laco. O capitulo ativo
+     continua sendo decidido num lugar so, ativar().
 
      O ESTADO SEM ESTE SCRIPT E VALIDO: sem a classe, o CSS deixa cada cena na
      propria linha ao lado do passo, todas visiveis. Por isso o palco so
@@ -245,6 +249,131 @@ function js() {
 
     var ativo = -1;
 
+    /* ============ ambientacao do fundo ============
+       O palco continua sendo o assunto: tudo daqui e luz e profundidade atras
+       da camera, em opacity e transform, sem tocar em geometria nenhuma.
+
+       DE ONDE VEM O PROGRESSO. Duas grandezas, as duas da mesma secao:
+         q    contInuo, 0..1, a secao atravessando a viewport;
+         cap  o capitulo ativo, mas INTERPOLADO — persegue "ativo", que
+              continua sendo escrito so por ativar(). Nao ha segunda
+              autoridade sobre qual capitulo esta valendo.
+
+       LISTENER UNICO. Um scroll passivo, coalescido em requestAnimationFrame,
+       igual ao do hero. Nada de segundo observador e nada de leitura de layout
+       dentro do laco: a geometria e lida em medirFundo(), fora dele.
+
+       PARADO, O LACO PARA. Quando os dois valores assentam no alvo o rAF sai
+       de cena. O movimento de repouso e todo do CSS — keyframes de 34s a 61s
+       em alternate, que nunca reiniciam com salto. */
+    var fundo  = raiz.querySelector('[data-mel-story-fundo]');
+    var luz    = fundo && fundo.querySelector('[data-mel-story-luz]');
+    var formas = fundo ? [].slice.call(fundo.querySelectorAll('[data-mel-story-forma]')) : [];
+
+    /* Amplitude do parallax por plano, em px. E a DIFERENCA entre elas que
+       produz profundidade; os numeros baixos sao o que a mantem lenta. */
+    var AMP = [44, 96, 156];
+
+    var topoS = 0, altS = 1, largF = 1, altF = 1;
+    var qAlvo = 0, q = 0, capAlvo = 0, cap = 0, rodando = false;
+
+    function medirFundo() {
+      if (!fundo) return;
+      var r = raiz.getBoundingClientRect();
+      topoS = r.top + window.scrollY;
+      altS  = raiz.offsetHeight || 1;
+      largF = fundo.clientWidth || 1;
+      altF  = fundo.clientHeight || 1;
+    }
+
+    /* O foco segue o LADO do capitulo, e o lado vem do data-lado que
+       tools/polen.js escreveu na cena — a mesma fonte que o palco e o contador
+       ja usam. Nada e recalculado aqui.
+
+       .44 e .56, e nao .32 e .68. Medido em 1440: com o par largo a luz
+       atravessava 500px a cada troca, e os capitulos alternam de lado — eram
+       oito travessias de tela numa descida. Ficava um holofote de palco
+       varrendo o fundo, exatamente o oposto de discreto. Em .44/.56 o
+       deslocamento total e de 167px: a luz INCLINA para o lado da camera, que
+       e o que o olho precisa para sentir de onde vem a iluminacao. */
+    function ladoDe(i) {
+      var n = cenas.length;
+      var c = cenas[i < 0 ? 0 : (i >= n ? n - 1 : i)];
+      return (c && c.getAttribute('data-lado') === 'dir') ? .56 : .44;
+    }
+
+    /* Escritor unico do fundo. Nenhuma leitura de layout aqui dentro. */
+    function pintarFundo() {
+      var n = cenas.length > 1 ? cenas.length - 1 : 1;
+      var t = cap / n;                       /* 0..1 ao longo dos capitulos */
+      var i = Math.floor(cap), f = cap - i;
+
+      /* Trocar de coluna ATRAVESSA a tela em vez de saltar: a posicao e a
+         interpolacao entre o lado deste capitulo e o do proximo. */
+      var lx = ladoDe(i) + (ladoDe(i + 1) - ladoDe(i)) * f;
+      /* Desce junto com a rolagem, mas a MEIA VELOCIDADE dela: .48 da altura
+         da secao contra 1,0 do conteudo. E essa diferenca que poe o fundo
+         atras do palco em vez de colado nele. */
+      var ly = .22 + q * .48;
+
+      luz.style.transform = 'translate(-50%,-50%) translate3d(' +
+        ((lx - .5) * largF).toFixed(1) + 'px,' + ((ly - .5) * altF).toFixed(1) + 'px,0)';
+
+      /* Intensidade abre e fecha em meia onda: mais luz no miolo da secao, que
+         e onde os capitulos do meio pedem leitura. Temperatura anda de ambar
+         para brasa, e quem cruza as duas camadas e a opacidade de uma so. */
+      fundo.style.setProperty('--li', (.78 + .22 * Math.sin(t * Math.PI)).toFixed(3));
+      fundo.style.setProperty('--lt', t.toFixed(3));
+
+      for (var k = 0; k < formas.length; k++) {
+        formas[k].style.transform =
+          'translate3d(0,' + (-(q - .5) * (AMP[k] || 44)).toFixed(1) + 'px,0)';
+      }
+    }
+
+    function quadro() {
+      var meio = window.scrollY + window.innerHeight / 2;
+      qAlvo = (meio - topoS) / altS;
+      if (qAlvo < 0) qAlvo = 0; else if (qAlvo > 1) qAlvo = 1;
+      capAlvo = ativo < 0 ? 0 : ativo;
+
+      /* HISTERESE. O alvo pode pular um capitulo inteiro de uma vez; a saida
+         nunca pula. A 0,065 por quadro uma troca leva cerca de 0,75s, entao um
+         passo que entre e saia da faixa de ativacao no limiar move o fundo
+         poucos por cento e volta — o olho le respiracao, nao piscada. Vale
+         igual na rolagem reversa: e o mesmo caminho, ao contrario.
+
+         Era 0,085 ate a primeira medicao: o salto maximo por amostra do
+         qa-story-fundo dava 127px contra um teto de 130, folga nenhuma. Em
+         0,065 a mesma travessia cai para menos de 100. */
+      q   += (qAlvo - q) * .12;
+      cap += (capAlvo - cap) * .065;
+      pintarFundo();
+
+      if (Math.abs(qAlvo - q) < .0005 && Math.abs(capAlvo - cap) < .004) {
+        q = qAlvo; cap = capAlvo;
+        pintarFundo();
+        rodando = false;
+        return;
+      }
+      requestAnimationFrame(quadro);
+    }
+
+    function acordarFundo() {
+      if (!fundo || !luz || rodando) return;
+      rodando = true;
+      requestAnimationFrame(quadro);
+    }
+
+    if (fundo && luz) {
+      medirFundo();
+      window.addEventListener('scroll', acordarFundo, { passive: true });
+      window.addEventListener('resize', function () { medirFundo(); acordarFundo(); }, { passive: true });
+      /* A altura da secao muda quando as fotos entram; remedir no load evita
+         que o foco fique calibrado para a pagina vazia. */
+      window.addEventListener('load', function () { medirFundo(); acordarFundo(); });
+    }
+
     function ativar(i) {
       if (i < 0 || i >= cenas.length || i === ativo) return;
       if (ativo >= 0) {
@@ -263,6 +392,9 @@ function js() {
       carregar(i);
       carregar(i + 1);
       if (conta) conta.textContent = (i + 1 < 10 ? '0' : '') + (i + 1);
+      /* O fundo nao decide capitulo: ele so e avisado de que o alvo mudou e
+         caminha ate la. */
+      acordarFundo();
     }
 
     /* Usada uma vez, na largada. Cobre abrir a pagina no meio da secao, onde
@@ -445,10 +577,22 @@ function css() {
      esse fundo do --token-3e6ec15f, que a identidade traz para o carvao; a
      emenda estava fechando numa cor que a pagina nao usa.) */
   background:${P.carvao};
-  /* A largura cheia e escrita por JS (sangrar(), em interacoes.js), medida em
-     document.documentElement.clientWidth — que NAO inclui a scrollbar. 100vw
-     incluiria, e criaria transbordo horizontal. Sem JS, fica na largura do
-     container e nao quebra nada. */
+  /* LARGURA CERTA JA NO PRIMEIRO PAINT — 14/08/2026.
+     Ate aqui a largura cheia vinha SO do JS (sangrar(), em interacoes.js).
+     Medido com tools/qa-hero-primeiro-paint.js: o hero pintava em
+     "373,0 694x828" e so virava "0,0 1440x828" aos 365 ms — cerca de 210 ms de
+     hero encaixotado, com calhas escuras dos dois lados, antes do layout
+     definitivo. Em 768 era "55,0 659x942" ate os 349 ms. Esse e o estado que a
+     captura do cliente mostra.
+     width:100% resolve contra a caixa de conteudo do pai — o
+     <header class="framer-vrbx7h">, o stack da pagina — que ja tem a largura da
+     janela ate 1440. NAO e 100vw: 100vw inclui a barra de rolagem e criaria
+     transbordo horizontal, que foi justamente o motivo de a sangria ter ido
+     parar no JS.
+     O sangrar() FICA e nao foi tocado: continua respondendo a resize e cobrindo
+     janela acima de 1440, onde o stack para em max-width:1440px. Ate 1440 ele
+     agora encontra o hero ja no lugar e a margem que calcula da zero. */
+  width:100%;
 }
 
 /* --- camada 1: a fotografia, sangrando nos QUATRO lados --- */
@@ -699,7 +843,7 @@ function css() {
 /* Ancora nao pode ficar embaixo da barra fixa. */
 /* A barra fixa da Polen saiu em 13/08; o unico elemento que pode cobrir uma
    ancora agora e a navbar principal, medida em 81px. */
-#produto, #filtros, #faq, #diferencial{ scroll-margin-top:96px }
+#produto, #faq, #diferencial{ scroll-margin-top:96px }
 
 @media (max-width:900px){
   /* Imagem primeiro, informacao depois. */
@@ -751,6 +895,119 @@ function css() {
 body.mel-pagina-polen .framer-vrbx7h,
 body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
 
+/* ---------- ambientação do fundo — 14/08/2026 ----------
+   A seção estava plana: carvão chapado atrás de uma câmera que é o assunto da
+   página. O que entra aqui é luz, não decoração — um foco quente que segue o
+   lado do capítulo ativo, três massas desfocadas em planos diferentes e grão
+   fotográfico. A câmera continua sendo o elemento principal, e nenhuma destas
+   camadas participa do layout.
+
+   NADA DE filter:blur(). As formas já nascem borradas porque são gradientes
+   radiais com parada suave — o desfoque sai de graça, na mesma pintura, em vez
+   de custar uma passada de filtro numa caixa de 600px.
+
+   O ESTADO DE REPOUSO É O QUADRO FINAL. Os valores declarados em
+   .mel-story-fundo já compõem uma cena completa: sem JavaScript, sem
+   IntersectionObserver ou com movimento reduzido, o que se vê é o fundo
+   parado, não um estado de espera esperando alguém acordar. */
+.mel-story{ position:relative }
+/* O conteúdo sobe um plano. Sem isto o fundo, que é irmão deles, pintaria por
+   cima do palco — os dois estão no mesmo contexto de empilhamento. */
+.mel-story > .mel-sec-topo,
+.mel-story > .mel-story-grade{ position:relative; z-index:1 }
+
+.mel-story-fundo{
+  position:absolute; inset:0; z-index:0;
+  /* clip e não hidden: hidden criaria caixa de rolagem e quebraria o sticky
+     do palco, que é o mesmo motivo documentado logo acima. */
+  overflow:clip; pointer-events:none;
+  --li:.86;   /* intensidade do foco */
+  --lt:0;     /* temperatura: 0 = âmbar da abertura, 1 = brasa do fecho */
+}
+
+/* O foco. Posição de repouso no centro; quem desloca é o transform escrito
+   pelo script, então a atualização é de compositor e não repinta gradiente. */
+.mel-story-luz{
+  position:absolute; left:50%; top:50%;
+  width:clamp(420px,70vw,980px); aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  opacity:var(--li);
+  will-change:transform;
+}
+.mel-story-luz::before,
+.mel-story-luz::after{ content:""; position:absolute; inset:0; border-radius:50% }
+/* 242,169,0 é o mel da paleta e 226,108,41 é o coral puxado para brasa.
+   Escritos em rgb porque precisam de alfa, e o config guarda só o hex — mesma
+   razão do #2B251C cravado em corDoTile(). */
+.mel-story-luz::before{
+  background:radial-gradient(closest-side,
+    rgba(242,169,0,.17), rgba(242,169,0,.06) 46%, rgba(242,169,0,0) 72%);
+  animation:mel-story-pulso 34s ease-in-out infinite alternate;
+}
+/* A TROCA DE PALETA É UM CROSSFADE, não uma troca de cor: as duas camadas
+   estão sempre pintadas e o script move só a opacidade desta. Interpolar
+   opacidade nunca produz o degrau que interpolar hex produziria. */
+.mel-story-luz::after{
+  background:radial-gradient(closest-side,
+    rgba(226,108,41,.15), rgba(150,66,20,.05) 48%, rgba(150,66,20,0) 74%);
+  opacity:var(--lt);
+  animation:mel-story-pulso 47s ease-in-out infinite alternate-reverse;
+}
+
+/* As três massas. O transform do pai é o parallax, escrito pelo script; o do
+   pseudo-elemento é a deriva de repouso, do CSS. Separados de propósito: dois
+   escritores no mesmo transform seria um sobrescrevendo o outro a cada quadro. */
+.mel-story-forma{ position:absolute; will-change:transform }
+.mel-story-forma::before{
+  content:""; position:absolute; inset:0; border-radius:50%;
+  background:radial-gradient(closest-side,
+    rgba(242,169,0,.085), rgba(226,108,41,.035) 52%, rgba(226,108,41,0) 78%);
+}
+.mel-story-forma[data-plano="1"]{ left:-6%; top:4%;  width:clamp(320px,46vw,620px); aspect-ratio:1.15 }
+.mel-story-forma[data-plano="2"]{ left:58%; top:38%; width:clamp(240px,34vw,460px); aspect-ratio:.88 }
+.mel-story-forma[data-plano="3"]{ left:12%; top:74%; width:clamp(180px,24vw,320px); aspect-ratio:1.05 }
+/* Durações primas entre si e "alternate" em todas: sem múltiplos comuns elas
+   nunca voltam a se alinhar, e alternate elimina o salto do fim para o começo
+   que um loop simples produziria a cada volta. */
+.mel-story-forma[data-plano="1"]::before{ animation:mel-story-deriva-a 61s ease-in-out infinite alternate }
+.mel-story-forma[data-plano="2"]::before{ animation:mel-story-deriva-b 47s ease-in-out infinite alternate }
+.mel-story-forma[data-plano="3"]::before{ animation:mel-story-deriva-a 38s ease-in-out infinite alternate-reverse }
+
+@keyframes mel-story-pulso{
+  from{ transform:scale(1) }
+  to  { transform:scale(1.055) }
+}
+@keyframes mel-story-deriva-a{
+  from{ transform:translate3d(0,0,0) scale(1) }
+  to  { transform:translate3d(3.5%,-2.8%,0) scale(1.07) }
+}
+@keyframes mel-story-deriva-b{
+  from{ transform:translate3d(0,0,0) scale(1.05) }
+  to  { transform:translate3d(-3%,3.2%,0) scale(1) }
+}
+
+/* Grão. Uma passada de feTurbulence de 160x160 que o navegador rasteriza uma
+   vez e repete — não é filtro sobre a seção, é uma textura.
+
+   A MÁSCARA É O QUE FAZ ELE NÃO TER BORDA, e a primeira versão errou a conta.
+   Ela era radial(118% 96% at 50% 46%) com o opaco até 52%: no topo da seção a
+   distância relativa é 46/96 = 0,48, ou seja DENTRO do trecho opaco — o grão
+   chegava inteiro na beirada. Medido contra o carvão da página, dava uma linha
+   horizontal de delta 3/255 atravessando os 1440px. Baixo, e mesmo assim
+   visível, porque o olho encontra linha reta muito antes de encontrar
+   diferença de tom.
+
+   Em 76% x 58% com o opaco até 10%, a mesma borda cai para ~13% da máscara, o
+   que sobre opacidade .05 dá um oitavo de por cento. E a elipse mais fechada
+   concentra o grão no miolo, que é justamente onde o foco está. */
+.mel-story-grao{
+  position:absolute; inset:0; opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='mel-grao'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23mel-grao)'/%3E%3C/svg%3E");
+  background-size:160px 160px;
+  -webkit-mask-image:radial-gradient(76% 58% at 50% 50%, #000 10%, transparent 98%);
+          mask-image:radial-gradient(76% 58% at 50% 50%, #000 10%, transparent 98%);
+}
+
 .mel-story-grade{
   display:grid;
   grid-template-columns:minmax(0,1fr);
@@ -784,10 +1041,73 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
 .mel-story-cena noscript img{ position:absolute; inset:0 }
 
 .mel-story-passo{ max-width:46ch }
-.mel-story-num{
-  margin:0 0 .7rem; color:${P.mel};
-  font-family:"Area",sans-serif; font-size:.78rem; font-weight:700;
-  letter-spacing:.22em; font-variant-numeric:tabular-nums;
+/* O <p> virou só o lugar da etiqueta em 14/08: quem carrega cor, forma e
+   tipografia é o <span> filho. A altura de linha vai a 1 porque um
+   inline-block dentro de um parágrafo herda o entrelinhamento do parágrafo e
+   ganharia folga por baixo que a margem já dá. */
+.mel-story-num{ margin:0 0 .8rem; line-height:1 }
+
+/* ---------- etiqueta do capítulo — 14/08/2026 ----------
+   O número já era o único trecho em mel de cada tópico. Ele era texto solto e
+   virou etiqueta, com o vocabulário do "Escolha sua cor" (.mel-bt): mesma
+   família, mesmo raio de 999px, mesmo par de padding em proporção.
+
+   ESCOPO, e por que ele começa tão longe. O seletor sai de
+   body.mel-pagina-polen e passa por [data-mel="polen-story"] antes de chegar
+   na classe. Nenhum dos dois é decorativo:
+
+     body.mel-pagina-polen   só a /polen tem. Nem a /bee, nem a home.
+     [data-mel="polen-story"] é o contêiner do scrollytelling da Polen, e é
+                             escrito por tools/polen.js num lugar só.
+
+   Assim a regra não tem como alcançar outra seção nem outra página, mesmo que
+   um dia alguém use a classe fora daqui — e a classe também é exclusiva, com
+   "polen-story" no nome, aplicada explicitamente no HTML gerado. Nada aqui
+   casa por cor, por tag genérica, por posição (:first-child, :first-of-type),
+   por [style*=] ou por classe compartilhada.
+
+   A classe se chama mel-polen-story-etiq e não polen-scrolly__tag, que foi o
+   exemplo do pedido: a folha inteira usa o prefixo mel- e nenhuma outra das
+   722 regras usa BEM. Renomear é uma linha, se preferirem o outro nome.
+
+   O QUE NÃO FOI COPIADO DO BOTÃO, e é o ponto: o preenchimento. Uma pílula
+   amarela chapada com as proporções do CTA seria um botão aos olhos de
+   qualquer pessoa, e este elemento não é clicável — é rótulo. A variante certa
+   do sistema é a .mel-bt-linha: fundo transparente e contorno de 1px. Esta é a
+   irmã dela em mel.
+
+   E NÃO É SÓ ESTÉTICA — O PREENCHIMENTO REPROVAVA. A primeira versão punha mel
+   a 10% de fundo. No desktop o capítulo inativo tem opacity .70, e o número em
+   mel já vivia em 4,73:1 contra o carvão, com sete centésimos de folga sobre o
+   mínimo de 4,5 (a calibração está documentada em .mel-story-passo). Clarear o
+   fundo com 10% de mel derruba para 3,91:1. Calculado alfa por alfa:
+
+     0,00 -> 4,73    0,03 -> 4,49    0,06 -> 4,24
+     0,02 -> 4,57    0,04 -> 4,41    0,10 -> 3,91
+
+   Ou seja: nem 3% cabe, e 2% deixaria uma folga de 0,07 que a luz de fundo do
+   scrollytelling consumiria sozinha. Fundo transparente devolve exatamente o
+   4,73 de antes, sem alterar a calibração que já estava aprovada.
+
+   Sem :hover, sem :focus, sem cursor, sem transition. Um <span> dentro de um
+   <p> que já é aria-hidden desde 13/08 — não entra na ordem de tabulação nem
+   na árvore de acessibilidade, e não há atributo de controle em lugar nenhum.
+
+   nowrap porque o número é indivisível: sem isso "01" poderia quebrar entre o
+   0 e o 1 dentro da pílula numa coluna estreita. */
+body.mel-pagina-polen [data-mel="polen-story"] .mel-polen-story-etiq{
+  display:inline-block; white-space:nowrap;
+  border-radius:999px;
+  /* O padding da direita desconta o letter-spacing, porque o espaçamento é
+     aplicado DEPOIS do último dígito e fica dentro da pílula: sem o desconto o
+     número nasce 0,2em fora do centro, e numa forma redonda isso se vê. */
+  padding:.34rem calc(.74rem - .2em) .34rem .74rem;
+  background:transparent;
+  color:${P.mel};
+  box-shadow:inset 0 0 0 1px rgba(242,169,0,.38);
+  font-family:"Area",sans-serif; font-size:.74rem; font-weight:700;
+  letter-spacing:.2em; line-height:1;
+  font-variant-numeric:tabular-nums;
 }
 .mel-story-tit{
   margin:0; color:${P.papel};
@@ -914,12 +1234,28 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
        dava 2,94:1 contra 3. Capitulo inativo continua na tela, entao vale
        WCAG igual.
 
-       Era 0,66, calibrado quando o fundo da pagina ainda era o #0d0d0d do
-       template. Com a paleta valendo de fato, o fundo virou carvao #221E17 —
-       mais claro — e o mesmo 0,66 caiu para 4,36:1. Em 0,70 o numero volta a
-       4,72:1 sobre carvao. A diferenca para o capitulo ativo continua legivel,
-       que era o pedido: mudanca discreta, nao apagao. */
-    opacity:.70; transition:opacity 460ms cubic-bezier(.22,.61,.36,1);
+       ESTE NUMERO JA SUBIU DUAS VEZES, E SEMPRE PELO MESMO MOTIVO: o fundo
+       atras dele clareou.
+
+       0,66 -> 0,70 em 13/08. Era calibrado para o #0d0d0d do template; com a
+       paleta valendo de fato o fundo virou carvao #221E17, mais claro, e o
+       0,66 caiu para 4,36:1. Em 0,70 voltou a 4,72:1 sobre carvao.
+
+       0,70 -> 0,78 em 14/08. A ambientacao do fundo poe uma luz quente atras
+       da secao, e no ponto mais claro dela o backdrop medido em pixel e
+       rgb(54,42,24), nao mais o carvao puro. Como o opacity mistura o texto
+       com o backdrop daquele ponto, o mel a 0,70 ali da 4,21:1 — reprova. A
+       conta, no pior ponto: 0,70 -> 4,21 · 0,74 -> 4,53 · 0,78 -> 4,86.
+
+       A alternativa era baixar a luz, e ela sai pior: seria preciso cortar
+       para 40% do que e hoje, desmontando a ambientacao inteira, e ainda assim
+       parar em 4,53. Escolhido subir o opacity, que e o mesmo remedio das
+       outras duas vezes.
+
+       A diferenca para o capitulo ativo continua legivel, que era o pedido:
+       mudanca discreta, nao apagao. Em 0,78 ela fica ainda mais discreta, e
+       legibilidade nao se negocia com estilo. */
+    opacity:.78; transition:opacity 460ms cubic-bezier(.22,.61,.36,1);
   }
   .mel-story-ligado .mel-story-passo[data-mel-story-ativa]{ opacity:1 }
 
@@ -974,6 +1310,13 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
     min-height:0; opacity:1; transition:none; align-self:center;
   }
   .mel-story-ligado .mel-story-conta{ display:none }
+
+  /* O fundo FICA, parado. O script nem chega a acordar — a função devolve
+     antes de ligar a classe —, então os valores de repouso de
+     .mel-story-fundo já são o quadro final. O que sai é só a deriva. */
+  .mel-story-luz::before,
+  .mel-story-luz::after,
+  .mel-story-forma::before{ animation:none }
 
   .mel-ph-pronto .mel-ph-eyebrow,
   .mel-ph-pronto .mel-ph-tit,

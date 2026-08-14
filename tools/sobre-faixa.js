@@ -28,9 +28,15 @@
 //
 // A GEOMETRIA FAZ O TRABALHO, NÃO UMA ANIMAÇÃO DE POSIÇÃO. A cortina de cima é
 // ancorada em top:0 e a de baixo em bottom:0, as duas com altura fixa. Quem
-// anima é a altura do palco: crescendo, o vão abre sozinho. Um translate em
-// cada cortina daria o mesmo desenho e exigiria manter três números em
-// sincronia — assim é um só.
+// anima é o vão entre elas: crescendo, ele empurra a cortina de baixo sozinho.
+// Um translate em cada cortina daria o mesmo desenho e exigiria manter três
+// números em sincronia — assim é um só.
+//
+// A <div class="mel-sobre-vao"> é esse vão: a área central onde capa e miolo
+// se empilham quando a faixa abre. Ela entrou em 14/08/2026, junto com a
+// correção da sobreposição da navbar — antes capa e miolo eram posicionados
+// cada um com um "top" fixo, e no mobile o miolo invadia 71px da cortina de
+// baixo. O porquê inteiro está em identidade.css, em ".mel-sobre-palco".
 //
 // Idempotente: se a faixa já existir, não faz nada.
 const fs = require('fs');
@@ -63,6 +69,7 @@ function markup() {
 <div class="mel-sobre-palco" data-mel-sobre-palco>
 <div class="mel-sobre-cortina mel-sobre-cima" aria-hidden="true"><img src="${CIMA}" alt="" loading="lazy" decoding="async" width="1600" height="2400"></div>
 <div class="mel-sobre-cortina mel-sobre-baixo" aria-hidden="true"><img src="${BAIXO}" alt="" loading="lazy" decoding="async" width="1600" height="2400"></div>
+<div class="mel-sobre-vao">
 <div class="mel-sobre-capa">
 <h2 class="mel-sobre-tit" id="mel-sobre-tit">${TITULO}</h2>
 <p class="mel-sobre-linha">${LINHA}</p>
@@ -70,6 +77,7 @@ function markup() {
 <div class="mel-sobre-miolo" data-mel-sobre-miolo>
 <p class="mel-sobre-corpo">${CORPO}</p>
 <a class="mel-sobre-cta" href="/sobre">${CTA}</a>
+</div>
 </div>
 <button type="button" class="mel-sobre-bt" data-mel-sobre-bt aria-expanded="false" aria-controls="mel-sobre-tit">
 <span data-mel-sobre-rot>${ABRIR}</span>

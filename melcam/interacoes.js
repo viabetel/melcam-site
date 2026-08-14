@@ -541,45 +541,11 @@
     });
   }
 
-  /* ---------------- troca de filtro (LP Polen) ----------------
-     Troca a foto sem recarregar, com crossfade. A imagem nova só entra depois
-     de decodificar, senão pisca em branco no meio da transição. */
-  function iniciarFiltros() {
-    var alvo = document.querySelector('[data-mel-filtro-img]');
-    var pills = Array.prototype.slice.call(document.querySelectorAll('[data-mel-filtro]'));
-    var vivo = document.querySelector('[data-mel-filtro-vivo]');
-    if (!alvo || !pills.length) return;
-
-    pills.forEach(function (p) {
-      p.addEventListener('click', function () {
-        pills.forEach(function (o) { o.setAttribute('aria-selected', String(o === p)); });
-        var src = p.getAttribute('data-src');
-        var nome = p.textContent.trim();
-        var pre = new Image();
-        pre.onload = function () {
-          alvo.classList.add('mel-trocando');
-          setTimeout(function () {
-            alvo.src = src;
-            alvo.alt = 'A mesma foto com o filtro ' + nome;
-            alvo.classList.remove('mel-trocando');
-            if (vivo) vivo.textContent = 'Filtro ' + nome + ' aplicado';
-          }, menosMovimento.matches ? 0 : 190);
-        };
-        pre.src = src;
-      });
-
-      /* setas navegam entre os filtros, como tablist manda */
-      p.addEventListener('keydown', function (e) {
-        var i = pills.indexOf(p), d = 0;
-        if (e.key === 'ArrowRight') d = 1;
-        else if (e.key === 'ArrowLeft') d = -1;
-        else return;
-        e.preventDefault();
-        var n = pills[(i + d + pills.length) % pills.length];
-        n.focus(); n.click();
-      });
-    });
-  }
+  /* iniciarFiltros() saiu em 14/08/2026 junto com o bloco "Uma foto. 8
+     filtros" da LP Polen. Era o único consumidor de [data-mel-filtro]. Note
+     que a tira de filtros da home é outra coisa: marca [data-mel-filtros], no
+     plural, e não tem comportamento — é CSS. Seletor de atributo casa exato,
+     então uma nunca respondeu pela outra. */
 
   /* ---------------- FAQ ---------------- */
   function iniciarFaq() {
@@ -2068,11 +2034,15 @@
      nenhuma outra pagina. NAO toca em iniciarFileira nem em variavel dela —
      tudo aqui e local a esta funcao.
 
-     O QUE ESTE SCRIPT FAZ: liga uma classe na secao e troca um atributo no
-     capitulo ativo. So isso. Quem anima e o CSS, por transition. Nao ha
-     requestAnimationFrame, nao ha escrita de transform e nao ha leitura de
-     layout dentro de listener de scroll — o unico calculo de geometria roda
-     UMA vez, na largada, para o caso de a pagina abrir no meio da secao.
+     O QUE ESTE SCRIPT FAZ COM O PALCO: liga uma classe na secao e troca um
+     atributo no capitulo ativo. So isso. Quem anima a cena e o painel e o
+     CSS, por transition. Nenhuma leitura de layout dentro de listener.
+
+     O FUNDO, acrescentado em 14/08/2026, e a unica parte com laco: ele precisa
+     de progresso continuo, que o IntersectionObserver nao da. E um so scroll
+     passivo, coalescido em rAF, que para de rodar assim que os valores
+     assentam. A geometria dele tambem e lida fora do laco. O capitulo ativo
+     continua sendo decidido num lugar so, ativar().
 
      O ESTADO SEM ESTE SCRIPT E VALIDO: sem a classe, o CSS deixa cada cena na
      propria linha ao lado do passo, todas visiveis. Por isso o palco so
@@ -2121,6 +2091,131 @@
 
     var ativo = -1;
 
+    /* ============ ambientacao do fundo ============
+       O palco continua sendo o assunto: tudo daqui e luz e profundidade atras
+       da camera, em opacity e transform, sem tocar em geometria nenhuma.
+
+       DE ONDE VEM O PROGRESSO. Duas grandezas, as duas da mesma secao:
+         q    contInuo, 0..1, a secao atravessando a viewport;
+         cap  o capitulo ativo, mas INTERPOLADO — persegue "ativo", que
+              continua sendo escrito so por ativar(). Nao ha segunda
+              autoridade sobre qual capitulo esta valendo.
+
+       LISTENER UNICO. Um scroll passivo, coalescido em requestAnimationFrame,
+       igual ao do hero. Nada de segundo observador e nada de leitura de layout
+       dentro do laco: a geometria e lida em medirFundo(), fora dele.
+
+       PARADO, O LACO PARA. Quando os dois valores assentam no alvo o rAF sai
+       de cena. O movimento de repouso e todo do CSS — keyframes de 34s a 61s
+       em alternate, que nunca reiniciam com salto. */
+    var fundo  = raiz.querySelector('[data-mel-story-fundo]');
+    var luz    = fundo && fundo.querySelector('[data-mel-story-luz]');
+    var formas = fundo ? [].slice.call(fundo.querySelectorAll('[data-mel-story-forma]')) : [];
+
+    /* Amplitude do parallax por plano, em px. E a DIFERENCA entre elas que
+       produz profundidade; os numeros baixos sao o que a mantem lenta. */
+    var AMP = [44, 96, 156];
+
+    var topoS = 0, altS = 1, largF = 1, altF = 1;
+    var qAlvo = 0, q = 0, capAlvo = 0, cap = 0, rodando = false;
+
+    function medirFundo() {
+      if (!fundo) return;
+      var r = raiz.getBoundingClientRect();
+      topoS = r.top + window.scrollY;
+      altS  = raiz.offsetHeight || 1;
+      largF = fundo.clientWidth || 1;
+      altF  = fundo.clientHeight || 1;
+    }
+
+    /* O foco segue o LADO do capitulo, e o lado vem do data-lado que
+       tools/polen.js escreveu na cena — a mesma fonte que o palco e o contador
+       ja usam. Nada e recalculado aqui.
+
+       .44 e .56, e nao .32 e .68. Medido em 1440: com o par largo a luz
+       atravessava 500px a cada troca, e os capitulos alternam de lado — eram
+       oito travessias de tela numa descida. Ficava um holofote de palco
+       varrendo o fundo, exatamente o oposto de discreto. Em .44/.56 o
+       deslocamento total e de 167px: a luz INCLINA para o lado da camera, que
+       e o que o olho precisa para sentir de onde vem a iluminacao. */
+    function ladoDe(i) {
+      var n = cenas.length;
+      var c = cenas[i < 0 ? 0 : (i >= n ? n - 1 : i)];
+      return (c && c.getAttribute('data-lado') === 'dir') ? .56 : .44;
+    }
+
+    /* Escritor unico do fundo. Nenhuma leitura de layout aqui dentro. */
+    function pintarFundo() {
+      var n = cenas.length > 1 ? cenas.length - 1 : 1;
+      var t = cap / n;                       /* 0..1 ao longo dos capitulos */
+      var i = Math.floor(cap), f = cap - i;
+
+      /* Trocar de coluna ATRAVESSA a tela em vez de saltar: a posicao e a
+         interpolacao entre o lado deste capitulo e o do proximo. */
+      var lx = ladoDe(i) + (ladoDe(i + 1) - ladoDe(i)) * f;
+      /* Desce junto com a rolagem, mas a MEIA VELOCIDADE dela: .48 da altura
+         da secao contra 1,0 do conteudo. E essa diferenca que poe o fundo
+         atras do palco em vez de colado nele. */
+      var ly = .22 + q * .48;
+
+      luz.style.transform = 'translate(-50%,-50%) translate3d(' +
+        ((lx - .5) * largF).toFixed(1) + 'px,' + ((ly - .5) * altF).toFixed(1) + 'px,0)';
+
+      /* Intensidade abre e fecha em meia onda: mais luz no miolo da secao, que
+         e onde os capitulos do meio pedem leitura. Temperatura anda de ambar
+         para brasa, e quem cruza as duas camadas e a opacidade de uma so. */
+      fundo.style.setProperty('--li', (.78 + .22 * Math.sin(t * Math.PI)).toFixed(3));
+      fundo.style.setProperty('--lt', t.toFixed(3));
+
+      for (var k = 0; k < formas.length; k++) {
+        formas[k].style.transform =
+          'translate3d(0,' + (-(q - .5) * (AMP[k] || 44)).toFixed(1) + 'px,0)';
+      }
+    }
+
+    function quadro() {
+      var meio = window.scrollY + window.innerHeight / 2;
+      qAlvo = (meio - topoS) / altS;
+      if (qAlvo < 0) qAlvo = 0; else if (qAlvo > 1) qAlvo = 1;
+      capAlvo = ativo < 0 ? 0 : ativo;
+
+      /* HISTERESE. O alvo pode pular um capitulo inteiro de uma vez; a saida
+         nunca pula. A 0,065 por quadro uma troca leva cerca de 0,75s, entao um
+         passo que entre e saia da faixa de ativacao no limiar move o fundo
+         poucos por cento e volta — o olho le respiracao, nao piscada. Vale
+         igual na rolagem reversa: e o mesmo caminho, ao contrario.
+
+         Era 0,085 ate a primeira medicao: o salto maximo por amostra do
+         qa-story-fundo dava 127px contra um teto de 130, folga nenhuma. Em
+         0,065 a mesma travessia cai para menos de 100. */
+      q   += (qAlvo - q) * .12;
+      cap += (capAlvo - cap) * .065;
+      pintarFundo();
+
+      if (Math.abs(qAlvo - q) < .0005 && Math.abs(capAlvo - cap) < .004) {
+        q = qAlvo; cap = capAlvo;
+        pintarFundo();
+        rodando = false;
+        return;
+      }
+      requestAnimationFrame(quadro);
+    }
+
+    function acordarFundo() {
+      if (!fundo || !luz || rodando) return;
+      rodando = true;
+      requestAnimationFrame(quadro);
+    }
+
+    if (fundo && luz) {
+      medirFundo();
+      window.addEventListener('scroll', acordarFundo, { passive: true });
+      window.addEventListener('resize', function () { medirFundo(); acordarFundo(); }, { passive: true });
+      /* A altura da secao muda quando as fotos entram; remedir no load evita
+         que o foco fique calibrado para a pagina vazia. */
+      window.addEventListener('load', function () { medirFundo(); acordarFundo(); });
+    }
+
     function ativar(i) {
       if (i < 0 || i >= cenas.length || i === ativo) return;
       if (ativo >= 0) {
@@ -2139,6 +2234,9 @@
       carregar(i);
       carregar(i + 1);
       if (conta) conta.textContent = (i + 1 < 10 ? '0' : '') + (i + 1);
+      /* O fundo nao decide capitulo: ele so e avisado de que o alvo mudou e
+         caminha ate la. */
+      acordarFundo();
     }
 
     /* Usada uma vez, na largada. Cobre abrir a pagina no meio da secao, onde
@@ -2358,27 +2456,105 @@
     }
 
     var manual = false;
+    var automaticoFeito = false;
+    var obs = null;
+
+    function encerrarObs() {
+      if (obs) { obs.disconnect(); obs = null; }
+    }
 
     bt.addEventListener('click', function () {
+      /* O clique manda a partir daqui, e o observador sai de cena na hora —
+         mesmo que a abertura automática ainda não tenha acontecido. Sem isso,
+         fechar a faixa e rolar de leve a reabriria na cara de quem acabou de
+         fechá-la. */
       manual = true;
+      encerrarObs();
       pintar(!palco.hasAttribute('data-aberto'));
     });
 
-    /* O OBTURADOR DISPARA SOZINHO QUANDO A FAIXA CHEGA.
+    /* O OBTURADOR DISPARA SOZINHO QUANDO A FAIXA CHEGA — UMA VEZ SÓ.
        Como accordion parado ela era só um retângulo com um botão: o efeito
        existia, mas ninguém via sem clicar. Numa marca de câmera o gesto certo é
        o contrário — a exposição acontece quando o assunto entra no quadro.
 
-       O clique continua mandando: a partir do primeiro toque no botão a
-       abertura vira decisão da pessoa e o observador para de opinar. Sem isso,
-       fechar a faixa e rolar de leve a reabriria na cara de quem acabou de
-       fechá-la. */
+       🔴 A OSCILAÇÃO, E POR QUE ELA ERA INEVITÁVEL — corrigido em 14/08/2026.
+
+       A versão anterior observava o PRÓPRIO PALCO com "threshold: 0.55" e
+       escrevia "pintar(isIntersecting)". Só que o CSS muda a altura desse mesmo
+       elemento ao abrir — na época por "height", hoje pela fileira do meio da
+       grade, que vai de 0fr ao tamanho do conteúdo; o que segue vale igual nas
+       duas formas, porque o problema é a altura mudar, não como ela muda:
+
+         fechado   altura = 2 x cortina            (600 no desktop, 400 no mobile)
+         aberto    altura = 2 x cortina + conteúdo (~909 e ~764, medidos)
+
+       O "threshold" é uma RAZÃO — parte visível dividida pela altura total. Ao
+       abrir, o denominador cresce (600 -> 909 no desktop, 400 -> 764 no mobile)
+       sem que a parte visível cresça junto, porque o palco cresce para BAIXO,
+       além da dobra. A razão despenca abaixo de 0,55, o observador manda fechar,
+       a altura volta ao valor pequeno, a razão sobe acima de 0,55 e ele manda
+       abrir. O ciclo se sustenta com o scroll PARADO: o observador mede o que a
+       própria animação acabou de mudar.
+
+       Medido antes da correção (tools/qa-sobre.js), com o scroll imóvel por 10s:
+
+         desktop 1440x900   152 alternâncias    94 aberturas + 94 fechamentos
+         tablet  768x1024   202 alternâncias   124 aberturas + 124 fechamentos
+         mobile  390x844    202 alternâncias   125 aberturas + 125 fechamentos
+
+       Uma troca a cada ~35 ms, indefinidamente.
+
+       DUAS mudanças, e cada uma sozinha já quebraria o laço — juntas, ele não
+       tem por onde voltar:
+
+       1. O ALVO passa a ser a <section data-mel-sobre>, não o palco. O palco
+          cresce para baixo, então o TOPO da seção não se move quando a animação
+          roda. É a geometria estável que o gatilho precisa.
+
+       2. O GATILHO deixa de ser razão. "threshold: 0" com a borda de baixo da
+          raiz puxada para 72% da janela ("rootMargin" -28%) pergunta apenas se
+          o topo da seção cruzou uma linha — e altura nenhuma influencia isso.
+
+          Os 72% saem de medição, não de gosto. O gatilho antigo caía em pontos
+          DIFERENTES em cada tela, justamente porque dependia da altura do
+          palco:
+
+            desktop 1440x900   palco 600px   topo em 63,3% da janela
+            tablet   768x1024  palco 400px   topo em 78,5%
+            mobile   390x844   palco 400px   topo em 73,9%
+
+          72% é a média dos três, e é a linha que menos desloca o momento da
+          abertura: desvio máximo de 8,7 pontos, contra 15,5 se eu fixasse no
+          valor do desktop. A primeira tentativa usou -37% (os 63,3% do
+          desktop) e o QA pegou o preço: no tablet e no mobile a faixa deixava
+          de abrir sozinha na posição testada.
+
+          De quebra some uma falha latente: com razão, uma seção mais alta que a
+          janela nunca alcançaria 0,55 e a faixa jamais abriria.
+
+       3. Dispara UMA VEZ por carregamento e desconecta. Nunca fecha sozinha:
+          dentro do observador só existe pintar(true). Sair e voltar à viewport
+          não reabre nem fecha — depois da primeira exposição, quem manda é o
+          botão. */
+    var secao = palco.closest ? palco.closest('[data-mel-sobre]') : null;
+    /* Sem a seção o palco volta a ser o alvo, mas o laço não volta com ele: o
+       disparo único e o disconnect abaixo já o impedem sozinhos. */
+    var alvoObs = secao || palco;
+
     if (window.IntersectionObserver) {
-      var obs = new IntersectionObserver(function (ents) {
-        if (manual) { obs.disconnect(); return; }
-        pintar(ents[0] && ents[0].isIntersecting);
-      }, { threshold: 0.55 });
-      obs.observe(palco);
+      obs = new IntersectionObserver(function (ents) {
+        if (manual || automaticoFeito) { encerrarObs(); return; }
+        for (var i = 0; i < ents.length; i++) {
+          if (ents[i].isIntersecting) {
+            automaticoFeito = true;
+            pintar(true);
+            encerrarObs();
+            return;
+          }
+        }
+      }, { threshold: 0, rootMargin: '0px 0px -28% 0px' });
+      obs.observe(alvoObs);
     }
 
     /* Escape fecha, como o menu e o painel de conta ja fazem. */
@@ -2402,7 +2578,6 @@
     /* Só faz algo em /bee: [data-mel="bee-hero"] não existe em nenhuma outra
        página, então sai na primeira linha. */
     iniciarHeroBee();
-    iniciarFiltros();
     iniciarFaq();
     iniciarSacola();
     iniciarAviso();

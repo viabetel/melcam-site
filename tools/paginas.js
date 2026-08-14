@@ -59,7 +59,96 @@ const SO_HOME = [
   ':has(> video[data-mel="hero-video"])',
   '[data-framer-name="Speed On"]',
   '.mel-carrossel', '.mel-comunidade', '.mel-clipes', '.mel-seguranca',
+  // 14/08/2026 — A FAIXA "SOBRE NÓS", e a regressão que ela causou.
+  //
+  // tools/sobre-faixa.js inseriu a seção no index.html e parou aí, porque é o
+  // que ele faz: ele só escreve na home. Só que TODA interna nasce como cópia
+  // do index.html (ver gerar(), logo abaixo), e o que segura o DOM da home
+  // invisível nelas é exatamente esta lista. Sem a entrada, a faixa viajou.
+  //
+  // E não viajou para o meio da página: o conteúdo próprio de cada interna é
+  // inserido no FIM do stack, então tudo que veio da home fica ACIMA dele. A
+  // faixa caiu em y=0, com 975px — 1,08 tela —, empurrando o hero verdadeiro
+  // para y=985. Medido na /polen e na /bee: as duas abriam com "Sobre Nós"
+  // ocupando a tela inteira, e o hero de cada uma abaixo da dobra. Não havia
+  // position:absolute, fixed, nem 100vh em lugar nenhum: a cara de hero vinha
+  // só de estar em primeiro e ser alta.
+  //
+  // Na home ela continua intacta, em y=6368 com 664px, que é onde foi
+  // desenhada para ficar.
+  //
+  // POR QUE AQUI E NÃO RECORTANDO O HTML: seção da home sai das internas por
+  // CSS, nunca por recorte de DOM — é a regra aprendida registrada no
+  // progresso.md. E a correção precisa ser na fonte: acessorios, sobre, sacola
+  // e 404 ainda não tinham a faixa só porque não foram regeradas desde que ela
+  // nasceu. Apagá-la das duas páginas afetadas deixaria a armadilha armada
+  // para a próxima regeração de qualquer uma das outras.
+  '.mel-sobre',
 ];
+
+// ============ CSS CRÍTICO INLINE — 14/08/2026 ============
+//
+// Por que existe, medido antes de escrever uma linha:
+//
+// As internas nascem como cópia completa do index.html, então o DOM inteiro da
+// home viaja nelas. Quem o esconde é UMA regra, e ela mora numa folha EXTERNA
+// (melcam/identidade.css, 153 KB), referenciada no fim de um <head> de 169 KB.
+// Ou seja: a invisibilidade da home nas internas depende inteiramente de um
+// arquivo separado chegar antes do primeiro paint.
+//
+// Medido em 14/08/2026 com Edge headless por CDP (tools/qa-flash.js):
+//   - hoje o Blink de fato bloqueia o paint até a folha chegar. Segurando
+//     identidade.css por 3,5 s de propósito, o primeiro paint esperou 3.864 ms
+//     e a estrutura da home NÃO apareceu em nenhum quadro. A folha externa
+//     termina em 45 ms; o primeiro paint acontece em 368 ms.
+//   - ou seja: hoje não há flash da estrutura da home DENTRO do documento.
+//
+// Então por que a regra abaixo existe? Porque essa garantia é acidental. Ela
+// depende de um único detalhe do carregamento — a folha ser render-blocking.
+// Qualquer uma destas mudanças, todas plausíveis, derruba a garantia e joga o
+// DOM inteiro da home na tela: um `media` no <link>, a troca por
+// preload+onload, mover o <link> para o corpo, um 404 da folha, um proxy que
+// devolva a folha com erro. Uma regra de 700 bytes inline no topo do <head>
+// tira o assunto da mesa: a partir do primeiro byte parseado, o que é da home
+// está escondido, com folha externa ou sem ela.
+//
+// É inline, é a PRIMEIRA coisa do <head> e é !important — não depende de
+// ordem, de rede, nem de JavaScript.
+const CRITICO_INI = '<!--mel:critico-->';
+const CRITICO_FIM = '<!--/mel:critico-->';
+
+// DUAS regras, não uma — e isso não é estilo, é a diferença entre a rede de
+// segurança funcionar e não funcionar. Numa lista de seletores separada por
+// vírgula, um seletor inválido para o motor invalida a REGRA INTEIRA. O
+// `:has()` do container do vídeo é o único item da lista que um motor antigo
+// não entende; deixá-lo junto significaria que, exatamente no navegador onde
+// a rede de segurança mais importa, ela cai por completo e o DOM da home
+// aparece. Separado, o pior caso passa a ser só o container do vídeo.
+function cssCritico() {
+  const comHas = SO_HOME.filter((sel) => sel.includes(':has('));
+  const simples = SO_HOME.filter((sel) => !sel.includes(':has('));
+  const regra = (lista) => lista.map((sel) => `body.mel-interna ${sel}`).join(',') + '{display:none!important}';
+  const css = regra(simples) + (comHas.length ? regra(comHas) : '');
+  return `${CRITICO_INI}<style data-mel="critico">${css}</style>${CRITICO_FIM}`;
+}
+
+// Idempotente por construção: tira o bloco antigo antes de pôr o novo, então
+// rodar o pipeline duas vezes dá o mesmo arquivo, byte a byte.
+function injetarCritico(html) {
+  const limpo = html.replace(
+    new RegExp(CRITICO_INI.replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&') + '[\\s\\S]*?' + CRITICO_FIM.replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&'), 'g'),
+    ''
+  );
+  // Entra depois da declaração de charset (ver pontoNoHead) e, quando o bloco
+  // de fontes já estiver lá, depois DELE — a ordem entre os dois precisa ser a
+  // mesma qualquer que seja a ordem em que as duas ferramentas rodem. Preload é
+  // rede e vai primeiro; o CSS crítico é parse local e não perde nada por vir
+  // logo atrás.
+  const ident = require('./identidade.js');
+  const fim = limpo.indexOf(ident.FONTES_FIM);
+  const corte = fim >= 0 ? fim + ident.FONTES_FIM.length : ident.pontoNoHead(limpo);
+  return limpo.slice(0, corte) + cssCritico() + limpo.slice(corte);
+}
 
 // Índice do </header> que fecha o <header class="...framer-vrbx7h...">, que é o
 // stack da página. É o único ponto de inserção seguro: fora de toda ssr-variant.
@@ -117,6 +206,17 @@ function gerar(arquivo, classe, titulo, descricao, conteudo) {
   const corte = fimDoStack(s);
   if (corte < 0) throw new Error(`${arquivo}: stack framer-vrbx7h não encontrado — inserção abortada`);
   s = s.slice(0, corte) + conteudo + s.slice(corte);
+
+  // O que é da home tem que estar escondido desde o primeiro paint, sem
+  // depender da folha externa. Ver o bloco CSS CRÍTICO INLINE acima.
+  s = injetarCritico(s);
+
+  // Fontes por último para ficarem em PRIMEIRO no <head>: as duas injeções
+  // entram logo depois de <head>, então a última chamada é a que abre o
+  // documento. Preload é rede — quanto mais cedo, melhor. E a lista de preload
+  // é POR PÁGINA: a página nasce como cópia do index.html e herdaria o bloco
+  // da home, que só preloada a navbar.
+  s = require('./identidade.js').injetarFontes(s, arquivo);
 
   fs.writeFileSync(path.join(SITE, arquivo), s, 'utf8');
   return arquivo;
@@ -216,29 +316,8 @@ ${esconder}{ display:none !important }
 }
 .mel-gal-item:hover img{ transform:scale(1.04) }
 
-/* ---- filtros ---- */
-.mel-filtro-palco{
-  border-radius:8px; overflow:hidden; background:#2B251C; aspect-ratio:4/3;
-  max-width:900px; margin:0 auto;
-}
-.mel-filtro-palco img{
-  width:100%; height:100%; object-fit:cover; display:block;
-  transition:opacity 380ms ease;
-}
-.mel-filtro-palco img.mel-trocando{ opacity:0 }
-.mel-pills{
-  display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center;
-  margin:clamp(18px,2.4vw,28px) 0 0;
-}
-.mel-pill{
-  border:0; cursor:pointer; border-radius:999px; padding:.48rem 1rem;
-  background:transparent; color:#9A9083;
-  box-shadow:inset 0 0 0 1px rgba(251,247,238,.2);
-  font-family:"Area",sans-serif; font-size:.82rem;
-  transition:background 200ms ease, color 200ms ease, box-shadow 200ms ease;
-}
-.mel-pill:hover{ color:${P.papel} }
-.mel-pill[aria-selected="true"]{ background:${P.mel}; color:${P.carvao}; box-shadow:none }
+/* O palco e as pílulas do "Uma foto. 8 filtros" saíram em 14/08/2026 com o
+   bloco. A tira de filtros da home é .mel-filtros-*, no plural, e continua. */
 
 /* ---- specs ---- */
 .mel-specs{
@@ -355,10 +434,9 @@ ${esconder}{ display:none !important }
   .mel-cores{ grid-template-columns:repeat(2,1fr) }
   .mel-galeria{ grid-template-columns:repeat(2,1fr); gap:8px }
   .mel-specs{ grid-template-columns:1fr }
-  .mel-filtro-palco{ aspect-ratio:1 }
 }
 @media (prefers-reduced-motion:reduce){
-  .mel-cor,.mel-gal-item img,.mel-filtro-palco img,.mel-faq-q svg{ transition:none }
+  .mel-cor,.mel-gal-item img,.mel-faq-q svg{ transition:none }
   .mel-cor:hover,.mel-gal-item:hover img{ transform:none }
 }
 ${require('./perfil.js').css()}
@@ -410,4 +488,4 @@ function aplicar() {
   return feitas;
 }
 
-module.exports = { aplicar, gerar, css, SO_HOME };
+module.exports = { aplicar, gerar, css, cssCritico, injetarCritico, SO_HOME };

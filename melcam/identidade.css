@@ -1,8 +1,15 @@
 /* Identidade MELCAM. Gerado por tools/identidade.js — nao editar a mao.
    Sobrescreve os 9 tokens de cor do template e a familia tipografica.
-   Nenhuma regra de layout, espacamento, transicao ou animacao e tocada. */
+   Nenhuma regra de layout, espacamento, transicao ou animacao e tocada.
 
-@import url("/melcam/fonts/fontes.css");
+   O @import de /melcam/fonts/fontes.css SAIU em 14/08/2026, e nao pode voltar.
+   Ele criava uma cascata de tres niveis — HTML -> identidade.css -> @import
+   fontes.css -> .otf — porque o navegador so descobre o @import DEPOIS de
+   baixar e analisar os 153 KB desta folha. Medido: identidade.css pedida aos
+   447 ms, fontes.css so aos 1828 ms, os .otf aos 2903 ms, com o primeiro paint
+   aos 2960 ms. Ou seja, o texto pintava antes de qualquer fonte oficial existir.
+   Agora fontes.css entra por <link> proprio no topo do <head>, com preload das
+   faces criticas. Ver blocoFontes() em tools/identidade.js. */
 
 /* O SELETOR PRECISA SER ":root,body" — auditoria de paleta, 13/08/2026.
 
@@ -299,7 +306,7 @@ body:not(.mel-interna) div[data-framer-name="Header Grid"] a[data-framer-name="S
   }
 }
 
-
+
 
 /* ============ AS 7 CORES VIRAM ESCOLHA — 14/08/2026 ============
    Pedido: "o polen tem que ser tipo key feature nas cores; ao passar o mouse os
@@ -502,16 +509,80 @@ a[data-framer-name="Polen"]:has(.mel-polen-cor[data-i="6"]:hover) .mel-polen-leg
    Em 1000px de largura e 240px de cortina a proporcao cai para 4,2:1, e o
    assunto de cada foto (a camera na mao) cabe inteiro. */
 .mel-sobre-palco{
+  /* UM NUMERO SO GOVERNA A GEOMETRIA: a altura da cortina. Fechado o palco e
+     duas cortinas encostadas; aberto, e duas cortinas mais o vao. Antes havia
+     tres numeros independentes (altura fechada, altura aberta, altura da
+     cortina) que precisavam bater entre si em todo breakpoint. */
+  --mel-cortina:clamp(200px,21vw,300px);
   position:relative; overflow:hidden; border-radius:10px;
-  height:clamp(400px,42vw,600px);
   background:#221E17;
-  transition:height 720ms cubic-bezier(.22,.61,.36,1);
-}
-.mel-sobre-palco[data-aberto]{ height:clamp(700px,63vw,900px) }
 
-/* AS CORTINAS. Altura fixa: e o palco que cresce entre elas. */
+  /* 🔴 CONTEXTO DE EMPILHAMENTO PROPRIO — E A CORRECAO DA NAVBAR, 14/08/2026.
+     MEDIDO, nao suposto (tools/qa-sobre-navbar.js): com a faixa aberta e a
+     barra revelada, elementFromPoint sobre os 81px do topo devolvia
+     h2.mel-sobre-tit, div.mel-sobre-miolo e a.mel-sobre-cta em 4 de 4 pontos,
+     nas tres telas. A barra nao estava so encoberta: nao recebia mais clique.
+
+     A causa nao e geometria — o texto esta no lugar certo, dentro do palco. E
+     ordem de pilha. O container fixo da navbar tem z-index:2; a capa e o miolo
+     tambem tinham z-index:2 e o botao, 3. Como o palco era position:relative
+     com z-index:auto, ele NAO abria contexto de empilhamento, entao esses tres
+     subiam para a pilha da raiz e disputavam com a barra de igual para igual.
+     Empatados em 2, ganha quem vem depois no DOM — e a faixa vem depois. O
+     overflow:hidden do palco nao ajuda: como o palco atravessa o topo da
+     janela enquanto se rola, o recorte dele inclui a faixa da barra.
+
+     isolation:isolate fecha o assunto na origem: z-index 2 e 3 passam a
+     significar "dentro do palco". A ordem interna (cortinas < texto < botao)
+     fica intacta e nada global muda — a navbar continua com o z-index do
+     template. Subir o z-index da barra resolveria a aparencia e deixaria a
+     doenca: qualquer outro bloco com z-index alto voltaria a passar por cima. */
+  isolation:isolate;
+
+  /* 🔴 QUEM ANIMA E A ALTURA DA FILEIRA DO MEIO, E ELA VEM DO CONTEUDO.
+     A versao anterior animava height entre dois clamps fixos e posicionava
+     capa e miolo com top: calc(cortina + 34px) e calc(cortina + 154px). Os
+     34 e os 154 valiam para a quebra de linha do desktop e mais nada: medido
+     em 390x844, o miolo invadia 71px da cortina de baixo, porque o corpo do
+     texto quebra em bem mais linhas ali. Qualquer troca de fonte, de copy ou
+     de largura reabria o mesmo buraco.
+
+     Agora as fileiras de cima e de baixo reservam as cortinas e a do meio vai
+     de 0fr a 1fr. Em grade de altura indefinida, 1fr resolve para o
+     max-content da fileira: a altura aberta do palco passa a ser
+     cortina + conteudo + cortina, calculada pelo navegador em cada tela. Nao
+     ha mais numero para errar. */
+  display:grid; grid-template-columns:minmax(0,1fr);
+  grid-template-rows:var(--mel-cortina) 0fr var(--mel-cortina);
+  transition:grid-template-rows 720ms cubic-bezier(.22,.61,.36,1);
+}
+.mel-sobre-palco[data-aberto]{
+  grid-template-rows:var(--mel-cortina) 1fr var(--mel-cortina);
+}
+
+/* A AREA CENTRAL. Uma coluna flex entre as duas cortinas: capa e miolo se
+   empilham nela na ordem de leitura, e a altura do palco sai daqui. Nao ha
+   coordenada vertical em lugar nenhum.
+
+   min-height:0 e overflow:hidden nao estao aqui para cortar texto — sao o que
+   faz 0fr valer zero. Sem eles a fileira do meio herda o minimo automatico do
+   conteudo e a faixa nunca fecha de verdade. Em repouso nada e cortado: com
+   1fr a fileira tem exatamente a altura do conteudo, e o teste mede isso
+   (scrollHeight == clientHeight). Durante a transicao o recorte E o efeito:
+   o texto nasce da fresta em vez de aparecer por cima das fotos. */
+.mel-sobre-vao{
+  grid-row:2; min-height:0; overflow:hidden;
+  display:flex; flex-direction:column; justify-content:center; align-items:stretch;
+  gap:clamp(.6rem,1.6vw,1.1rem);
+  text-align:center;
+}
+.mel-sobre-palco[data-aberto] .mel-sobre-vao{
+  padding:clamp(1rem,2.4vw,1.9rem) clamp(1.25rem,5vw,3rem);
+}
+
+/* AS CORTINAS. Altura fixa: e o vao que cresce entre elas. */
 .mel-sobre-cortina{
-  position:absolute; left:0; right:0; height:clamp(200px,21vw,300px);
+  position:absolute; left:0; right:0; height:var(--mel-cortina);
   overflow:hidden;
 }
 .mel-sobre-cortina img{
@@ -569,16 +640,24 @@ a[data-framer-name="Polen"]:has(.mel-polen-cor[data-i="6"]:hover) .mel-polen-leg
    caia exatamente sobre a camera Bee, que e o assunto da foto e a parte mais
    clara dela — titulo e produto disputando o mesmo pixel. Agora capa e miolo
    ficam empilhados no vao, na ordem natural de leitura: titulo, linha, corpo,
-   CTA. O deslocamento de ambos parte da altura da cortina, entao os tres
-   valores acompanham o clamp sozinhos. */
-.mel-sobre-palco[data-aberto] .mel-sobre-capa{
-  top:calc(clamp(200px,21vw,300px) + 34px); transform:none;
-}
-/* No vao o fundo ja e carvao: o scrim da capa nao tem mais o que resolver. */
-.mel-sobre-palco[data-aberto] .mel-sobre-capa::before{ opacity:0 }
+   CTA.
+
+   FECHADO os dois sao absolutos: a capa fica centrada na emenda das cortinas
+   (que e o meio do palco, porque as duas tem a mesma altura) e o miolo nao
+   ocupa espaco nenhum, embora continue no DOM para leitor de tela. ABERTO os
+   dois entram no fluxo da coluna central e a altura do palco passa a ser
+   consequencia deles. E a troca de position que faz a area central existir so
+   quando ela e necessaria — fechado, o vao tem zero filho em fluxo e zero
+   altura, que e o que 0fr precisa para valer zero. */
+.mel-sobre-palco[data-aberto] .mel-sobre-capa,
 .mel-sobre-palco[data-aberto] .mel-sobre-miolo{
-  top:calc(clamp(200px,21vw,300px) + 154px); transform:none;
+  position:static; transform:none; padding:0;
 }
+/* No vao o fundo ja e carvao: o scrim da capa nao tem mais o que resolver.
+   display:none e nao opacity:0 porque, com a capa em fluxo, o ::before passa
+   a se ancorar no palco e o inset negativo dele viraria uma mancha do tamanho
+   da faixa inteira. */
+.mel-sobre-palco[data-aberto] .mel-sobre-capa::before{ display:none }
 
 /* O MIOLO. Fechado ele existe no DOM e nao ocupa nada: quem le por leitor de
    tela pode alcanca-lo, e o botao diz o estado. */
@@ -1398,16 +1477,34 @@ video[data-mel="hero-video"]{
   list-style:none; margin:0; padding:0; display:grid; gap:20px;
   grid-template-columns:repeat(3,1fr);
 }
+/* A BORDA TRACEJADA EM MEL SAIU JUNTO COM O PLACEHOLDER — 14/08/2026.
+   Ela era a moldura do "a decidir": tracejado diz caixa vazia, e sobre um
+   retangulo cinza dizia a verdade. Sobre uma foto de verdade passaria a dizer
+   outra coisa — erro de carregamento, recorte provisorio, algo quebrado. O
+   estado provisorio agora esta escrito na etiqueta, que e onde ele se le sem
+   ambiguidade. Fica um fio da mesma familia da barra de seguranca, so para
+   assentar a foto no fundo carvao. */
 .mel-clipe-box{
   position:relative; border-radius:4px; overflow:hidden;
   aspect-ratio:9/16; background:#221E17;
-  border:1px dashed rgba(242,169,0,.42);
+  border:1px solid rgba(251,247,238,.07);
 }
-.mel-clipe-box img{ width:100%; height:100%; object-fit:contain; display:block }
+/* cover, nao contain: com contain sobrava fundo em cima e embaixo, que era o
+   desenho certo para um SVG de placeholder e o errado para uma foto. O foco de
+   cada uma vem do proprio <img>, em --mel-foco (ver CLIPES em comunidade.js). */
+.mel-clipe-box img{
+  width:100%; height:100%; display:block;
+  object-fit:cover; object-position:var(--mel-foco,50% 50%);
+}
+/* A etiqueta agora cai SOBRE FOTO, entao precisa de veu: #9A9083 solto em cima
+   de jeans claro ou de ceu nao se le. O gradiente morre antes da metade do
+   card para nao virar tarja. */
 .mel-clipe-spec{
-  position:absolute; inset:auto 0 0 0; padding:.6rem;
-  text-align:center; color:#9A9083;
+  position:absolute; inset:auto 0 0 0; padding:1.7rem .6rem .7rem;
+  text-align:center; color:rgba(251,247,238,.88);
+  background:linear-gradient(to top,rgba(34,30,23,.88) 0%,rgba(34,30,23,.58) 52%,rgba(34,30,23,0) 100%);
   font-family:"Area",sans-serif; font-size:.7rem; letter-spacing:.05em;
+  pointer-events:none;
 }
 
 /* --- barra de segurança --- */
@@ -1461,7 +1558,8 @@ body.mel-interna [data-framer-name="Speed On"],
 body.mel-interna .mel-carrossel,
 body.mel-interna .mel-comunidade,
 body.mel-interna .mel-clipes,
-body.mel-interna .mel-seguranca{ display:none !important }
+body.mel-interna .mel-seguranca,
+body.mel-interna .mel-sobre{ display:none !important }
 
 /* A barra de produto fixa (referência apple.com/ipad-air) saiu do projeto em
    13/08/2026. A /polen perdeu a dela mais cedo no mesmo dia; a /bee, a pedido,
@@ -1550,29 +1648,8 @@ body.mel-interna .mel-seguranca{ display:none !important }
 }
 .mel-gal-item:hover img{ transform:scale(1.04) }
 
-/* ---- filtros ---- */
-.mel-filtro-palco{
-  border-radius:8px; overflow:hidden; background:#2B251C; aspect-ratio:4/3;
-  max-width:900px; margin:0 auto;
-}
-.mel-filtro-palco img{
-  width:100%; height:100%; object-fit:cover; display:block;
-  transition:opacity 380ms ease;
-}
-.mel-filtro-palco img.mel-trocando{ opacity:0 }
-.mel-pills{
-  display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center;
-  margin:clamp(18px,2.4vw,28px) 0 0;
-}
-.mel-pill{
-  border:0; cursor:pointer; border-radius:999px; padding:.48rem 1rem;
-  background:transparent; color:#9A9083;
-  box-shadow:inset 0 0 0 1px rgba(251,247,238,.2);
-  font-family:"Area",sans-serif; font-size:.82rem;
-  transition:background 200ms ease, color 200ms ease, box-shadow 200ms ease;
-}
-.mel-pill:hover{ color:#FBF7EE }
-.mel-pill[aria-selected="true"]{ background:#F2A900; color:#221E17; box-shadow:none }
+/* O palco e as pílulas do "Uma foto. 8 filtros" saíram em 14/08/2026 com o
+   bloco. A tira de filtros da home é .mel-filtros-*, no plural, e continua. */
 
 /* ---- specs ---- */
 .mel-specs{
@@ -1689,10 +1766,9 @@ body.mel-interna .mel-seguranca{ display:none !important }
   .mel-cores{ grid-template-columns:repeat(2,1fr) }
   .mel-galeria{ grid-template-columns:repeat(2,1fr); gap:8px }
   .mel-specs{ grid-template-columns:1fr }
-  .mel-filtro-palco{ aspect-ratio:1 }
 }
 @media (prefers-reduced-motion:reduce){
-  .mel-cor,.mel-gal-item img,.mel-filtro-palco img,.mel-faq-q svg{ transition:none }
+  .mel-cor,.mel-gal-item img,.mel-faq-q svg{ transition:none }
   .mel-cor:hover,.mel-gal-item:hover img{ transform:none }
 }
 
@@ -2115,10 +2191,22 @@ nav [data-framer-name="Section Icon"]:has(.mel-perfil-bt){ overflow:visible }
      esse fundo do --token-3e6ec15f, que a identidade traz para o carvao; a
      emenda estava fechando numa cor que a pagina nao usa.) */
   background:#221E17;
-  /* A largura cheia e escrita por JS (sangrar(), em interacoes.js), medida em
-     document.documentElement.clientWidth — que NAO inclui a scrollbar. 100vw
-     incluiria, e criaria transbordo horizontal. Sem JS, fica na largura do
-     container e nao quebra nada. */
+  /* LARGURA CERTA JA NO PRIMEIRO PAINT — 14/08/2026.
+     Ate aqui a largura cheia vinha SO do JS (sangrar(), em interacoes.js).
+     Medido com tools/qa-hero-primeiro-paint.js: o hero pintava em
+     "373,0 694x828" e so virava "0,0 1440x828" aos 365 ms — cerca de 210 ms de
+     hero encaixotado, com calhas escuras dos dois lados, antes do layout
+     definitivo. Em 768 era "55,0 659x942" ate os 349 ms. Esse e o estado que a
+     captura do cliente mostra.
+     width:100% resolve contra a caixa de conteudo do pai — o
+     <header class="framer-vrbx7h">, o stack da pagina — que ja tem a largura da
+     janela ate 1440. NAO e 100vw: 100vw inclui a barra de rolagem e criaria
+     transbordo horizontal, que foi justamente o motivo de a sangria ter ido
+     parar no JS.
+     O sangrar() FICA e nao foi tocado: continua respondendo a resize e cobrindo
+     janela acima de 1440, onde o stack para em max-width:1440px. Ate 1440 ele
+     agora encontra o hero ja no lugar e a margem que calcula da zero. */
+  width:100%;
 }
 
 /* --- camada 1: a fotografia, sangrando nos QUATRO lados --- */
@@ -2369,7 +2457,7 @@ nav [data-framer-name="Section Icon"]:has(.mel-perfil-bt){ overflow:visible }
 /* Ancora nao pode ficar embaixo da barra fixa. */
 /* A barra fixa da Polen saiu em 13/08; o unico elemento que pode cobrir uma
    ancora agora e a navbar principal, medida em 81px. */
-#produto, #filtros, #faq, #diferencial{ scroll-margin-top:96px }
+#produto, #faq, #diferencial{ scroll-margin-top:96px }
 
 @media (max-width:900px){
   /* Imagem primeiro, informacao depois. */
@@ -2421,6 +2509,119 @@ nav [data-framer-name="Section Icon"]:has(.mel-perfil-bt){ overflow:visible }
 body.mel-pagina-polen .framer-vrbx7h,
 body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
 
+/* ---------- ambientação do fundo — 14/08/2026 ----------
+   A seção estava plana: carvão chapado atrás de uma câmera que é o assunto da
+   página. O que entra aqui é luz, não decoração — um foco quente que segue o
+   lado do capítulo ativo, três massas desfocadas em planos diferentes e grão
+   fotográfico. A câmera continua sendo o elemento principal, e nenhuma destas
+   camadas participa do layout.
+
+   NADA DE filter:blur(). As formas já nascem borradas porque são gradientes
+   radiais com parada suave — o desfoque sai de graça, na mesma pintura, em vez
+   de custar uma passada de filtro numa caixa de 600px.
+
+   O ESTADO DE REPOUSO É O QUADRO FINAL. Os valores declarados em
+   .mel-story-fundo já compõem uma cena completa: sem JavaScript, sem
+   IntersectionObserver ou com movimento reduzido, o que se vê é o fundo
+   parado, não um estado de espera esperando alguém acordar. */
+.mel-story{ position:relative }
+/* O conteúdo sobe um plano. Sem isto o fundo, que é irmão deles, pintaria por
+   cima do palco — os dois estão no mesmo contexto de empilhamento. */
+.mel-story > .mel-sec-topo,
+.mel-story > .mel-story-grade{ position:relative; z-index:1 }
+
+.mel-story-fundo{
+  position:absolute; inset:0; z-index:0;
+  /* clip e não hidden: hidden criaria caixa de rolagem e quebraria o sticky
+     do palco, que é o mesmo motivo documentado logo acima. */
+  overflow:clip; pointer-events:none;
+  --li:.86;   /* intensidade do foco */
+  --lt:0;     /* temperatura: 0 = âmbar da abertura, 1 = brasa do fecho */
+}
+
+/* O foco. Posição de repouso no centro; quem desloca é o transform escrito
+   pelo script, então a atualização é de compositor e não repinta gradiente. */
+.mel-story-luz{
+  position:absolute; left:50%; top:50%;
+  width:clamp(420px,70vw,980px); aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  opacity:var(--li);
+  will-change:transform;
+}
+.mel-story-luz::before,
+.mel-story-luz::after{ content:""; position:absolute; inset:0; border-radius:50% }
+/* 242,169,0 é o mel da paleta e 226,108,41 é o coral puxado para brasa.
+   Escritos em rgb porque precisam de alfa, e o config guarda só o hex — mesma
+   razão do #2B251C cravado em corDoTile(). */
+.mel-story-luz::before{
+  background:radial-gradient(closest-side,
+    rgba(242,169,0,.17), rgba(242,169,0,.06) 46%, rgba(242,169,0,0) 72%);
+  animation:mel-story-pulso 34s ease-in-out infinite alternate;
+}
+/* A TROCA DE PALETA É UM CROSSFADE, não uma troca de cor: as duas camadas
+   estão sempre pintadas e o script move só a opacidade desta. Interpolar
+   opacidade nunca produz o degrau que interpolar hex produziria. */
+.mel-story-luz::after{
+  background:radial-gradient(closest-side,
+    rgba(226,108,41,.15), rgba(150,66,20,.05) 48%, rgba(150,66,20,0) 74%);
+  opacity:var(--lt);
+  animation:mel-story-pulso 47s ease-in-out infinite alternate-reverse;
+}
+
+/* As três massas. O transform do pai é o parallax, escrito pelo script; o do
+   pseudo-elemento é a deriva de repouso, do CSS. Separados de propósito: dois
+   escritores no mesmo transform seria um sobrescrevendo o outro a cada quadro. */
+.mel-story-forma{ position:absolute; will-change:transform }
+.mel-story-forma::before{
+  content:""; position:absolute; inset:0; border-radius:50%;
+  background:radial-gradient(closest-side,
+    rgba(242,169,0,.085), rgba(226,108,41,.035) 52%, rgba(226,108,41,0) 78%);
+}
+.mel-story-forma[data-plano="1"]{ left:-6%; top:4%;  width:clamp(320px,46vw,620px); aspect-ratio:1.15 }
+.mel-story-forma[data-plano="2"]{ left:58%; top:38%; width:clamp(240px,34vw,460px); aspect-ratio:.88 }
+.mel-story-forma[data-plano="3"]{ left:12%; top:74%; width:clamp(180px,24vw,320px); aspect-ratio:1.05 }
+/* Durações primas entre si e "alternate" em todas: sem múltiplos comuns elas
+   nunca voltam a se alinhar, e alternate elimina o salto do fim para o começo
+   que um loop simples produziria a cada volta. */
+.mel-story-forma[data-plano="1"]::before{ animation:mel-story-deriva-a 61s ease-in-out infinite alternate }
+.mel-story-forma[data-plano="2"]::before{ animation:mel-story-deriva-b 47s ease-in-out infinite alternate }
+.mel-story-forma[data-plano="3"]::before{ animation:mel-story-deriva-a 38s ease-in-out infinite alternate-reverse }
+
+@keyframes mel-story-pulso{
+  from{ transform:scale(1) }
+  to  { transform:scale(1.055) }
+}
+@keyframes mel-story-deriva-a{
+  from{ transform:translate3d(0,0,0) scale(1) }
+  to  { transform:translate3d(3.5%,-2.8%,0) scale(1.07) }
+}
+@keyframes mel-story-deriva-b{
+  from{ transform:translate3d(0,0,0) scale(1.05) }
+  to  { transform:translate3d(-3%,3.2%,0) scale(1) }
+}
+
+/* Grão. Uma passada de feTurbulence de 160x160 que o navegador rasteriza uma
+   vez e repete — não é filtro sobre a seção, é uma textura.
+
+   A MÁSCARA É O QUE FAZ ELE NÃO TER BORDA, e a primeira versão errou a conta.
+   Ela era radial(118% 96% at 50% 46%) com o opaco até 52%: no topo da seção a
+   distância relativa é 46/96 = 0,48, ou seja DENTRO do trecho opaco — o grão
+   chegava inteiro na beirada. Medido contra o carvão da página, dava uma linha
+   horizontal de delta 3/255 atravessando os 1440px. Baixo, e mesmo assim
+   visível, porque o olho encontra linha reta muito antes de encontrar
+   diferença de tom.
+
+   Em 76% x 58% com o opaco até 10%, a mesma borda cai para ~13% da máscara, o
+   que sobre opacidade .05 dá um oitavo de por cento. E a elipse mais fechada
+   concentra o grão no miolo, que é justamente onde o foco está. */
+.mel-story-grao{
+  position:absolute; inset:0; opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='mel-grao'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23mel-grao)'/%3E%3C/svg%3E");
+  background-size:160px 160px;
+  -webkit-mask-image:radial-gradient(76% 58% at 50% 50%, #000 10%, transparent 98%);
+          mask-image:radial-gradient(76% 58% at 50% 50%, #000 10%, transparent 98%);
+}
+
 .mel-story-grade{
   display:grid;
   grid-template-columns:minmax(0,1fr);
@@ -2454,10 +2655,73 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
 .mel-story-cena noscript img{ position:absolute; inset:0 }
 
 .mel-story-passo{ max-width:46ch }
-.mel-story-num{
-  margin:0 0 .7rem; color:#F2A900;
-  font-family:"Area",sans-serif; font-size:.78rem; font-weight:700;
-  letter-spacing:.22em; font-variant-numeric:tabular-nums;
+/* O <p> virou só o lugar da etiqueta em 14/08: quem carrega cor, forma e
+   tipografia é o <span> filho. A altura de linha vai a 1 porque um
+   inline-block dentro de um parágrafo herda o entrelinhamento do parágrafo e
+   ganharia folga por baixo que a margem já dá. */
+.mel-story-num{ margin:0 0 .8rem; line-height:1 }
+
+/* ---------- etiqueta do capítulo — 14/08/2026 ----------
+   O número já era o único trecho em mel de cada tópico. Ele era texto solto e
+   virou etiqueta, com o vocabulário do "Escolha sua cor" (.mel-bt): mesma
+   família, mesmo raio de 999px, mesmo par de padding em proporção.
+
+   ESCOPO, e por que ele começa tão longe. O seletor sai de
+   body.mel-pagina-polen e passa por [data-mel="polen-story"] antes de chegar
+   na classe. Nenhum dos dois é decorativo:
+
+     body.mel-pagina-polen   só a /polen tem. Nem a /bee, nem a home.
+     [data-mel="polen-story"] é o contêiner do scrollytelling da Polen, e é
+                             escrito por tools/polen.js num lugar só.
+
+   Assim a regra não tem como alcançar outra seção nem outra página, mesmo que
+   um dia alguém use a classe fora daqui — e a classe também é exclusiva, com
+   "polen-story" no nome, aplicada explicitamente no HTML gerado. Nada aqui
+   casa por cor, por tag genérica, por posição (:first-child, :first-of-type),
+   por [style*=] ou por classe compartilhada.
+
+   A classe se chama mel-polen-story-etiq e não polen-scrolly__tag, que foi o
+   exemplo do pedido: a folha inteira usa o prefixo mel- e nenhuma outra das
+   722 regras usa BEM. Renomear é uma linha, se preferirem o outro nome.
+
+   O QUE NÃO FOI COPIADO DO BOTÃO, e é o ponto: o preenchimento. Uma pílula
+   amarela chapada com as proporções do CTA seria um botão aos olhos de
+   qualquer pessoa, e este elemento não é clicável — é rótulo. A variante certa
+   do sistema é a .mel-bt-linha: fundo transparente e contorno de 1px. Esta é a
+   irmã dela em mel.
+
+   E NÃO É SÓ ESTÉTICA — O PREENCHIMENTO REPROVAVA. A primeira versão punha mel
+   a 10% de fundo. No desktop o capítulo inativo tem opacity .70, e o número em
+   mel já vivia em 4,73:1 contra o carvão, com sete centésimos de folga sobre o
+   mínimo de 4,5 (a calibração está documentada em .mel-story-passo). Clarear o
+   fundo com 10% de mel derruba para 3,91:1. Calculado alfa por alfa:
+
+     0,00 -> 4,73    0,03 -> 4,49    0,06 -> 4,24
+     0,02 -> 4,57    0,04 -> 4,41    0,10 -> 3,91
+
+   Ou seja: nem 3% cabe, e 2% deixaria uma folga de 0,07 que a luz de fundo do
+   scrollytelling consumiria sozinha. Fundo transparente devolve exatamente o
+   4,73 de antes, sem alterar a calibração que já estava aprovada.
+
+   Sem :hover, sem :focus, sem cursor, sem transition. Um <span> dentro de um
+   <p> que já é aria-hidden desde 13/08 — não entra na ordem de tabulação nem
+   na árvore de acessibilidade, e não há atributo de controle em lugar nenhum.
+
+   nowrap porque o número é indivisível: sem isso "01" poderia quebrar entre o
+   0 e o 1 dentro da pílula numa coluna estreita. */
+body.mel-pagina-polen [data-mel="polen-story"] .mel-polen-story-etiq{
+  display:inline-block; white-space:nowrap;
+  border-radius:999px;
+  /* O padding da direita desconta o letter-spacing, porque o espaçamento é
+     aplicado DEPOIS do último dígito e fica dentro da pílula: sem o desconto o
+     número nasce 0,2em fora do centro, e numa forma redonda isso se vê. */
+  padding:.34rem calc(.74rem - .2em) .34rem .74rem;
+  background:transparent;
+  color:#F2A900;
+  box-shadow:inset 0 0 0 1px rgba(242,169,0,.38);
+  font-family:"Area",sans-serif; font-size:.74rem; font-weight:700;
+  letter-spacing:.2em; line-height:1;
+  font-variant-numeric:tabular-nums;
 }
 .mel-story-tit{
   margin:0; color:#FBF7EE;
@@ -2579,17 +2843,33 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
     grid-row:var(--linha);
     min-height:68vh; display:flex; flex-direction:column; justify-content:center;
     align-self:stretch;
-    /* 0,66 e nao 0,34. O apagado era bonito e REPROVAVA em contraste: medido no
+    /* 0,70 e nao 0,34. O apagado era bonito e REPROVAVA em contraste: medido no
        navegador, o numero em mel dava 2,06:1 contra os 4,5 exigidos e o titulo
        dava 2,94:1 contra 3. Capitulo inativo continua na tela, entao vale
        WCAG igual.
 
-       Era 0,66, calibrado quando o fundo da pagina ainda era o #0d0d0d do
-       template. Com a paleta valendo de fato, o fundo virou carvao #221E17 —
-       mais claro — e o mesmo 0,66 caiu para 4,36:1. Em 0,70 o numero volta a
-       4,72:1 sobre carvao. A diferenca para o capitulo ativo continua legivel,
-       que era o pedido: mudanca discreta, nao apagao. */
-    opacity:.70; transition:opacity 460ms cubic-bezier(.22,.61,.36,1);
+       ESTE NUMERO JA SUBIU DUAS VEZES, E SEMPRE PELO MESMO MOTIVO: o fundo
+       atras dele clareou.
+
+       0,66 -> 0,70 em 13/08. Era calibrado para o #0d0d0d do template; com a
+       paleta valendo de fato o fundo virou carvao #221E17, mais claro, e o
+       0,66 caiu para 4,36:1. Em 0,70 voltou a 4,72:1 sobre carvao.
+
+       0,70 -> 0,78 em 14/08. A ambientacao do fundo poe uma luz quente atras
+       da secao, e no ponto mais claro dela o backdrop medido em pixel e
+       rgb(54,42,24), nao mais o carvao puro. Como o opacity mistura o texto
+       com o backdrop daquele ponto, o mel a 0,70 ali da 4,21:1 — reprova. A
+       conta, no pior ponto: 0,70 -> 4,21 · 0,74 -> 4,53 · 0,78 -> 4,86.
+
+       A alternativa era baixar a luz, e ela sai pior: seria preciso cortar
+       para 40% do que e hoje, desmontando a ambientacao inteira, e ainda assim
+       parar em 4,53. Escolhido subir o opacity, que e o mesmo remedio das
+       outras duas vezes.
+
+       A diferenca para o capitulo ativo continua legivel, que era o pedido:
+       mudanca discreta, nao apagao. Em 0,78 ela fica ainda mais discreta, e
+       legibilidade nao se negocia com estilo. */
+    opacity:.78; transition:opacity 460ms cubic-bezier(.22,.61,.36,1);
   }
   .mel-story-ligado .mel-story-passo[data-mel-story-ativa]{ opacity:1 }
 
@@ -2614,7 +2894,7 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
     position:absolute; left:0; top:calc(100% + 16px);
     /* #7C7365 ate 13/08/2026: 3,54:1 sobre o carvao, reprova AA para 12,5px.
        O secundario oficial da 5,28:1 e continua recuado ao lado do numero
-       ativo, que e mel. */
+       ativo, que e mel. O "/" separador segue em opacity .6 logo abaixo. */
     color:#9A9083; font-family:"Area",sans-serif; font-size:.78rem;
     letter-spacing:.16em; font-variant-numeric:tabular-nums; white-space:nowrap;
   }
@@ -2644,6 +2924,13 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
     min-height:0; opacity:1; transition:none; align-self:center;
   }
   .mel-story-ligado .mel-story-conta{ display:none }
+
+  /* O fundo FICA, parado. O script nem chega a acordar — a função devolve
+     antes de ligar a classe —, então os valores de repouso de
+     .mel-story-fundo já são o quadro final. O que sai é só a deriva. */
+  .mel-story-luz::before,
+  .mel-story-luz::after,
+  .mel-story-forma::before{ animation:none }
 
   .mel-ph-pronto .mel-ph-eyebrow,
   .mel-ph-pronto .mel-ph-tit,
@@ -2700,10 +2987,18 @@ body.mel-pagina-polen :has(> .framer-vrbx7h){ overflow:clip }
      mesmo defeito que a /polen levou três passadas para resolver). */
   min-height:clamp(520px,80svh,820px);
   display:flex; align-items:center;
-  /* A largura cheia é escrita por JS (sangrar(), em interacoes.js), medida em
-     document.documentElement.clientWidth — que NÃO inclui a barra de rolagem.
-     100vw incluiria e criaria transbordo horizontal. Sem JS o hero fica na
-     largura do container: mais estreito, nunca quebrado. */
+  /* LARGURA CERTA JÁ NO PRIMEIRO PAINT — 14/08/2026.
+     Até aqui a largura cheia vinha SÓ do JS (sangrar(), em interacoes.js).
+     Medido com tools/qa-hero-primeiro-paint.js: em 768 o hero pintava em
+     "55,0 659x721" e só virava "0,0 768x721" aos 287 ms — o hero claro
+     encaixotado, com faixas escuras dos dois lados, antes do layout definitivo.
+     width:100% resolve contra a caixa de conteúdo do pai — o
+     <header class="framer-vrbx7h">, o stack da página — que já tem a largura da
+     janela até 1440. NÃO é 100vw: 100vw inclui a barra de rolagem e criaria
+     transbordo horizontal, que foi o motivo de a sangria ter ido para o JS.
+     O sangrar() FICA e não foi tocado: continua respondendo a resize e cobrindo
+     janela acima de 1440, onde o stack para em max-width:1440px. */
+  width:100%;
 }
 
 /* --- o palco ---

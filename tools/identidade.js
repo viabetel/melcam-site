@@ -42,23 +42,112 @@ function tabelaNome(file) {
   return { familia: out[1], estilo: out[2] };
 }
 
+// 🔴 O PESO NEM SEMPRE ESTÁ NA FAMÍLIA — corrigido em 14/08/2026.
+//
+// A Area codifica o peso no NOME DA FAMÍLIA ("Area Extended Black",
+// "Area Extended Medium"...), e o mapa acima trata disso. Só que DUAS das 22
+// fontes fogem da regra: nelas a família é a neutra "Area Extended" e o peso
+// está no ESTILO.
+//
+//   arquivo      família (nameID 1)   estilo (nameID 2)   peso real
+//   51691.otf    Area Extended        Regular             400
+//   51694.otf    Area Extended        Bold                700   <- lido como 400
+//   51687.otf    Area Extended        Italic              400 ital
+//   51683.otf    Area Extended        Bold Italic         700 ital <- lido como 400
+//
+// Lendo só a família, as quatro caíam em 400 e o CSS saía com DUAS declarações
+// para 400/normal e DUAS para 400/italic. Em @font-face empatado, quem vence é
+// a ÚLTIMA declarada — que por ordem alfabética de arquivo era a 51694, ou
+// seja, a Bold. Consequências medidas no navegador em 14/08/2026:
+//
+//   - todo texto corrido em font-weight:400 desenhava com Area Bold;
+//   - font-weight:700 não tinha face nenhuma, e o motor caía na mais próxima,
+//     a 800 (Area Extended ExtraBold) — confirmado por
+//     CSS.getPlatformFontsForNode e pela rede, que baixava 51693 e 51694 e
+//     nunca a 51691.
+//
+// Agora o peso sai do estilo quando a família é a neutra, e há uma guarda que
+// ESTOURA se dois arquivos disputarem o mesmo peso+estilo. Nunca mais "escolher
+// arbitrariamente": ou o mapa é completo, ou a geração falha.
+const PESO_POR_ESTILO = { regular: 400, italic: 400, bold: 700, bolditalic: 700 };
+const FAMILIA_NEUTRA = 'Area Extended';
+
+function pesoDaArea(familia, estilo) {
+  if (familia === FAMILIA_NEUTRA) {
+    const e = (estilo || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (PESO_POR_ESTILO[e] === undefined) {
+      throw new Error(`Area "${familia}" / "${estilo}": estilo desconhecido — `
+        + 'acrescente em PESO_POR_ESTILO em vez de deixar cair no padrão.');
+    }
+    return PESO_POR_ESTILO[e];
+  }
+  if (PESO_POR_FAMILIA[familia] === undefined) {
+    throw new Error(`Area "${familia}": família fora de PESO_POR_FAMILIA — `
+      + 'mapeie o peso em vez de deixar cair em 400.');
+  }
+  return PESO_POR_FAMILIA[familia];
+}
+
+// As faces que aparecem ACIMA DA DOBRA, medidas em 14/08/2026 percorrendo os
+// nós de texto visíveis na primeira dobra das 7 rotas (desktop e mobile):
+//   Area 400  — parágrafo do hero e lead das internas
+//   Area 600  — links da navbar, em TODAS as páginas
+//   Area 700  — item ativo da navbar (aria-current)
+//   Iowan 700 — título das internas
+//   Brooklyn 600 — a palavra "Polen" no título da /polen
+// Só estas levam font-display:block. Ver o porquê no comentário de DISPLAY.
+const CRITICAS = new Set(['Area|400|normal', 'Area|600|normal', 'Area|700|normal',
+  'Iowan Old Style|700|normal', 'Brooklyn Heritage|600|normal']);
+
+// font-display: BLOCK nas críticas, SWAP no resto — 14/08/2026.
+//
+//   swap  = pinta já com a fonte de sistema e TROCA quando a oficial chega.
+//           É exatamente o FOUT relatado: Georgia/Sora aparecem e somem.
+//   block = segura o texto invisível por até ~3s e então pinta com a oficial.
+//           Se estourar o prazo, cai na de sistema e ainda troca — ou seja,
+//           NUNCA fica permanentemente invisível.
+//
+// block sozinho seria trocar FOUT por FOIT. O que o torna seguro aqui é o
+// preload: as críticas passam a ser pedidas no primeiro byte do <head>, não
+// depois de identidade.css -> @import -> fontes.css. Medido: elas chegam antes
+// do primeiro paint, então o período de bloqueio na prática é zero.
+//
+// As 19 faces restantes ficam em swap de propósito: nenhuma aparece acima da
+// dobra, um swap lá embaixo não é visto, e block nelas arriscaria texto
+// invisível num lugar que não medimos.
 function gerarFontes() {
   const dir = path.join(SITE, 'melcam', 'fonts');
   const area = path.join(dir, 'area');
-  let css = `/* Fontes oficiais MELCAM. Gerado por tools/identidade.js — nao editar a mao. */\n\n`;
+  let css = `/* Fontes oficiais MELCAM. Gerado por tools/identidade.js — nao editar a mao.\n`
+    + `   O peso de cada arquivo da Area sai da tabela 'name' do proprio .otf:\n`
+    + `   da familia quando ela o declara, do estilo quando a familia e a neutra\n`
+    + `   "Area Extended". Ver o bloco de comentario em tools/identidade.js. */\n\n`;
+
+  const vistas = new Map();
+  const linha = (fam, url, peso, ital) => {
+    const chave = `${fam}|${peso}|${ital ? 'italic' : 'normal'}`;
+    if (vistas.has(chave)) {
+      throw new Error(`@font-face duplicado para ${chave}: "${vistas.get(chave)}" e "${url}". `
+        + 'Duas faces com o mesmo peso e estilo fazem o navegador usar a ultima, '
+        + 'em silencio. Corrija o mapa de pesos.');
+    }
+    vistas.set(chave, url);
+    const display = CRITICAS.has(chave) ? 'block' : 'swap';
+    return `@font-face{font-family:"${fam}";src:url("${url}") format("opentype");`
+      + `font-weight:${peso};font-style:${ital ? 'italic' : 'normal'};font-display:${display}}\n`;
+  };
 
   if (fs.existsSync(area)) {
     for (const f of fs.readdirSync(area).filter(f => /\.otf$/i.test(f))) {
       const { familia, estilo } = tabelaNome(path.join(area, f));
-      const peso = PESO_POR_FAMILIA[familia] ?? 400;
+      const peso = pesoDaArea(familia, estilo);
       const ital = /italic|oblique/i.test(estilo || '') || /Italic/i.test(familia || '');
-      css += `@font-face{font-family:"Area";src:url("/melcam/fonts/area/${f}") format("opentype");`
-        + `font-weight:${peso};font-style:${ital ? 'italic' : 'normal'};font-display:swap}\n`;
+      css += linha('Area', `/melcam/fonts/area/${f}`, peso, ital);
     }
   }
   // Iowan: o toolkit só tem o peso Bold. Decisão do cliente: display apenas.
-  css += `\n@font-face{font-family:"Iowan Old Style";src:url("/melcam/fonts/iowan-old-style-bold.otf") format("opentype");font-weight:700;font-style:normal;font-display:swap}\n`;
-  css += `@font-face{font-family:"Brooklyn Heritage";src:url("/melcam/fonts/brooklyn-heritage-semibold.otf") format("opentype");font-weight:600;font-style:normal;font-display:swap}\n`;
+  css += '\n' + linha('Iowan Old Style', '/melcam/fonts/iowan-old-style-bold.otf', 700, false);
+  css += linha('Brooklyn Heritage', '/melcam/fonts/brooklyn-heritage-semibold.otf', 600, false);
 
   fs.writeFileSync(path.join(dir, 'fontes.css'), css, 'utf8');
   return css.split('@font-face').length - 1;
@@ -95,9 +184,16 @@ const MAPA_TOKEN = {
 function gerarIdentidade() {
   let css = `/* Identidade MELCAM. Gerado por tools/identidade.js — nao editar a mao.
    Sobrescreve os 9 tokens de cor do template e a familia tipografica.
-   Nenhuma regra de layout, espacamento, transicao ou animacao e tocada. */
+   Nenhuma regra de layout, espacamento, transicao ou animacao e tocada.
 
-@import url("/melcam/fonts/fontes.css");
+   O @import de /melcam/fonts/fontes.css SAIU em 14/08/2026, e nao pode voltar.
+   Ele criava uma cascata de tres niveis — HTML -> identidade.css -> @import
+   fontes.css -> .otf — porque o navegador so descobre o @import DEPOIS de
+   baixar e analisar os 153 KB desta folha. Medido: identidade.css pedida aos
+   447 ms, fontes.css so aos 1828 ms, os .otf aos 2903 ms, com o primeiro paint
+   aos 2960 ms. Ou seja, o texto pintava antes de qualquer fonte oficial existir.
+   Agora fontes.css entra por <link> proprio no topo do <head>, com preload das
+   faces criticas. Ver blocoFontes() no fim deste arquivo. */
 
 /* O SELETOR PRECISA SER ":root,body" — auditoria de paleta, 13/08/2026.
 
@@ -391,7 +487,7 @@ body:not(.mel-interna) div[data-framer-name="Header Grid"] a[data-framer-name="S
   }
 }
 
-
+
 
 /* ============ AS 7 CORES VIRAM ESCOLHA — 14/08/2026 ============
    Pedido: "o polen tem que ser tipo key feature nas cores; ao passar o mouse os
@@ -594,16 +690,80 @@ a[data-framer-name="Polen"]:has(.mel-polen-cor[data-i="6"]:hover) .mel-polen-leg
    Em 1000px de largura e 240px de cortina a proporcao cai para 4,2:1, e o
    assunto de cada foto (a camera na mao) cabe inteiro. */
 .mel-sobre-palco{
+  /* UM NUMERO SO GOVERNA A GEOMETRIA: a altura da cortina. Fechado o palco e
+     duas cortinas encostadas; aberto, e duas cortinas mais o vao. Antes havia
+     tres numeros independentes (altura fechada, altura aberta, altura da
+     cortina) que precisavam bater entre si em todo breakpoint. */
+  --mel-cortina:clamp(200px,21vw,300px);
   position:relative; overflow:hidden; border-radius:10px;
-  height:clamp(400px,42vw,600px);
   background:#221E17;
-  transition:height 720ms cubic-bezier(.22,.61,.36,1);
-}
-.mel-sobre-palco[data-aberto]{ height:clamp(700px,63vw,900px) }
 
-/* AS CORTINAS. Altura fixa: e o palco que cresce entre elas. */
+  /* 🔴 CONTEXTO DE EMPILHAMENTO PROPRIO — E A CORRECAO DA NAVBAR, 14/08/2026.
+     MEDIDO, nao suposto (tools/qa-sobre-navbar.js): com a faixa aberta e a
+     barra revelada, elementFromPoint sobre os 81px do topo devolvia
+     h2.mel-sobre-tit, div.mel-sobre-miolo e a.mel-sobre-cta em 4 de 4 pontos,
+     nas tres telas. A barra nao estava so encoberta: nao recebia mais clique.
+
+     A causa nao e geometria — o texto esta no lugar certo, dentro do palco. E
+     ordem de pilha. O container fixo da navbar tem z-index:2; a capa e o miolo
+     tambem tinham z-index:2 e o botao, 3. Como o palco era position:relative
+     com z-index:auto, ele NAO abria contexto de empilhamento, entao esses tres
+     subiam para a pilha da raiz e disputavam com a barra de igual para igual.
+     Empatados em 2, ganha quem vem depois no DOM — e a faixa vem depois. O
+     overflow:hidden do palco nao ajuda: como o palco atravessa o topo da
+     janela enquanto se rola, o recorte dele inclui a faixa da barra.
+
+     isolation:isolate fecha o assunto na origem: z-index 2 e 3 passam a
+     significar "dentro do palco". A ordem interna (cortinas < texto < botao)
+     fica intacta e nada global muda — a navbar continua com o z-index do
+     template. Subir o z-index da barra resolveria a aparencia e deixaria a
+     doenca: qualquer outro bloco com z-index alto voltaria a passar por cima. */
+  isolation:isolate;
+
+  /* 🔴 QUEM ANIMA E A ALTURA DA FILEIRA DO MEIO, E ELA VEM DO CONTEUDO.
+     A versao anterior animava height entre dois clamps fixos e posicionava
+     capa e miolo com top: calc(cortina + 34px) e calc(cortina + 154px). Os
+     34 e os 154 valiam para a quebra de linha do desktop e mais nada: medido
+     em 390x844, o miolo invadia 71px da cortina de baixo, porque o corpo do
+     texto quebra em bem mais linhas ali. Qualquer troca de fonte, de copy ou
+     de largura reabria o mesmo buraco.
+
+     Agora as fileiras de cima e de baixo reservam as cortinas e a do meio vai
+     de 0fr a 1fr. Em grade de altura indefinida, 1fr resolve para o
+     max-content da fileira: a altura aberta do palco passa a ser
+     cortina + conteudo + cortina, calculada pelo navegador em cada tela. Nao
+     ha mais numero para errar. */
+  display:grid; grid-template-columns:minmax(0,1fr);
+  grid-template-rows:var(--mel-cortina) 0fr var(--mel-cortina);
+  transition:grid-template-rows 720ms cubic-bezier(.22,.61,.36,1);
+}
+.mel-sobre-palco[data-aberto]{
+  grid-template-rows:var(--mel-cortina) 1fr var(--mel-cortina);
+}
+
+/* A AREA CENTRAL. Uma coluna flex entre as duas cortinas: capa e miolo se
+   empilham nela na ordem de leitura, e a altura do palco sai daqui. Nao ha
+   coordenada vertical em lugar nenhum.
+
+   min-height:0 e overflow:hidden nao estao aqui para cortar texto — sao o que
+   faz 0fr valer zero. Sem eles a fileira do meio herda o minimo automatico do
+   conteudo e a faixa nunca fecha de verdade. Em repouso nada e cortado: com
+   1fr a fileira tem exatamente a altura do conteudo, e o teste mede isso
+   (scrollHeight == clientHeight). Durante a transicao o recorte E o efeito:
+   o texto nasce da fresta em vez de aparecer por cima das fotos. */
+.mel-sobre-vao{
+  grid-row:2; min-height:0; overflow:hidden;
+  display:flex; flex-direction:column; justify-content:center; align-items:stretch;
+  gap:clamp(.6rem,1.6vw,1.1rem);
+  text-align:center;
+}
+.mel-sobre-palco[data-aberto] .mel-sobre-vao{
+  padding:clamp(1rem,2.4vw,1.9rem) clamp(1.25rem,5vw,3rem);
+}
+
+/* AS CORTINAS. Altura fixa: e o vao que cresce entre elas. */
 .mel-sobre-cortina{
-  position:absolute; left:0; right:0; height:clamp(200px,21vw,300px);
+  position:absolute; left:0; right:0; height:var(--mel-cortina);
   overflow:hidden;
 }
 .mel-sobre-cortina img{
@@ -661,16 +821,24 @@ a[data-framer-name="Polen"]:has(.mel-polen-cor[data-i="6"]:hover) .mel-polen-leg
    caia exatamente sobre a camera Bee, que e o assunto da foto e a parte mais
    clara dela — titulo e produto disputando o mesmo pixel. Agora capa e miolo
    ficam empilhados no vao, na ordem natural de leitura: titulo, linha, corpo,
-   CTA. O deslocamento de ambos parte da altura da cortina, entao os tres
-   valores acompanham o clamp sozinhos. */
-.mel-sobre-palco[data-aberto] .mel-sobre-capa{
-  top:calc(clamp(200px,21vw,300px) + 34px); transform:none;
-}
-/* No vao o fundo ja e carvao: o scrim da capa nao tem mais o que resolver. */
-.mel-sobre-palco[data-aberto] .mel-sobre-capa::before{ opacity:0 }
+   CTA.
+
+   FECHADO os dois sao absolutos: a capa fica centrada na emenda das cortinas
+   (que e o meio do palco, porque as duas tem a mesma altura) e o miolo nao
+   ocupa espaco nenhum, embora continue no DOM para leitor de tela. ABERTO os
+   dois entram no fluxo da coluna central e a altura do palco passa a ser
+   consequencia deles. E a troca de position que faz a area central existir so
+   quando ela e necessaria — fechado, o vao tem zero filho em fluxo e zero
+   altura, que e o que 0fr precisa para valer zero. */
+.mel-sobre-palco[data-aberto] .mel-sobre-capa,
 .mel-sobre-palco[data-aberto] .mel-sobre-miolo{
-  top:calc(clamp(200px,21vw,300px) + 154px); transform:none;
+  position:static; transform:none; padding:0;
 }
+/* No vao o fundo ja e carvao: o scrim da capa nao tem mais o que resolver.
+   display:none e nao opacity:0 porque, com a capa em fluxo, o ::before passa
+   a se ancorar no palco e o inset negativo dele viraria uma mancha do tamanho
+   da faixa inteira. */
+.mel-sobre-palco[data-aberto] .mel-sobre-capa::before{ display:none }
 
 /* O MIOLO. Fechado ele existe no DOM e nao ocupa nada: quem le por leitor de
    tela pode alcanca-lo, e o botao diz o estado. */
@@ -1252,7 +1420,100 @@ function blocoHead() {
     + `<link rel="icon" href="/melcam/logo/symbol-preto.svg" type="image/svg+xml">`;
 }
 
-module.exports = { gerarFontes, gerarIdentidade, blocoHead };
+// ============ FONTES NO TOPO DO <head> — 14/08/2026 ============
+//
+// Duas coisas, e a ordem entre elas importa:
+//
+//   1. os <link rel="preload"> das faces criticas, para que o download comece
+//      no PRIMEIRO byte do documento em vez de depois de 169 KB de <head>;
+//   2. o <link rel="stylesheet"> de fontes.css, que substitui o @import.
+//
+// Por que no TOPO e nao junto de identidade.css, no fim do <head>: o scanner de
+// pre-carga le os bytes conforme chegam. Um preload no fim do <head> so e
+// descoberto quando aqueles bytes chegam — medido, aos 447 ms. No topo, ele sai
+// no primeiro pacote. Era essa a diferenca entre a fonte chegar antes ou depois
+// do primeiro paint.
+//
+// identidade.css CONTINUA no fim do <head>, e isso nao mudou de proposito: ela
+// precisa vir depois do <style> inline do Framer para vencer por ordem de fonte
+// (ver o comentario do seletor ":root,body"). Aqui em cima vai so @font-face,
+// que nao disputa cascata com nada.
+//
+// O crossorigin e OBRIGATORIO mesmo sendo mesma origem: fonte e sempre buscada
+// em modo CORS anonimo, e um preload sem ele nao casa com o pedido do CSS — o
+// arquivo seria baixado DUAS vezes.
+const FONTES_INI = '<!--mel:fontes-->';
+const FONTES_FIM = '<!--/mel:fontes-->';
+
+// Preload so do que aparece acima da dobra DAQUELA pagina — medido em
+// 14/08/2026 percorrendo os nos de texto visiveis na primeira dobra das 7
+// rotas, em 1440x900 e 390x844. Preload de arquivo que nao e usado logo rouba
+// banda do que e.
+const NAVBAR = [
+  ['/melcam/fonts/area/51690.otf', 'Area SemiBold 600 — links da navbar, em todas as paginas'],
+];
+const TITULO_E_LEAD = [
+  ['/melcam/fonts/iowan-old-style-bold.otf', 'Iowan Bold 700 — titulo das internas'],
+  ['/melcam/fonts/area/51691.otf', 'Area Regular 400 — paragrafo do hero e lead'],
+  ['/melcam/fonts/area/51694.otf', 'Area Bold 700 — item ativo da navbar'],
+];
+const PRELOAD_POR_PAGINA = {
+  // A home nao tem texto acima da dobra alem da navbar: o hero e o <video>
+  // ocupando a viewport inteira. Medido em 1440x900 e 390x844.
+  'index.html': NAVBAR,
+  'polen.html': [...NAVBAR, ...TITULO_E_LEAD,
+    ['/melcam/fonts/brooklyn-heritage-semibold.otf', 'Brooklyn 600 — a palavra "Polen" no titulo']],
+  'bee.html': [...NAVBAR, ...TITULO_E_LEAD],
+  'sobre.html': [...NAVBAR, ...TITULO_E_LEAD],
+  'acessorios.html': [...NAVBAR, ...TITULO_E_LEAD],
+  'sacola.html': [...NAVBAR, ...TITULO_E_LEAD],
+  '404.html': [...NAVBAR, ...TITULO_E_LEAD],
+};
+
+function blocoFontes(pagina) {
+  const lista = PRELOAD_POR_PAGINA[pagina] || NAVBAR;
+  const preloads = lista.map(([href]) =>
+    `<link rel="preload" as="font" type="font/otf" href="${href}" crossorigin>`).join('');
+  return FONTES_INI + preloads
+    + `<link rel="stylesheet" href="/melcam/fonts/fontes.css">`
+    + FONTES_FIM;
+}
+
+const escapar = (s) => s.replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&');
+
+// Onde comeca o conteudo injetavel do <head>: DEPOIS da declaracao de charset.
+//
+// Isto nao e capricho. A especificacao manda o <meta charset> aparecer nos
+// primeiros 1024 bytes do documento; passar dele obriga o navegador a decidir a
+// codificacao por outro caminho. Injetando cru logo apos <head>, os preloads da
+// /polen empurraram o charset do byte 337 para o 1388 — fora da janela. Hoje o
+// cabecalho HTTP do serve.js e da Vercel manda "charset=utf-8" e vence o meta,
+// entao nada quebrou; mas seria uma armadilha esperando uma mudanca de
+// servidor para transformar todo acento em caractere trocado.
+function pontoNoHead(html) {
+  const abre = /<head\b[^>]*>/i.exec(html);
+  if (!abre) throw new Error('<head> nao encontrado');
+  const base = abre.index + abre[0].length;
+  const janela = html.slice(base, base + 2048);
+  const meta = /<meta[^>]+charset[^>]*>|<meta[^>]+http-equiv=["']?content-type["']?[^>]*>/i.exec(janela);
+  return meta ? base + meta.index + meta[0].length : base;
+}
+
+// Idempotente: tira o bloco antigo antes de por o novo. Tira tambem qualquer
+// <link> solto de fontes.css fora do bloco, para que rodar o pipeline duas
+// vezes nao acumule folha nem preload.
+function injetarFontes(html, pagina) {
+  let s = html.replace(new RegExp(escapar(FONTES_INI) + '[\\s\\S]*?' + escapar(FONTES_FIM), 'g'), '');
+  s = s.replace(/<link[^>]+href="\/melcam\/fonts\/fontes\.css"[^>]*>/gi, '');
+  s = s.replace(/<link[^>]+rel="preload"[^>]+href="\/melcam\/fonts\/[^"]+"[^>]*>/gi, '');
+  const corte = pontoNoHead(s);
+  return s.slice(0, corte) + blocoFontes(pagina) + s.slice(corte);
+}
+
+module.exports = {
+  gerarFontes, gerarIdentidade, blocoHead,
+  blocoFontes, injetarFontes, pontoNoHead, FONTES_FIM, PRELOAD_POR_PAGINA,
+};
 
 if (require.main === module) {
   console.log('@font-face gerados:', gerarFontes());

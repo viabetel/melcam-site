@@ -335,6 +335,11 @@ for (const f of walk(SITE)) {
   // identidade entra por ultimo no head, para vencer o CSS inline do Framer
   if (!s.includes('/melcam/identidade.css')) s = s.replace(/<\/head>/i, ident.blocoHead() + '</head>');
 
+  // Fontes no TOPO do head: preload das faces de cima da dobra + a folha de
+  // @font-face, que substituiu o @import de dentro do identidade.css.
+  // Idempotente — injetarFontes remove o bloco antigo antes de por o novo.
+  s = ident.injetarFontes(s, path.basename(f));
+
   fs.writeFileSync(f, s, 'utf8');
   paginas++;
 }

@@ -22,7 +22,8 @@ const listar = (rel, re) => {
 // para baixo da navbar principal criando uma segunda barra logo abaixo da
 // primeira, e o CTA "Comprar" competia com o "Escolha sua cor" do hero, que é
 // o próximo passo certo. As âncoras não ficaram órfãs: #produto continua sendo
-// destino do CTA do hero e do CTA final, e #filtros e #faq seguem existindo.
+// destino do CTA do hero e do CTA final, e #faq segue existindo. (#filtros era
+// desta lista até 14/08/2026, quando o bloco dos filtros saiu.)
 // A Bee seguiu o mesmo caminho na tarde do mesmo dia, também a pedido, e com
 // ela foi embora o CSS .mel-barra de tools/paginas.js: não sobrou usuário.
 
@@ -190,30 +191,20 @@ function galeria() {
 </section>`;
 }
 
-// -------------------------------------------------------------- 5. filtros
-function filtros() {
-  const imgs = listar('filtros', /\.(jpg|jpeg|png|webp)$/i);
-  const pills = POLEN.filtros.map((f, i) => `
-      <button type="button" class="mel-pill" role="tab" id="pill-${i}"
-              aria-selected="${i === 0}" aria-controls="mel-filtro-img"
-              data-mel-filtro="${i}" data-src="${imgs[i] || '/melcam/img/a-decidir.svg'}">${f}</button>`).join('');
-
-  return `
-<section class="mel-sec" id="filtros" aria-labelledby="mel-fil-tit">
-  <div class="mel-sec-topo">
-    <p class="mel-eyebrow">experimente seu filtro favorito</p>
-    <h2 id="mel-fil-tit" class="mel-tit">Uma foto. 8 filtros</h2>
-  </div>
-  <div class="mel-filtro-palco">
-    <img id="mel-filtro-img" src="${imgs[0] || '/melcam/img/a-decidir.svg'}"
-         alt="A mesma foto com o filtro ${POLEN.filtros[0]}" data-mel-filtro-img>
-  </div>
-  <div class="mel-pills" role="tablist" aria-label="Filtros da Polen">${pills}
-  </div>
-  <p class="mel-tag">Filtros aplicados na hora do clique, direto na câmera.</p>
-  <p class="mel-sr" aria-live="polite" data-mel-filtro-vivo></p>
-</section>`;
-}
+// ------------------------------------------------------------- 5. (vago)
+//
+// O "Uma foto. 8 filtros" saiu em 14/08/2026 a pedido. Era o palco com a foto
+// grande e as oito pílulas (Retro, Mono, Natural, Polar, Vintage, Filmic,
+// Noir, Boost). Não renumerei o que vem depois para a numeração continuar
+// batendo com o histórico e com o progresso.md.
+//
+// Os oito filtros continuam ditos na página, na lista de benefícios ("8 opções
+// de filtro direto na câmera"), e a home segue com o bloco próprio dela, que é
+// outro desenho e usa outras classes (mel-filtros-*). Não confunda os dois.
+//
+// Saíram junto: iniciarFiltros() e as regras .mel-filtro-palco/.mel-pill, que
+// não tinham mais nenhum nó para pegar. As imagens em melcam/img/filtros/
+// ficaram no lugar, porque o bloco da home usa a mesma pasta.
 
 // ----------------------------------------------------------- 6. diferencial
 //
@@ -225,11 +216,22 @@ function filtros() {
 // a string que já estava aqui — nenhum número mexido, nenhuma especificação
 // nova. O que mudou foi só o formato de apresentação.
 //
-// A LINHA DE APOIO SÓ EXISTE ONDE JÁ HAVIA COPY APROVADO. Sai do FAQ e do
-// hero desta mesma página, verbatim. Quatro capítulos têm; cinco não têm, e
-// ficam só com o título — inventar frase de apoio para emparelhar visualmente
-// seria criar afirmação sobre o produto, que é justamente o que o pedido
-// proíbe. A pendência está registrada no progresso.md.
+// A LINHA DE APOIO. Em 13/08 só existia onde havia copy aprovado — quatro
+// capítulos tinham, cinco ficavam só com o título, porque inventar frase para
+// emparelhar visualmente seria criar afirmação sobre o produto.
+//
+// EM 14/08 OS CINCO GANHARAM TEXTO, a pedido, com a regra explícita de não
+// inventar especificação, número nem promessa comercial. Então cada uma foi
+// ancorada em conteúdo que já existe no projeto, e a âncora está escrita no
+// comentário em cima da frase: FAQ desta página, benefício aprovado no
+// melcam.config.json, nota do produto, título da galeria ou o alt da própria
+// foto do capítulo. Nenhum número novo entrou: os que aparecem já estavam no
+// título do capítulo.
+//
+// A DIFERENÇA DE PROCEDÊNCIA CONTINUA VALENDO: as quatro de 13/08 são copy do
+// cliente, verbatim; as cinco de 14/08 são redação nossa sobre fato aprovado, e
+// ainda não passaram pelo cliente. Está registrado no progresso.md como
+// pendência de validação, não como copy fechado.
 //
 // AS CENAS vêm de tools/polen-story-assets.js, geradas do acervo oficial do
 // cliente. O capítulo 3 não tem imagem adequada no acervo e recebe um
@@ -254,6 +256,10 @@ const CAPITULOS = [
   {
     n: 3,
     tit: 'Bateria recarregável para até 1000 fotos, dependendo do uso do flash',
+    // 14/08: escrita a partir do FAQ desta página ("Quanto dura a bateria?") e
+    // do capítulo 8. Nenhum número novo — os dois que existem já estão no
+    // título, e a frase só diz de onde vem a carga e do que ela depende.
+    txt: 'Recarrega pelo mesmo cabo USB-C que transfere as fotos. Quanto ela dura depende de quanto você usa o flash.',
     vaga: {
       nome: 'Bateria recarregável',
       direcao: 'Câmera em recarga pelo cabo USB-C, ou em uso com o cabo à vista',
@@ -262,6 +268,10 @@ const CAPITULOS = [
   {
     n: 4,
     tit: 'Dimensões 11,4 × 6,4 × 2,5 cm',
+    // 14/08: não há copy aprovado sobre porte, e "cabe no bolso" seria
+    // afirmação nova — plausível, mas não conferida. A frase fica no que a
+    // própria cena mostra: as três medidas desenhadas sobre a foto.
+    txt: 'As três medidas da Polen, sem arredondamento. É uma câmera pequena, e o desenho sobre a foto mostra o quanto.',
     img: 'polen-04-dimensoes.jpg',
     alt: 'Polen preta de frente, packshot oficial em fundo escuro',
     // As cotas são desenhadas em SVG por cima, no HTML — não vêm queimadas na
@@ -271,18 +281,29 @@ const CAPITULOS = [
   {
     n: 5,
     tit: 'Flash LED integrado',
+    // 14/08: "integrado" é a palavra do benefício aprovado no config, e a
+    // posição ao lado do visor vem do alt da própria foto deste capítulo.
+    txt: 'O flash é parte da câmera, ao lado do visor. Quando a luz cai, ele entra sem você acoplar nada.',
     img: 'polen-05-flash.jpg',
     alt: 'Close do topo da Polen marrom em luz baixa, com a janela do flash acesa ao lado do visor',
   },
   {
     n: 6,
     tit: 'Resolução de 12 MP',
+    // 14/08: "sem edição nenhuma" é o título aprovado da galeria desta mesma
+    // página, e a foto deste capítulo é, pelo alt, feita com a Polen. "Esta
+    // foto" e não "a foto ao lado": no mobile ela fica ACIMA do texto.
+    txt: 'Esta foto saiu da Polen, sem edição nenhuma. São os 12 MP num clique só.',
     img: 'polen-06-doze-mp.jpg',
     alt: 'Foto feita com a Polen: a curva do Museu de Arte Contemporânea de Niterói contra o céu',
   },
   {
     n: 7,
     tit: 'Cartão de 4 GB para até 1000 fotos',
+    // 14/08: sai da nota do produto ("Cabo USB-C e cartão SD inclusos") e do
+    // FAQ ("o cartão de 4 GB que vem incluso"). "Não precisa comprar nada à
+    // parte" é consequência do que já está incluso, não promessa nova.
+    txt: 'O cartão já vem na caixa, junto com o cabo. Não precisa comprar nada à parte para começar.',
     img: 'polen-07-cartao.jpg',
     alt: 'O cartão MicroSD de 4 GB que acompanha a Polen',
   },
@@ -393,7 +414,7 @@ function passo(c) {
   return `
     <div class="mel-story-passo" data-mel-story-step data-story-index="${c.n - 1}"
          data-lado="${lado(c.n) === 'esq' ? 'dir' : 'esq'}" style="--linha:${c.n}">
-      <p class="mel-story-num" aria-hidden="true">${dd(c.n)}</p>
+      <p class="mel-story-num" aria-hidden="true"><span class="mel-polen-story-etiq">${dd(c.n)}</span></p>
       <h3 class="mel-story-tit">${c.tit}</h3>${c.txt ? `
       <p class="mel-story-txt">${c.txt}</p>` : ''}
     </div>`;
@@ -410,6 +431,19 @@ function diferencial() {
   return `
 <section class="mel-sec mel-story" id="diferencial" data-mel="polen-story"
          aria-labelledby="mel-dif-tit">
+  <!-- AMBIENTAÇÃO — 14/08/2026. Cinco camadas absolutas, todas decorativas:
+       nenhuma participa da grade, nenhuma recebe evento e nenhuma tem tamanho
+       que dependa de conteúdo, então a geometria da seção é exatamente a mesma
+       de antes. O CSS mora em tools/polen-interacoes.js, css(); quem move é
+       iniciarScrollytellingPolen(). -->
+  <div class="mel-story-fundo" data-mel-story-fundo aria-hidden="true">
+    <div class="mel-story-luz" data-mel-story-luz></div>
+    <div class="mel-story-forma" data-mel-story-forma data-plano="1"></div>
+    <div class="mel-story-forma" data-mel-story-forma data-plano="2"></div>
+    <div class="mel-story-forma" data-mel-story-forma data-plano="3"></div>
+    <div class="mel-story-grao"></div>
+  </div>
+
   <div class="mel-sec-topo">
     <p class="mel-eyebrow">o diferencial</p>
     <h2 id="mel-dif-tit" class="mel-tit">Analógica por fora, digital por dentro</h2>
@@ -520,7 +554,7 @@ function ctaFinal() {
 }
 
 module.exports = {
-  hero, produto, beneficios, galeria, filtros,
+  hero, produto, beneficios, galeria,
   diferencial, faq, ctaFinal,
   conteudo() {
     // hero() e produto() substituíram abertura() e modelos() em 13/08/2026.
@@ -528,6 +562,6 @@ module.exports = {
     // Agora quem fecha é o CTA final, que é o passo certo numa página de
     // produto: o último bloco convida a comprar, não a entrar num clube.
     return hero() + produto() + beneficios() + galeria()
-      + filtros() + diferencial() + faq() + ctaFinal();
+      + diferencial() + faq() + ctaFinal();
   },
 };

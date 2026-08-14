@@ -43,15 +43,63 @@ function comunidade() {
 }
 
 // ------------------------------------------------------------------ clipes
+//
+// 🔴 OS CLIPES CONTINUAM NÃO EXISTINDO — 14/08/2026.
+// Não há MP4, MOV nem WebM no material local, e o briefing proíbe vídeo de
+// banco. O que mudou é só o que ocupa o lugar deles: saiu o `a-decidir.svg` e
+// entraram três FOTOS do mesmo ensaio, como pôster provisório. Elas reservam o
+// espaço e a proporção com alguma vida em vez de um retângulo tracejado.
+//
+// Nada aqui finge ser vídeo, e essa é a regra: não existe <video>, não existe
+// botão de play, não existe barra de progresso. O estado provisório é dito por
+// escrito, uma vez, na etiqueta discreta do rodapé do card — "Clipe em
+// produção" — e a nota ao pé da seção explica o que ainda falta gravar.
+//
+// O RECORTE É HORIZONTAL, E ISSO DECIDE O `object-position`.
+// As três fotos são 1600x2400 (2:3 = 0,667) e o card é 9:16 (0,563). Com
+// `cover`, o navegador escala pela ALTURA e sobra largura: no desktop o card
+// tem 451x801 e a foto escalada fica com 534 de largura, ou seja 15,6% da
+// largura é cortada — 7,8% de cada lado com o padrão de 50%. Não há corte
+// vertical nenhum, então o segundo valor do `object-position` é inerte aqui;
+// fica declarado por clareza e para o dia em que a proporção do card mudar.
+// Quem carrega o valor é a variável `--mel-foco`, no próprio <img>: o dado é de
+// cada foto, mas a declaração continua uma só, na folha.
+const CLIPES = [
+  {
+    // Camera e mãos no centro do quadro (o corpo da Bee vai de 39% a 67% da
+    // largura). 50% mantém as duas mãos inteiras e o recorte simétrico.
+    src: '/melcam/img/header-fileira/bee-lp-0689.jpg',
+    foco: '50% 50%',
+    alt: 'Duas mãos seguram a Bee amarela na altura do rosto; na telinha aparece, sorrindo, a pessoa que está sendo fotografada.',
+  },
+  {
+    // As duas câmeras penduradas ficam em 35% e 66%, e o par se centra em 51%.
+    // O punho da esquerda encosta na borda e o antebraço da direita também, então
+    // 50% é o único valor que não sacrifica um em favor do outro.
+    src: '/melcam/img/header-fileira/bee-lp-1171.jpg',
+    foco: '50% 50%',
+    alt: 'Duas mãos suspendem pela correntinha duas câmeras Bee, uma amarela e uma com as cores da bandeira do Brasil, com o Pão de Açúcar e o mar ao fundo.',
+  },
+  {
+    // A câmera presa à passante está em 67% da largura da foto, bem à direita
+    // do centro. Subir o valor para 62% faz a janela comer mais da esquerda, e
+    // com isso a câmera anda para dentro do quadro: cai em 68% da largura do
+    // card em vez de 70%, na linha do terço da direita. A janela passa a
+    // começar em 9,7% da foto, então a mão apoiada no bolso, que começa em 15%,
+    // continua inteira.
+    src: '/melcam/img/header-fileira/bee-lp-0761.jpg',
+    foco: '62% 50%',
+    alt: 'A Bee amarela presa por mosquetão à passante de uma calça jeans, na altura do quadril, dentro de uma livraria.',
+  },
+];
+
 function clipes() {
-  // Os clipes não existem ainda. O briefing proíbe vídeo de banco, então o
-  // espaço e a proporção ficam reservados com o placeholder declarado.
-  const n = 3;
-  const cards = Array.from({ length: n }, (_, i) => `
+  const cards = CLIPES.map((c) => `
       <li class="mel-clipe">
         <div class="mel-clipe-box">
-          <img src="/melcam/img/a-decidir.svg" alt="Clipe ${i + 1}: vídeo a decidir">
-          <span class="mel-clipe-spec">1080 × 1920 · 8 a 20 s</span>
+          <img src="${c.src}" alt="${c.alt}" style="--mel-foco:${c.foco}"
+               width="1600" height="2400" loading="lazy" decoding="async">
+          <span class="mel-clipe-spec">Clipe em produção</span>
         </div>
       </li>`).join('');
 
@@ -63,9 +111,10 @@ function clipes() {
   </div>
   <ul class="mel-clipes-grade">${cards}
   </ul>
-  <p class="mel-nota">${n} clipes verticais <strong>a decidir</strong>.
-     MP4 ou WebM, 1080 × 1920, 8 a 20 s, sem texto essencial embutido, com poster
-     1080 × 1920 para cada.</p>
+  <p class="mel-nota">As imagens acima são fotos do ensaio, no lugar dos
+     ${CLIPES.length} clipes verticais — que ainda <strong>não foram
+     gravados</strong>. Cada um deles precisa entregar MP4 ou WebM, 1080 × 1920,
+     8 a 20 s, sem texto essencial embutido.</p>
 </section>`;
 }
 
@@ -136,16 +185,34 @@ function css() {
   list-style:none; margin:0; padding:0; display:grid; gap:20px;
   grid-template-columns:repeat(3,1fr);
 }
+/* A BORDA TRACEJADA EM MEL SAIU JUNTO COM O PLACEHOLDER — 14/08/2026.
+   Ela era a moldura do "a decidir": tracejado diz caixa vazia, e sobre um
+   retangulo cinza dizia a verdade. Sobre uma foto de verdade passaria a dizer
+   outra coisa — erro de carregamento, recorte provisorio, algo quebrado. O
+   estado provisorio agora esta escrito na etiqueta, que e onde ele se le sem
+   ambiguidade. Fica um fio da mesma familia da barra de seguranca, so para
+   assentar a foto no fundo carvao. */
 .mel-clipe-box{
   position:relative; border-radius:4px; overflow:hidden;
   aspect-ratio:9/16; background:${P.carvao};
-  border:1px dashed rgba(242,169,0,.42);
+  border:1px solid rgba(251,247,238,.07);
 }
-.mel-clipe-box img{ width:100%; height:100%; object-fit:contain; display:block }
+/* cover, nao contain: com contain sobrava fundo em cima e embaixo, que era o
+   desenho certo para um SVG de placeholder e o errado para uma foto. O foco de
+   cada uma vem do proprio <img>, em --mel-foco (ver CLIPES em comunidade.js). */
+.mel-clipe-box img{
+  width:100%; height:100%; display:block;
+  object-fit:cover; object-position:var(--mel-foco,50% 50%);
+}
+/* A etiqueta agora cai SOBRE FOTO, entao precisa de veu: #9A9083 solto em cima
+   de jeans claro ou de ceu nao se le. O gradiente morre antes da metade do
+   card para nao virar tarja. */
 .mel-clipe-spec{
-  position:absolute; inset:auto 0 0 0; padding:.6rem;
-  text-align:center; color:#9A9083;
+  position:absolute; inset:auto 0 0 0; padding:1.7rem .6rem .7rem;
+  text-align:center; color:rgba(251,247,238,.88);
+  background:linear-gradient(to top,rgba(34,30,23,.88) 0%,rgba(34,30,23,.58) 52%,rgba(34,30,23,0) 100%);
   font-family:"Area",sans-serif; font-size:.7rem; letter-spacing:.05em;
+  pointer-events:none;
 }
 
 /* --- barra de segurança --- */
@@ -223,4 +290,9 @@ function aplicar(walk) {
   return { n, fotos: fotosComunidade().length };
 }
 
-module.exports = { aplicar };
+// `clipes` e `css` saem exportados para dar para SINCRONIZAR o build sem rodar
+// o `aplicar`, que só sabe INSERIR — rodá-lo de novo duplicaria as três seções
+// no index.html e a folha inteira em identidade.css. Com o gerador na mão, a
+// sincronia deixa de ser cópia manual e vira comparação: o trecho do
+// index.html tem de bater byte a byte com o que `clipes()` devolve.
+module.exports = { aplicar, clipes, css };
