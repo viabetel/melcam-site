@@ -832,6 +832,129 @@
       return;
     }
 
+    /* ---- RODIZIO CONTINUO — 14/08/2026, a pedido ------------------------
+       Antes, a fileira so andava se a pagina rolasse: os -1000px do arrasto
+       sao amarrados ao progresso do documento, entao parar de rolar
+       congelava tudo. O pedido foi "em rotacao", ou seja, ela nao para.
+
+       COMO O LACO FECHA SEM COSTURA. A sequencia de 10 cartoes mede 2580px
+       de layout (10 x 240 + 9 x 20 de gap) e o container e flex com
+       width:max-content. Duplicando a sequencia uma vez, o cartao i da copia
+       nasce exatamente 2600px a direita do original — a sequencia mais um
+       gap. Entao basta deslizar e voltar ao zero a cada 2600px: o quadro que
+       sai pela esquerda e identico ao que entra pela direita, e nao existe
+       salto para disfarcar.
+
+       As copias sao decoracao: levam aria-hidden e saem do Tab. Quem le por
+       leitor de tela ouve as 10 fotos uma vez, nao vinte.
+
+       O RODIZIO SOMA COM O ARRASTO, NAO O SUBSTITUI. O -1000px medido do
+       template continua valendo e continua ligado ao scroll; o laco entra
+       como uma parcela a mais no mesmo translate. Rolar acelera, parar
+       nao congela — que era o pedido. */
+    var VEL_RODIZIO = 26;      // px de layout por segundo. Ritmo de leitura.
+    var larguraSequencia = el.offsetWidth;   // MEDIR ANTES de duplicar
+    var periodoLaco = 0;
+    var xLaco = 0;
+
+    /* ---- QUAL CAMERA FEZ CADA FOTO — 14/08/2026 -------------------------
+       O pedido: passando o mouse, o cliente ve a camera daquela foto e tem
+       para onde ir. Duas frases diferentes, porque as fotos sao de dois tipos
+       e dizer "feita com" numa foto DA camera seria mentira:
+
+         feita   — foto de uso, tirada com a camera
+         naFoto  — foto do produto, onde a camera e o assunto
+
+       A ordem e a mesma da fileira. Se um slot mudar de foto, a linha
+       correspondente muda aqui — e tools/fotos-fileira.js e quem mexe nos
+       slots. */
+    var CAMERAS = [
+      { linha: 'Bee',   cor: 'Amarela', tipo: 'naFoto', href: '/bee' },
+      { linha: 'Polen', cor: 'Preta',   tipo: 'naFoto', href: '/polen' },
+      { linha: 'Bee',   cor: 'Branca',  tipo: 'feita',  href: '/bee' },
+      { linha: 'Polen', cor: 'Marrom',  tipo: 'naFoto', href: '/polen' },
+      { linha: 'Bee',   cor: 'Amarela', tipo: 'feita',  href: '/bee' },
+      { linha: 'Polen', cor: 'Amarela', tipo: 'naFoto', href: '/polen' },
+      { linha: 'Bee',   cor: 'Branca',  tipo: 'naFoto', href: '/bee' },
+      { linha: 'Polen', cor: 'Rosa',    tipo: 'feita',  href: '/polen' },
+      { linha: 'Bee',   cor: 'Amarela', tipo: 'naFoto', href: '/bee' },
+      { linha: 'Polen', cor: 'Verde',   tipo: 'feita',  href: '/polen' }
+    ];
+
+    /* Diafragma. E o mesmo desenho de lente que a marca usa, e serve de pista
+       em repouso: um selo pequeno no canto diz que ali tem algo a ver. Sem
+       ele o hover so seria descoberto por acidente. */
+    var SVG_LENTE = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+      + '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>'
+      + '<circle cx="12" cy="12" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/>'
+      + '<path d="M12 3v5.6M21 12h-5.6M12 21v-5.6M3 12h5.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'
+      + '</svg>';
+
+    function marcarCartoes() {
+      var cartoes = Array.prototype.slice.call(el.children);
+      cartoes.forEach(function (envolt, i) {
+        var cartao = envolt.firstElementChild;
+        if (!cartao || cartao.querySelector('[data-mel-cam]')) return;
+        var c = CAMERAS[i % CAMERAS.length];
+        if (!c) return;
+        var nome = c.linha + ' ' + c.cor;
+        var frase = c.tipo === 'feita' ? 'Feita com a' : 'Nesta foto';
+
+        /* O <a> cobre o cartao inteiro: quem passa o mouse na foto ja esta no
+           alvo, e quem navega por teclado alcanca com um Tab so. O texto do
+           aria-label diz tudo de uma vez, porque o painel visual aparece por
+           hover e leitor de tela nao tem hover. */
+        var a = document.createElement('a');
+        a.className = 'mel-cam';
+        a.href = c.href;
+        a.setAttribute('data-mel-cam', '');
+        a.setAttribute('aria-label', frase + ' ' + nome + '. Ver mais.');
+        a.innerHTML =
+          '<span class="mel-cam-selo" aria-hidden="true">' + SVG_LENTE + '</span>'
+          + '<span class="mel-cam-painel" aria-hidden="true">'
+          +   '<span class="mel-cam-frase">' + frase + '</span>'
+          +   '<span class="mel-cam-nome">' + nome + '</span>'
+          +   '<span class="mel-cam-mais">Ver mais</span>'
+          + '</span>';
+        cartao.appendChild(a);
+      });
+    }
+
+    /* DUAS COPIAS, NAO UMA — e o motivo e geometrico, medido depois de a
+       primeira versao falhar em tela.
+
+       Com uma copia so, a fileira tinha 2 periodos (~5930px). O pai centraliza
+       o grupo, entao a borda esquerda ja nasce em (janela - total) / 2, que em
+       1440 e -2246. Somando o arrasto do scroll e a volta do laco, a ponta
+       DIREITA subia para dentro da janela: sobrava carvao vazio a direita e a
+       fileira aparecia com tres cartoes e um buraco. Foi o que a captura pegou.
+
+       Com duas copias sao 3 periodos (~8910px) e a conta fecha com folga em
+       qualquer ponto do laco. O par disto e a dobra do x em pintar(): como o
+       conteudo se repete a cada periodo, dobrar o deslocamento total para
+       dentro de (-periodo, 0] mostra exatamente a mesma imagem e garante que a
+       janela nunca alcance nenhuma das duas pontas. */
+    var COPIAS = 2;
+
+    function duplicarSequencia() {
+      if (el.querySelector('[data-mel-clone]')) return;
+      var originais = Array.prototype.slice.call(el.children);
+      if (!originais.length) return;
+      var gap = parseFloat(getComputedStyle(el).gap) || 0;
+      periodoLaco = larguraSequencia + gap;
+      for (var k = 0; k < COPIAS; k++) {
+        originais.forEach(function (n) {
+          var c = n.cloneNode(true);
+          c.setAttribute('data-mel-clone', '');
+          c.setAttribute('aria-hidden', 'true');
+          Array.prototype.forEach.call(c.querySelectorAll('a,button,[tabindex]'), function (f) {
+            f.setAttribute('tabindex', '-1');
+          });
+          el.appendChild(c);
+        });
+      }
+    }
+
     var topo = 0;
     function medirTopo() {
       var n = el, y = 0;
@@ -872,10 +995,28 @@
            borda de baixo e 1 quando a base sai por cima. */
         var q = d / (vh + (el.offsetHeight || 1));
         if (q < 0) q = 0; else if (q > 1) q = 1;
-        var transbordo = el.offsetWidth - larguraJanela;
+        /* larguraSequencia, NAO el.offsetWidth: a duplicacao do rodizio dobrou
+           o offsetWidth, e usar o valor novo dobraria o arrasto do desfile —
+           justamente a curva que foi medida e aprovada em 13/08. O desfile
+           continua percorrendo o transbordo de UMA sequencia. */
+        var transbordo = larguraSequencia - larguraJanela;
         x = transbordo > 0 ? -transbordo * q : 0;
       } else {
         x = -FILEIRA_X_TOTAL * p;
+      }
+      /* O rodizio entra como parcela do MESMO translate. Somar aqui, e nao
+         escrever um segundo transform, e o que impede os dois de se
+         atropelarem: quem manda na string continua sendo esta funcao. */
+      x += xLaco;
+
+      /* DOBRA. O conteudo se repete a cada periodo, entao x e x + periodo
+         desenham a mesma coisa. Trazer o total para dentro de (-periodo, 0]
+         mantem a janela sempre no miolo das tres sequencias — e o que impede
+         a ponta de aparecer. Sem isto, o arrasto do scroll somado ao laco
+         levava a fileira para fora e sobrava vazio na direita. */
+      if (periodoLaco > 0) {
+        x = x % periodoLaco;
+        if (x > 0) x -= periodoLaco;
       }
 
       /* A ordem importa: as funcoes se aplicam da direita para a esquerda,
@@ -894,13 +1035,213 @@
       requestAnimationFrame(pintar);
     }
 
+    /* ---- o relogio do rodizio ----
+       Tres travas, e cada uma existe por um motivo:
+
+       1. NA TELA. Um rAF permanente girando com a fileira fora de vista e
+          bateria queimada a troco de nada. O IntersectionObserver liga e
+          desliga o relogio.
+       2. ABA VISIVEL. O navegador ja congela o rAF em aba escondida, mas ao
+          voltar o delta viria gigante e a fileira daria um salto. Zerar a
+          referencia de tempo na volta evita o pulo.
+       3. MOUSE EM CIMA. Nao se persegue alvo em movimento: com o ponteiro
+          sobre a fileira, ela para. E o que torna o giro do cartao clicavel.
+
+       O tempo entra por delta medido, nao por contagem de quadros: assim a
+       velocidade e a mesma em 60Hz e em 120Hz. */
+    var ligado = false, ultimo = 0, parado = false;
+
+    /* O laco so pode viver numa volta: a fileira tem DUAS sequencias, entao
+       xLaco fora de (-periodo, 0] mostraria vazio. Tudo que mexe no x — laco,
+       arrasto, roda, setas — passa por aqui. */
+    function normalizar() {
+      if (!(periodoLaco > 0)) return;
+      while (xLaco <= -periodoLaco) xLaco += periodoLaco;
+      while (xLaco > 0) xLaco -= periodoLaco;
+    }
+
+    /* Avanco por seta: um cartao mais um vao, com a mesma curva de 520ms que o
+       carrossel de banners usa. Sem isso o clique teleporta e a pessoa perde a
+       referencia de onde estava. */
+    var TWEEN_MS = 520;
+    var tween = null;
+    function avancar(passos) {
+      var envolt = el.children[0];
+      var cartao = envolt && envolt.firstElementChild;
+      var gap = parseFloat(getComputedStyle(el).gap) || 0;
+      var salto = ((cartao ? cartao.offsetWidth : 260) + gap) * passos;
+      normalizar();
+      tween = { de: xLaco, para: xLaco - salto, t0: performance.now() };
+    }
+
+    function passo(agora) {
+      if (!ligado) return;
+      var dt = ultimo ? (agora - ultimo) / 1000 : 0;
+      ultimo = agora;
+      /* Um quadro perdido (aba voltando, GC) nao pode virar um salto. */
+      if (dt > 0.1) dt = 0.1;
+
+      if (tween) {
+        var u = (agora - tween.t0) / TWEEN_MS;
+        if (u >= 1) { xLaco = tween.para; tween = null; normalizar(); }
+        else {
+          var f = 1 - Math.pow(1 - u, 3);   // desacelera no fim
+          xLaco = tween.de + (tween.para - tween.de) * f;
+        }
+      } else if (!parado && periodoLaco > 0) {
+        xLaco -= VEL_RODIZIO * dt;
+        normalizar();
+      }
+      pintar();
+      requestAnimationFrame(passo);
+    }
+
+    /* ---- controle manual ----
+       Tres formas, e todas escrevem no mesmo xLaco:
+
+       ARRASTAR  — pegar e puxar. E o gesto mais direto e funciona no toque.
+       RODA      — so o eixo HORIZONTAL (deltaX do trackpad, ou Shift+roda).
+                   🔴 A roda vertical NAO e sequestrada de proposito: a fileira
+                   e um laco infinito, entao capturar deltaY prenderia a pagina
+                   — a pessoa rolaria para sempre sem passar da secao.
+       SETAS     — um cartao por clique, nos dois sentidos. */
+    var arrastando = false, xInicial = 0, lacoInicial = 0, arrastou = 0;
+
+    el.addEventListener('pointerdown', function (e) {
+      if (e.button !== undefined && e.button !== 0) return;
+      arrastando = true; arrastou = 0;
+      xInicial = e.clientX; lacoInicial = xLaco;
+      tween = null;
+      el.setPointerCapture && el.setPointerCapture(e.pointerId);
+    });
+    el.addEventListener('pointermove', function (e) {
+      if (!arrastando) return;
+      var d = e.clientX - xInicial;
+      arrastou = Math.abs(d);
+      xLaco = lacoInicial + d;
+      normalizar();
+      pintar();
+    });
+    function soltar(e) {
+      if (!arrastando) return;
+      arrastando = false;
+      try { el.releasePointerCapture && el.releasePointerCapture(e.pointerId); } catch (err) { /* já solto */ }
+    }
+    el.addEventListener('pointerup', soltar);
+    el.addEventListener('pointercancel', soltar);
+    /* Depois de arrastar, o ponteiro sobe em cima de um cartao e o navegador
+       dispara o clique do <a>. Sem isto, todo arrasto terminava navegando. */
+    el.addEventListener('click', function (e) {
+      if (arrastou > 6) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
+
+    el.addEventListener('wheel', function (e) {
+      var dx = e.deltaX;
+      if (!dx && e.shiftKey) dx = e.deltaY;
+      if (!dx) return;
+      e.preventDefault();
+      tween = null;
+      xLaco -= dx;
+      normalizar();
+      pintar();
+    }, { passive: false });
+
+    /* ---- as setas ----
+       Ficam no PAI da fileira, nao dentro dela: a fileira tem overflow:hidden
+       e vive escalada e transladada pelo scroll, entao um filho ancorado nela
+       seria recortado e andaria junto. No pai elas ficam paradas, por cima.
+
+       A altura e calculada, nao chutada: a fileira nao ocupa o pai inteiro (o
+       titulo esta ali em cima), e o topo dela e lido pela MESMA soma de
+       offsetTop que medirTopo usa — rect nao serve, porque ja vem com o
+       transform que estamos calculando. */
+    function posicaoDoc(n) { var y = 0; while (n) { y += n.offsetTop; n = n.offsetParent; } return y; }
+
+    function montarSetas() {
+      var pai = el.parentElement;
+      if (!pai || pai.querySelector('[data-mel-fil-seta]')) return;
+      if (getComputedStyle(pai).position === 'static') pai.style.position = 'relative';
+
+      [['ant', -1, 'Ver fotos anteriores', 'M15 4 L7 12 L15 20'],
+       ['prox', 1, 'Ver próximas fotos', 'M9 4 L17 12 L9 20']].forEach(function (s) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'mel-fil-seta mel-fil-seta-' + s[0];
+        b.setAttribute('data-mel-fil-seta', '');
+        b.setAttribute('aria-label', s[2]);
+        b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + s[3]
+          + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        b.addEventListener('click', function () { avancar(s[1]); });
+        pai.appendChild(b);
+      });
+      alinharSetas();
+    }
+
+    function alinharSetas() {
+      var pai = el.parentElement;
+      if (!pai) return;
+      var meio = posicaoDoc(el) - posicaoDoc(pai) + el.offsetHeight / 2;
+      pai.style.setProperty('--mel-fil-meio', Math.round(meio) + 'px');
+    }
+    function ligar() {
+      if (ligado) return;
+      ligado = true; ultimo = 0;
+      requestAnimationFrame(passo);
+    }
+    function desligar() { ligado = false; }
+
+    /* ORDEM: marcar ANTES de duplicar. As copias saem de cloneNode(true),
+       entao ja nascem com o painel dentro — e quem passa o mouse numa copia ve
+       a mesma coisa. Marcar depois deixaria metade da fileira muda. */
+    marcarCartoes();
+    duplicarSequencia();
+    remedirSequencia();
+    montarSetas();
     medirTopo();
     pintar();
     window.addEventListener('scroll', agendar, { passive: true });
-    window.addEventListener('resize', function () { medirTopo(); agendar(); }, { passive: true });
+    /* A largura da sequencia muda com o breakpoint: o template troca as
+       variantes do cartao, e em 390px a fileira mede 2993 contra 2580 no
+       desktop. Como ela e a base do desfile do mobile, remedir no resize e
+       obrigatorio.
+
+       🔴 NAO SOMAR offsetWidth DOS FILHOS. Os dez filhos diretos sao
+       div.ssr-variant com display:contents — elementos SEM CAIXA, cujo
+       offsetWidth e 0. A primeira versao desta funcao somava exatamente isso
+       e devolvia 180, que sao so os nove gaps; o desfile do mobile passaria a
+       percorrer 180px em vez de 2603. O bug nao aparecia na carga (ali o
+       valor vem de el.offsetWidth antes de duplicar) — so no primeiro resize,
+       e foi a medicao que pegou.
+
+       A conta certa sai do proprio total: duplicamos UMA vez, entao
+       total = sequencia + gap + sequencia. */
+    function remedirSequencia() {
+      var gap = parseFloat(getComputedStyle(el).gap) || 0;
+      var total = el.offsetWidth;
+      var n = el.querySelector('[data-mel-clone]') ? COPIAS + 1 : 1;
+      larguraSequencia = (total - gap * (n - 1)) / n;
+      periodoLaco = larguraSequencia + gap;
+    }
+    window.addEventListener('resize', function () {
+      remedirSequencia();
+      alinharSetas();
+      medirTopo(); agendar();
+    }, { passive: true });
     /* As fotos entram depois e empurram o layout: sem remedir, o topo fica
        velho e a curva dispara na hora errada. */
-    window.addEventListener('load', function () { medirTopo(); pintar(); });
+    window.addEventListener('load', function () { medirTopo(); alinharSetas(); pintar(); });
+
+    el.addEventListener('pointerenter', function () { parado = true; });
+    el.addEventListener('pointerleave', function () { parado = false; });
+    document.addEventListener('visibilitychange', function () { ultimo = 0; });
+
+    if (window.IntersectionObserver) {
+      new IntersectionObserver(function (ents) {
+        ents[0] && ents[0].isIntersecting ? ligar() : desligar();
+      }, { rootMargin: '200px 0px' }).observe(el);
+    } else {
+      ligar();
+    }
   }
 
 
@@ -1059,6 +1400,56 @@
          em qualquer largura — que é onde o controle de conta tem de estar. */
       var linha = slot.parentElement || slot;
       if (linha.querySelector('[data-mel-perfil]')) return;
+
+      /* ---- os quatro destinos, à vista ----
+         Entram DENTRO do "Meniu", que é o bloco do hambúrguer e já é a coluna
+         da esquerda. Pendurá-los direto na linha criaria um quarto filho e
+         quebraria a grade de três colunas que centra o logo. A visibilidade é
+         só do CSS: em telas estreitas eles ficam no DOM, escondidos, e o
+         hambúrguer segue mandando. O menu do hambúrguer continua com os cinco
+         itens, Home inclusive — aqui em cima Home é o próprio logo. */
+      var meniu = linha.querySelector('[data-framer-name="Meniu"]') || linha;
+      if (!meniu.querySelector('.mel-nav-links')) {
+        var destinos = [
+          { t: 'Polen', h: '/polen' },
+          { t: 'Bee', h: '/bee' },
+          { t: 'Acessórios', h: '/acessorios' },
+          { t: 'Sobre', h: '/sobre' }
+        ];
+        var grupo = document.createElement('div');
+        grupo.className = 'mel-nav-links';
+        var aqui = location.pathname.replace(/\/$/, '') || '/';
+        destinos.forEach(function (d) {
+          var a = document.createElement('a');
+          a.className = 'mel-nav-link';
+          a.href = d.h;
+          a.textContent = d.t;
+          if (aqui === d.h) a.setAttribute('aria-current', 'page');
+          grupo.appendChild(a);
+        });
+        meniu.appendChild(grupo);
+      }
+
+      /* ---- as ações da direita, num grupo só ----
+         Sacola e conta viajam juntas dentro de .mel-nav-acoes: é ela que ocupa
+         a terceira coluna da grade. Sem o grupo, os dois botões seriam dois
+         filhos da linha e a grade perderia a conta das colunas. */
+      var acoes = document.createElement('div');
+      acoes.className = 'mel-nav-acoes';
+
+      /* A sacola é <a>, não <button>: leva para /sacola, então é navegação.
+         O selo dela é o MESMO data-mel-contador-selo que pintarSelo() já
+         procura — a contagem não é duplicada, só passa a aparecer em dois
+         lugares. O número segue escrito por extenso no aria-label, porque uma
+         bolinha colorida não é informação para quem não a enxerga. */
+      var sac = document.createElement('a');
+      sac.className = 'mel-perfil-bt mel-sacola-bt';
+      sac.href = '/sacola';
+      sac.setAttribute('data-mel-sacola-bt', '');
+      sac.innerHTML = perfilSvg('sacola', 24)
+        + '<span class="mel-perfil-selo" data-mel-contador-selo aria-hidden="true">0</span>';
+      acoes.appendChild(sac);
+
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'mel-perfil-bt';
@@ -1067,7 +1458,9 @@
       b.setAttribute('aria-expanded', 'false');
       b.innerHTML = perfilSvg('usuario', 24)
         + '<span class="mel-perfil-selo" data-mel-contador-selo aria-hidden="true">0</span>';
-      linha.appendChild(b);
+      acoes.appendChild(b);
+
+      linha.appendChild(acoes);
       botoes.push(b);
 
       /* O SLOT VAZIO AINDA EMPURRAVA O BOTÃO PARA FORA EM 320px.
@@ -1115,6 +1508,14 @@
         if (n > 0) s.setAttribute('data-tem', ''); else s.removeAttribute('data-tem');
       });
       botoes.forEach(function (b) { b.setAttribute('aria-label', rotuloBotao(n)); });
+      /* O selo da sacola é uma bolinha colorida com um número dentro: para quem
+         usa leitor de tela ele é decoração (aria-hidden), então a contagem tem
+         de estar escrita no nome do link, e por extenso. */
+      document.querySelectorAll('[data-mel-sacola-bt]').forEach(function (s) {
+        s.setAttribute('aria-label', n
+          ? 'Sacola, ' + n + ' ' + (n === 1 ? 'item' : 'itens')
+          : 'Sacola, vazia');
+      });
       var item = painel && painel.querySelector('[data-mel-perfil-conta]');
       if (item) item.textContent = n ? String(n) : '';
     }
@@ -1938,9 +2339,61 @@
   }
 
 
+  /* ====== Sobre Nós: a faixa que abre em obturador ======
+     O desenho todo mora no CSS (ver "SOBRE NOS: a faixa em obturador" em
+     identidade.css). Aqui e so o estado: um atributo no palco e o rotulo do
+     botao. Sem JS a faixa fica fechada e legivel — titulo, linha e o link para
+     /sobre continuam no DOM —, entao nada de conteudo depende deste script. */
+  function iniciarSobre() {
+    var palco = document.querySelector('[data-mel-sobre-palco]');
+    if (!palco) return;
+    var bt = palco.querySelector('[data-mel-sobre-bt]');
+    var rot = palco.querySelector('[data-mel-sobre-rot]');
+    if (!bt) return;
+
+    function pintar(aberto) {
+      if (aberto) palco.setAttribute('data-aberto', ''); else palco.removeAttribute('data-aberto');
+      bt.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+      if (rot) rot.textContent = aberto ? 'Fechar' : 'Abrir';
+    }
+
+    var manual = false;
+
+    bt.addEventListener('click', function () {
+      manual = true;
+      pintar(!palco.hasAttribute('data-aberto'));
+    });
+
+    /* O OBTURADOR DISPARA SOZINHO QUANDO A FAIXA CHEGA.
+       Como accordion parado ela era só um retângulo com um botão: o efeito
+       existia, mas ninguém via sem clicar. Numa marca de câmera o gesto certo é
+       o contrário — a exposição acontece quando o assunto entra no quadro.
+
+       O clique continua mandando: a partir do primeiro toque no botão a
+       abertura vira decisão da pessoa e o observador para de opinar. Sem isso,
+       fechar a faixa e rolar de leve a reabriria na cara de quem acabou de
+       fechá-la. */
+    if (window.IntersectionObserver) {
+      var obs = new IntersectionObserver(function (ents) {
+        if (manual) { obs.disconnect(); return; }
+        pintar(ents[0] && ents[0].isIntersecting);
+      }, { threshold: 0.55 });
+      obs.observe(palco);
+    }
+
+    /* Escape fecha, como o menu e o painel de conta ja fazem. */
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && palco.hasAttribute('data-aberto')) {
+        pintar(false);
+        bt.focus();
+      }
+    });
+  }
+
   function iniciar() {
     document.querySelectorAll('[data-mel="carrossel"]').forEach(iniciarCarrossel);
     iniciarFileira();
+    iniciarSobre();
     /* Só fazem algo em /polen: os alvos data-mel="polen-*" não existem em
        nenhuma outra página, então saem no primeiro if. */
     iniciarHeroPolen();

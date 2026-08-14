@@ -118,6 +118,86 @@ nav [data-framer-name="Section Icon"]:has(.mel-perfil-bt){ overflow:visible }
 }
 .mel-perfil-selo[data-tem]{ display:flex }
 
+/* ---- navegação visível na barra — 14/08/2026 ----
+   Medido antes: em 1280px a barra mostrava DOIS controles (o logo e a conta) e
+   ZERO links. Os cinco destinos existiam e funcionavam, mas só depois de
+   clicar no hambúrguer — no desktop inteiro. A referência do cliente (REF MENU
+   SUPERIOR, a Zerezes) traz sete links à vista. Isto fecha essa distância.
+
+   🔴 A LINHA VIRA GRADE, E NÃO É PREFERÊNCIA.
+   Ela é flex com space-between e três filhos. Acrescentar os links à esquerda
+   empurraria o logo para a direita — com space-between, o filho do meio só cai
+   no centro quando os dois das pontas têm a MESMA largura. Medido: o logo já
+   nasce 10px fora do centro hoje, exatamente metade da diferença entre o
+   hambúrguer (64) e o botão de conta (44). Com 375px de links de um lado só, o
+   desvio viraria ~190px. A grade 1fr auto 1fr ancora o logo no centro
+   independentemente do que cresce dos lados, e por isso as colunas são
+   declaradas uma a uma: assim nenhum filho novo do template entra de penetra
+   na conta e desloca tudo.
+
+   O limiar de 1024px veio de medição, não de costume: os quatro rótulos
+   ocupam 223px de texto e 375px com padding e vão. Com o logo de 178px fixo,
+   a grade simétrica pede 375+178+375 = 928px de linha útil, e a linha é a
+   viewport menos ~63px. O piso real é 991px; 1024 é o degrau redondo acima
+   dele, com folga. */
+.mel-nav-links{ display:none }
+.mel-nav-acoes{ display:inline-flex; align-items:center; gap:2px; flex:0 0 auto }
+
+.mel-nav-link{
+  display:inline-flex; align-items:center; height:36px; margin-block:-5px;
+  padding:0 14px; border-radius:999px;
+  text-decoration:none; white-space:nowrap; color:${P.papel};
+  font-family:"Area",sans-serif; font-size:.85rem; font-weight:600; letter-spacing:.02em;
+  transition:color 200ms ease, background 200ms ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.mel-nav-link:hover,.mel-nav-link:focus-visible{ background:rgba(251,247,238,.10); color:${P.mel} }
+/* A página atual não se distingue só por cor: leva aria-current, que o leitor
+   de tela anuncia, e o peso muda junto. Cor sozinha reprova. */
+.mel-nav-link[aria-current="page"]{ color:${P.mel}; font-weight:700 }
+
+@media (min-width:1024px){
+  nav [data-framer-name="Section "]:has(.mel-nav-links){
+    display:grid; grid-template-columns:1fr auto 1fr; align-items:center;
+  }
+  nav [data-framer-name="Section "]:has(.mel-nav-links) > [data-framer-name="Meniu"]{
+    grid-column:1; justify-self:start;
+  }
+  nav [data-framer-name="Section "]:has(.mel-nav-links) > a[data-framer-name="MELCAM"]{
+    grid-column:2; justify-self:center;
+  }
+  nav [data-framer-name="Section "]:has(.mel-nav-links) > .mel-nav-acoes{
+    grid-column:3; justify-self:end;
+  }
+  /* o slot de ícones do template já sai vazio; na grade ele viraria uma quarta
+     célula e roubaria a coluna do meio */
+  nav [data-framer-name="Section "]:has(.mel-nav-links) > [data-framer-name="Section Icon"]{ display:none }
+  .mel-nav-links{ display:flex; align-items:center; gap:2px }
+  /* com os destinos à vista, o hambúrguer não tem o que abrir */
+  nav [data-framer-name="Section "]:has(.mel-nav-links) [data-framer-name="Icon"]{ display:none }
+}
+
+/* A SACOLA SÓ SOBE PARA A BARRA ONDE A GRADE MANDA — e o motivo é geométrico,
+   não estético. Abaixo de 1024px a linha continua flex com space-between, e
+   nesse arranjo o logo só cai no centro se as duas pontas tiverem a mesma
+   largura. Medido em 375px: a linha tem 327px úteis, a marca ocupa 178 (largura
+   fixa do template), então sobram 74,5 para cada lado. O hambúrguer cabe (24);
+   o par sacola+conta NÃO cabe (44+2+44 = 90). O logo, que hoje fica a 10px do
+   centro, ia para 40px — visível, e lido como defeito.
+
+   Não é caso de encolher os botões: 44px é alvo de toque, é requisito, e o
+   qa-navbar-mobile mede exatamente isso. Também não é caso de centrar o logo
+   no absoluto: em 375 a marca centrada iria de 98,5 a 276,5 e o par de botões
+   começa em 261 — sobreporia por 15px. Não há espaço, e ponto.
+
+   Então abaixo de 1024 a barra fica como já estava e passou no QA, e a
+   contagem continua visível ali do mesmo jeito: o selo já mora no botão de
+   conta, e o item "Carrinho" do painel repete o número por extenso. */
+.mel-sacola-bt{ display:none }
+@media (min-width:1024px){
+  .mel-sacola-bt{ display:inline-flex }
+}
+
 .mel-perfil-menu{
   position:fixed; z-index:2147483000;
   min-width:212px; max-width:calc(100vw - 32px);
@@ -440,6 +520,56 @@ function js() {
          em qualquer largura — que é onde o controle de conta tem de estar. */
       var linha = slot.parentElement || slot;
       if (linha.querySelector('[data-mel-perfil]')) return;
+
+      /* ---- os quatro destinos, à vista ----
+         Entram DENTRO do "Meniu", que é o bloco do hambúrguer e já é a coluna
+         da esquerda. Pendurá-los direto na linha criaria um quarto filho e
+         quebraria a grade de três colunas que centra o logo. A visibilidade é
+         só do CSS: em telas estreitas eles ficam no DOM, escondidos, e o
+         hambúrguer segue mandando. O menu do hambúrguer continua com os cinco
+         itens, Home inclusive — aqui em cima Home é o próprio logo. */
+      var meniu = linha.querySelector('[data-framer-name="Meniu"]') || linha;
+      if (!meniu.querySelector('.mel-nav-links')) {
+        var destinos = [
+          { t: 'Polen', h: '/polen' },
+          { t: 'Bee', h: '/bee' },
+          { t: 'Acessórios', h: '/acessorios' },
+          { t: 'Sobre', h: '/sobre' }
+        ];
+        var grupo = document.createElement('div');
+        grupo.className = 'mel-nav-links';
+        var aqui = location.pathname.replace(/\\/$/, '') || '/';
+        destinos.forEach(function (d) {
+          var a = document.createElement('a');
+          a.className = 'mel-nav-link';
+          a.href = d.h;
+          a.textContent = d.t;
+          if (aqui === d.h) a.setAttribute('aria-current', 'page');
+          grupo.appendChild(a);
+        });
+        meniu.appendChild(grupo);
+      }
+
+      /* ---- as ações da direita, num grupo só ----
+         Sacola e conta viajam juntas dentro de .mel-nav-acoes: é ela que ocupa
+         a terceira coluna da grade. Sem o grupo, os dois botões seriam dois
+         filhos da linha e a grade perderia a conta das colunas. */
+      var acoes = document.createElement('div');
+      acoes.className = 'mel-nav-acoes';
+
+      /* A sacola é <a>, não <button>: leva para /sacola, então é navegação.
+         O selo dela é o MESMO data-mel-contador-selo que pintarSelo() já
+         procura — a contagem não é duplicada, só passa a aparecer em dois
+         lugares. O número segue escrito por extenso no aria-label, porque uma
+         bolinha colorida não é informação para quem não a enxerga. */
+      var sac = document.createElement('a');
+      sac.className = 'mel-perfil-bt mel-sacola-bt';
+      sac.href = '/sacola';
+      sac.setAttribute('data-mel-sacola-bt', '');
+      sac.innerHTML = perfilSvg('sacola', 24)
+        + '<span class="mel-perfil-selo" data-mel-contador-selo aria-hidden="true">0</span>';
+      acoes.appendChild(sac);
+
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'mel-perfil-bt';
@@ -448,7 +578,9 @@ function js() {
       b.setAttribute('aria-expanded', 'false');
       b.innerHTML = perfilSvg('usuario', 24)
         + '<span class="mel-perfil-selo" data-mel-contador-selo aria-hidden="true">0</span>';
-      linha.appendChild(b);
+      acoes.appendChild(b);
+
+      linha.appendChild(acoes);
       botoes.push(b);
 
       /* O SLOT VAZIO AINDA EMPURRAVA O BOTÃO PARA FORA EM 320px.
@@ -496,6 +628,14 @@ function js() {
         if (n > 0) s.setAttribute('data-tem', ''); else s.removeAttribute('data-tem');
       });
       botoes.forEach(function (b) { b.setAttribute('aria-label', rotuloBotao(n)); });
+      /* O selo da sacola é uma bolinha colorida com um número dentro: para quem
+         usa leitor de tela ele é decoração (aria-hidden), então a contagem tem
+         de estar escrita no nome do link, e por extenso. */
+      document.querySelectorAll('[data-mel-sacola-bt]').forEach(function (s) {
+        s.setAttribute('aria-label', n
+          ? 'Sacola, ' + n + ' ' + (n === 1 ? 'item' : 'itens')
+          : 'Sacola, vazia');
+      });
       var item = painel && painel.querySelector('[data-mel-perfil-conta]');
       if (item) item.textContent = n ? String(n) : '';
     }

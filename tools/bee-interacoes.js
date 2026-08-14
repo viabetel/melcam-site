@@ -433,6 +433,15 @@ body.mel-pagina-bee .mel-perfil-bt[aria-expanded="true"]{ color:#8A6A12 }
 body.mel-pagina-bee .mel-perfil-selo{
   background:${P.carvao}; color:${P.papel}; box-shadow:0 0 0 2px ${P.papel};
 }
+/* Os links da barra nasceram em papel (14/08). Sobre a faixa clara da /bee
+   isso é papel sobre papel: sumiriam. Mesma gramática do botão de conta logo
+   acima — carvão em repouso, #8A6A12 no realce, que é o eyebrow desta página e
+   dá 4,73:1 sobre papel. A página atual não perde o aria-current: só troca de
+   cor junto. */
+body.mel-pagina-bee .mel-nav-link{ color:${P.carvao} }
+body.mel-pagina-bee .mel-nav-link:hover,
+body.mel-pagina-bee .mel-nav-link:focus-visible{ color:#8A6A12; background:rgba(34,30,23,.06) }
+body.mel-pagina-bee .mel-nav-link[aria-current="page"]{ color:#8A6A12 }
 body.mel-pagina-bee nav a:focus-visible,
 body.mel-pagina-bee nav button:focus-visible,
 body.mel-pagina-bee nav [tabindex]:focus-visible{

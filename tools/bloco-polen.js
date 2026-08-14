@@ -43,6 +43,7 @@ const path = require('path');
 const SITE = path.resolve(__dirname, '..');
 const cfg = JSON.parse(fs.readFileSync(path.join(SITE, 'melcam.config.json'), 'utf8'));
 const POLEN = cfg.produtos.polen;
+const polenUI = require('./polen-interacoes.js');
 
 // Conceito aprovado. O eyebrow carrega o nome da linha; o titulo carrega o
 // argumento — ESCOLHA. A Bee e que comunica novidade; nao repetir isso aqui.
@@ -53,8 +54,13 @@ const CTA = 'Escolha sua Polen';
 const MARCA = 'data-mel-polen';
 
 function tira() {
-  const minis = POLEN.cores.map(c =>
-    `<img src="${c.img}" alt="" loading="lazy" decoding="async" width="800" height="800">`
+  // A cor de cada variante NAO e inventada: sai do proprio packshot oficial,
+  // pelo corDoTile() que a /polen ja usa. Se o cliente reenviar um packshot
+  // noutro tom, o veu e o swatch acompanham sozinhos.
+  const minis = POLEN.cores.map((c, i) =>
+    `<span class="mel-polen-cor" data-i="${i}" data-nome="${c.nome}" data-sub="${c.sub || ''}">` +
+      `<img src="${c.img}" alt="" loading="lazy" decoding="async" width="800" height="800">` +
+    `</span>`
   ).join('');
 
   // As miniaturas sao decorativas: cada uma e um packshot sobre o proprio fundo
@@ -63,13 +69,59 @@ function tira() {
   // tira, para quem le por leitor de tela.
   const nomes = POLEN.cores.map(c => c.nome).join(', ');
 
-  return `<div class="mel-polen-tira" ${MARCA}="1">` +
+  // A CAMADA QUE TROCA A FOTO GRANDE.
+  // Os 7 packshots sao 800x800 e ja trazem o fundo NA COR da variante — entao
+  // mostrar o packshot em tamanho grande troca a foto E o fundo de uma vez, sem
+  // veu nenhum por cima. E sao os MESMOS arquivos dos swatches: o navegador ja
+  // baixou cada um para desenhar a miniatura, entao a camada grande nao custa
+  // requisicao nova.
+  const trocas = POLEN.cores.map((c, i) =>
+    `<img src="${c.img}" data-i="${i}" alt="" loading="lazy" decoding="async" width="800" height="800">`
+  ).join('');
+
+  return `<span class="mel-polen-troca" ${MARCA}="1" aria-hidden="true">${trocas}</span>` +
+  `<span class="mel-polen-veu" ${MARCA}="1" aria-hidden="true"></span>` +
+  `<div class="mel-polen-tira" ${MARCA}="1">` +
+    `<span class="mel-polen-legenda" aria-hidden="true"></span>` +
     `<span class="mel-polen-cores" role="img" aria-label="As 7 cores da Polen: ${nomes}.">${minis}</span>` +
     `<span class="mel-polen-linha">` +
       `<span class="mel-polen-preco">${POLEN.preco}</span>` +
       `<span class="mel-polen-cta">${CTA}</span>` +
     `</span>` +
   `</div>`;
+}
+
+// TODAS as regras que dependem do indice da cor, num lugar so.
+//
+// Sao cinco famílias por variante e todas precisam do numero i:
+//   1. a cor do veu, amostrada do packshot
+//   2. a --mel-cor do swatch (usada no anel do hover)
+//   3. a faixa que aquela foto ocupa em repouso
+//   4. a expansao dela quando a cor e escolhida
+//   5. o texto da legenda
+//
+// 🔴 CSS NAO PROPAGA CUSTOM PROPERTY DE FILHO PARA PAI. O veu e a legenda sao
+// irmaos da tira: nao ha como eles lerem a --mel-cor ou o data-nome do swatch
+// que esta sob o ponteiro. Ou sao regras explicitas por indice, ou entra JS.
+// Geradas daqui, elas nunca saem de sincronia com o config.
+function cssCores() {
+  const alt = ['#F4B233', '#DADADA', '#EF6C29', '#5F2D0B', '#2B2B2B', '#FBBAB6', '#303F1C'];
+  const n = POLEN.cores.length;
+  const larg = (100 / n).toFixed(4);
+  const A = 'a[data-framer-name="Polen"]';
+
+  return POLEN.cores.map((c, i) => {
+    const cor = polenUI.corDoTile(c.img, alt[i] || '#2B251C');
+    const esq = (i * 100 / n).toFixed(4);
+    const hov = A + ':has(.mel-polen-cor[data-i="' + i + '"]:hover) ';
+    return [
+      hov + '.mel-polen-veu{ background:' + cor + ' }',
+      '.mel-polen-cor[data-i="' + i + '"]{ --mel-cor:' + cor + ' }',
+      '.mel-polen-troca img[data-i="' + i + '"]{ left:' + esq + '%; width:' + larg + '% }',
+      hov + '.mel-polen-troca img[data-i="' + i + '"]{ left:0; width:100%; opacity:1; z-index:2 }',
+      hov + '.mel-polen-legenda::after{ content:"' + c.nome + ' · ' + (c.sub || '') + '" }'
+    ].join('\n');
+  }).join('\n');
 }
 
 // Recorta um <a ...>...</a> a partir de um indice, com contagem equilibrada.
@@ -153,6 +205,6 @@ function aplicar() {
   return feito;
 }
 
-module.exports = { aplicar, tira, TITULO, EYEBROW, CTA };
+module.exports = { aplicar, tira, cssCores, TITULO, EYEBROW, CTA };
 
 if (require.main === module) console.log(aplicar().join('\n'));

@@ -5302,3 +5302,593 @@ Provas de que o build NOVO está no ar, e não uma cópia em cache: `/bee` com
 **O QA foi repetido contra produção, não só contra o localhost:**
 `BASE_URL=https://melcam-site.vercel.app node tools/qa-perfil.js` → 33/33 em
 390; `tools/qa-navbar-mobile.js` → 3 rotas × 5 larguras sem nenhuma falha.
+
+
+---
+
+## 🎬 O véu marrom do hero — 14/08/2026
+
+**Pedido.** "Remove a textura que tem no vídeo do hero sem atrapalhar os outros
+efeitos." Depois, com o diagnóstico na mesa: "os efeitos eu quero como estão,
+só não quero esse fade marrom que borra o vídeo".
+
+### 1. Não era textura, e não era o arquivo
+
+A primeira suspeita — grão de filme cravado no MP4 — foi descartada por
+medição. `ffmpeg` num recorte de área lisa ampliado 6x: nenhum ruído. Contact
+sheet dos 9,5s: material limpo.
+
+> 🔴 **`elementsFromPoint` MENTE SOBRE QUEM PINTA.**
+> A primeira sonda no centro do vídeo devolveu só elementos transparentes e me
+> fez concluir que nada cobria o filme. O método pula quem tem
+> `pointer-events:none` — e a camada culpada tem exatamente isso. Quem procura
+> camada que PINTA tem de varrer por **geometria** (`getBoundingClientRect`
+> cruzado com o retângulo do alvo), não por acerto de clique. Foi a segunda
+> sonda, por geometria, que achou a `section[data-framer-name="Shadow"]`.
+
+### 2. A causa
+
+A "Shadow" do template é uma rampa de 100vh, `linear-gradient` de transparente
+até carvão sólido, `z-index:1`, por cima de um `<video>` que é
+`position:fixed`. Sendo **linear de 0% a 100%**, ela cobria o quadro parado
+inteiro, não só o pé.
+
+Medido em 1280x720, **mesmo frame**, canvas (`drawImage` do vídeo, pixel cru)
+contra a captura da página (pixel composto):
+
+| linha | perda antes | perda depois |
+|---|---|---|
+| y=120 | 17% | **0%** |
+| y=240 | 26% | **0%** |
+| y=360 | 40% | **0%** |
+| y=480 | 49% | 12% |
+| y=600 | 75% | 44% |
+| pé | 81% | 76% |
+
+> 🟡 **A comparação justa é canvas × captura, no mesmo instante.** Comparar duas
+> capturas de momentos diferentes do filme não prova nada: o brilho muda com a
+> cena. E o `serve.js` não aceita Range, então `currentTime` não anda — não dá
+> para casar dois estados pelo mesmo segundo. Pausar e ler o canvas resolve.
+
+### 3. Por que a rampa não podia simplesmente sair
+
+Ela não é decoração. O `<video>` é fixo e o `<header>` sobe por cima dele; a
+rampa entrega a emenda já em carvão, e a borda do header entra invisível.
+
+**Foi testado tirar de vez, e o número condenou:**
+
+| estado | degrau da emenda | véu sobre o quadro |
+|---|---|---|
+| rampa original | 1 | 17–81%, o quadro todo |
+| rampa removida | **63** (corte reto) | 0% |
+| rampa reformada | 1 a 3 | 0% no topo, 76% só no pé |
+
+Com a rampa fora, medido rolando 252px: vídeo em 79, header em 16. Uma linha
+reta cortando a cena ao meio. A forma nova segura a transparência até 50% e
+concentra a descida no terço final — limpa o quadro **e** guarda a emenda.
+
+> 🟡 **O degrau oscila com o quadro do filme.** Medi 1, 2 e 3 em execuções
+> diferentes, todas boas. O limiar documentado é **≤ 5**; acima disso é a rampa
+> que quebrou, não o filme.
+
+### 4. O grade do arquivo, que entrou por engano e ficou
+
+Enquanto eu ainda achava que o marrom era do MP4, medi o arquivo com
+`signalstats`: saturação média **12,8** (escala 0–128), preto mínimo 15, branco
+máximo 237 — material plano de câmera. Varri três correções em 9 quadros:
+
+| candidato | preto | branco | saturação | quadros que estouram |
+|---|---|---|---|---|
+| A) sat 1,25 ctr 1,08 | 5 | 244 | 17,1 | 0/9 |
+| B) sat 1,40 ctr 1,12 | 3 | 252 | 19,1 | 0/9 |
+| C) sat 1,60 ctr 1,20 | 0 | 255 | 21,2 | **6/9** |
+
+C foi descartada por jogar detalhe fora. B ficou, em CSS
+(`filter:saturate(1.4) contrast(1.12) brightness(1.03)` no
+`video[data-mel="hero-video"]`). A saturação do que a página entrega foi de
+**6,7 para 19,9**.
+
+> 🔴 **ISSO NÃO ESTAVA NO PEDIDO.** Entrou sobre hipótese errada e ficou porque
+> o cliente viu e aprovou o resultado. É uma alteração no material do cliente:
+> quem for mexer decide de novo, e sai numa linha. Se um dia virar permanente,
+> assar no MP4 com `ffmpeg -vf eq=saturation=1.4:contrast=1.12:brightness=0.02`
+> **e tirar a regra do CSS junto**, senão o grade entra duas vezes.
+
+### 5. Arquivos
+
+**Fonte** — `tools/hero-carrossel.js`, função `css()`: bloco do grade e bloco
+da rampa.
+**Build** — `melcam/identidade.css`, os dois blocos, inseridos antes do
+`/polen` (a ordem continua sendo requisito).
+
+> 🟡 **`tools/hero-carrossel.js` é CRLF, e a folha também.** Os blocos entraram
+> em CRLF pelos dois lados. Conferido depois: 0 quebras LF soltas nos dois
+> arquivos. Uma comparação fonte×build que normalize só um lado acusa
+> divergência falsa — foi o que aconteceu na primeira tentativa.
+
+### 6. Testes
+
+| comando | resultado |
+|---|---|
+| `node tools/preflight.js` | limpo, CSS balanceado 511/511, SHA-256 conferindo |
+| `node tools/qa-rede.js` | 7 rotas, 0 imagem quebrada, 0 falha de requisição |
+| `node tools/qa-story.js` | 9 capítulos, subida e descida casadas, 0 erro |
+| `node tools/qa-polen.js` | 4 cenários ok |
+| `node tools/qa-perfil.js` | **63/66 — e o commit limpo dá o mesmo** |
+
+> 🔴 **`qa-perfil.js` ESTÁ INSTÁVEL, E NÃO É REGRESSÃO.** Deu 66, 65 e 63 em
+> execuções seguidas, com falhas diferentes a cada vez: "foco vai para o
+> primeiro item << 0", "Carrinho aponta para /sacola << undefined" e três
+> "Uncaught (in promise)" no console. Provado por `git stash`: rodado contra o
+> commit `84a6c6b` **sem nenhuma alteração minha**, falha exatamente as mesmas
+> três, 63/66. É corrida de tempo na sonda, anterior a esta passagem. **Quem
+> for confiar nesse QA estabiliza ele antes** — do jeito que está, ele acusa
+> defeito que não existe e esconde defeito que existe.
+
+### 7. O que fica aberto
+
+1. **O grade do vídeo** é decisão em aberto (item 4). Está ligado.
+2. **`qa-perfil.js` instável** — precisa de espera determinística.
+3. Um pedido de trocar a navbar pelo componente **Modern Navbar** do Framer
+   (`framer.com/m/Modern-Navbar-VoWUeq.js`) foi levantado e **cancelado** pelo
+   cliente antes de qualquer alteração. Nada do projeto foi tocado. A peça foi
+   medida num laboratório descartável, e a espec está no fim deste arquivo caso
+   volte à mesa.
+
+**Nenhum commit. Nenhum deploy.** O repositório está ligado à Vercel: push em
+`main` publica em produção sozinho.
+
+### 8. Espec do Modern Navbar, se o pedido voltar
+
+Medida do componente real renderizado, não estimada. Barra 67px de altura,
+raio 46, padding 12/24. Logo 43px de altura. Grupo de links ao centro: raio 22,
+fundo `rgba(255,255,255,.10)`, padding 4; cada link raio 18, padding 8/16,
+Inter 16/400, hover `rgba(255,255,255,.20)`. CTA raio 18, padding 8/16, fundo
+branco, texto em `<span>` por letra. Telefone: raio 32, padding 16, gap 32,
+links de 32px empilhados. Três variantes: Desktop/Tab, Phone Closed,
+Phone Opened.
+
+> 🟡 **O componente é React e o MELCAM não tem hidratação.** Ele não entra como
+> componente: teria de ser portado para vanilla na fonte e no build. E a navbar
+> de hoje carrega conta, sessão, contador de sacola, pele clara da /bee e alvo
+> de toque de 44px — o Modern Navbar tem 4 links e um CTA, e nada disso. Trocar
+> a forma sem perder a função é o trabalho, e não é pequeno.
+
+
+---
+
+## 📎 Pacote de referências do cliente, lido — 14/08/2026
+
+Pasta do Drive `1CNO1KO09rWhX5vyXvw2pHMkpujU6bkm5`, compartilhada em 24/07.
+Cópia dos arquivos em `Desktop/melcam-referencias-cliente/`.
+
+**Fecha a pendência da FASE 1** ("Checklist e SITES CONCORRENTES: ainda não
+lidos"). O SITES CONCORRENTES não era .docx: é um Google Doc com três URLs, e
+só isso.
+
+| ref | o que é | situação no site |
+|---|---|---|
+| REF MENU SUPERIOR | navbar da **Zerezes** | **não atendida** — ver medição abaixo |
+| REF CARDS HOME | cards da **Dobra** | grade da home existe |
+| REF CARDS HOME (espaços brancos) | grade da **Apple** | idem |
+| REF BANNER HOME | banner da **ASICS** | `mel-carrossel` existe |
+| REF CTA barra superior | barra fixa do **apple.com/ipad-air** | construída e **removida a pedido em 13/08** |
+
+**Concorrentes:** `festivalfv.com.br/fotografia/alt` · `campsnapphoto.com` ·
+`thatonestreet.com`. O Camp Snap é o concorrente direto: câmera digital sem
+tela, mesma proposta da Bee.
+
+### A distância entre a navbar de hoje e a referência, medida
+
+Sonda em 1280px na home, com o menu aberto por clique:
+
+| | MELCAM hoje | Zerezes (a referência) |
+|---|---|---|
+| links de navegação **visíveis** na barra | **0** | 7 |
+| busca | não existe | campo aberto na barra |
+| sacola na barra | não | sim |
+| favoritos com contador | não | sim |
+| conta | sim | sim |
+
+> 🔴 **NO DESKTOP DE 1280px, TODA A NAVEGAÇÃO ESTÁ ATRÁS DO HAMBÚRGUER.**
+> Os cinco destinos existem e funcionam — Home, /polen, /bee, /acessorios,
+> /sobre — mas nenhum aparece sem clicar. A barra mostra só o logo e o botão de
+> conta. Isso não é bug: o template veio assim e nunca foi contestado. Mas é o
+> oposto do que a referência do cliente pede, e foi exatamente a queixa dele
+> ("a navbar atual é extremamente fraca"). **Quem for mexer na navbar começa
+> por aqui, não por trocar o desenho.**
+
+> 🟡 **Um componente de terceiro chegou a ser cogitado e caiu.** O
+> `framer.com/m/Modern-Navbar-VoWUeq.js` foi medido num laboratório
+> descartável (espec no fim deste arquivo). Ele resolve o desenho e **não**
+> resolve o problema: tem 4 links e um CTA, sem busca, sem sacola, sem
+> favoritos, e é React num site sem hidratação. A referência real do cliente é
+> a Zerezes, que é uma barra de e-commerce completa. Não confundir as duas.
+
+
+---
+
+## 🃏 A grade de cards da home, recomposta — 14/08/2026
+
+**Pedido.** "O conceito está top de acordo com o que eles pediram, mas preciso
+de melhor desenvoltura: tem coisas cortadas, fotos mal colocadas, fotos
+faltando, e o design pode melhorar de modo mais claro e instintivo pensando
+também na conversão."
+
+### 1. O card do lançamento era o mais pobre da seção
+
+Medido no desktop, antes: o card da **Bee** tinha 432x277 e carregava a palavra
+"Bee", o selo "Novidade" e uma foto. Nada mais. O da **Polen**, ao lado, tinha
+432x481 com eyebrow, conceito, as 7 cores em packshot, preço e CTA.
+
+O `<h1>` da home é "Chegou a Bee". O preço dela, R$ 299,00, existia em
+`melcam.config.json` e **não aparecia em lugar nenhum da home**.
+
+Decisão do cliente: inverter o peso. A Bee assume o card grande e o Acessórios
+— cujo próprio texto diz "categoria em preparação" — desce para o pequeno.
+
+> 🟡 **A INVERSÃO É UMA TROCA DE `aspect-ratio`, e só.** A altura destes cards
+> vem de aspect-ratio sobre 432px de largura: `0.897959` dá 481px e `1.55752`
+> dá 277px. Trocar os dois valores entre a Bee e o Acessórios mantém a soma da
+> coluna em 773px (481+15+277) e não mexe nas outras duas colunas. Não há
+> reordenação de DOM.
+
+Ferramenta nova: `tools/bloco-bee.js`, espelhando `bloco-polen.js` — conceito
+aprovado (o mesmo `<h1>` da /bee), as 2 cores em packshot oficial, preço e CTA.
+
+> 🟡 **A BEE NÃO GANHA EYEBROW COMO A POLEN, e não é esquecimento.** O eyebrow
+> da Polen mora em `top/left: 1.25rem` — exatamente onde o selo "Novidade" da
+> Bee já está. Empilhar os dois seria colisão. Na Bee quem faz o papel de
+> etiqueta é o selo, e o nome segue no `<h3>`.
+
+### 2. O "Sobre Nós" tinha 242px de vazio
+
+Medido no card de 432x773:
+
+| faixa | px |
+|---|---|
+| foto de cima, visível | 0 a 206 |
+| **vazio** | 206 a 326 |
+| título | 326 a 368 |
+| parágrafo | 392 a 446 |
+| **vazio** | 446 a 568 |
+| foto de baixo, visível | 568 a 773 |
+
+Dois buracos de ~120px, 31% do cartão, com o texto espremido entre eles. As
+duas fotos cresceram até 63% da altura, e os respiros ficaram simétricos:
+**41px de cada lado**. Vazio total de 242px para 82px.
+
+> 🔴 **MEXER NO `top`, NÃO NO `bottom`.** O container da foto tem
+> `aspect-ratio` 1:1 e a altura dele sai da largura — o `bottom` do inset é
+> simplesmente ignorado. A primeira tentativa mudou o bottom para 63% e a foto
+> não andou um pixel. O pior é que o `inset` **computado** mostrava o valor
+> novo enquanto a caixa continuava no lugar velho: só medir `getBoundingClientRect`
+> pegou.
+
+### 3. O rótulo dos cards pequenos estava atrás da foto
+
+Defeito anterior a esta passagem. A sonda perguntou ao `elementFromPoint` quem
+estava no centro de cada `<h3>` e a resposta foi `<img>` nos dois cards de
+277px: "Polen" e "Acessórios" existiam, tinham caixa, e eram contados como
+visíveis por qualquer conta de geometria. Só não apareciam.
+
+> 🔴 **`getBoundingClientRect` NÃO DIZ SE ALGO ESTÁ VISÍVEL.** Diz onde a caixa
+> está. Um texto perfeitamente posicionado atrás de uma foto opaca tem a mesma
+> caixa de um texto legível. Para saber quem o olho vê, a pergunta é
+> `elementFromPoint` no centro do elemento — e foi ela que achou isto.
+
+Correção: o container de texto sobe para `z-index:2` e ganha um scrim, **só nos
+dois cards pequenos**. Nos grandes o scrim seria carvão sobre carvão, mas
+desenhava uma borda mais escura no topo do cartão; apareceu na primeira
+tentativa e foi descartado. Contraste medido atrás do texto do Acessórios:
+brilho 59 no título e 65 no parágrafo, contra papel `#FBF7EE`.
+
+### 4. As âncoras do desktop não serviam no mobile
+
+Medido em 390px, depois das correções acima e **antes** da media query:
+
+| card | defeito |
+|---|---|
+| Bee | texto até 129, foto começando em 85 — a foto EM CIMA do texto |
+| Acessórios | texto até 163, foto com 16px visíveis — praticamente sumia |
+
+> 🔴 **O SELETOR DO MOBILE NÃO PODE TER `> div >`.** A regra do desktop usa o
+> caminho direto porque naquela variante a foto é neta do `<a>`. No mobile o
+> export monta outra árvore e o mesmo seletor não casa com nada: a primeira
+> versão da media query não moveu um pixel. Só a medição mostrou.
+
+Depois: Bee com 19px de respiro, Acessórios com a foto cobrindo o cartão atrás
+do scrim, como o card pequeno da Polen já fazia.
+
+### 5. Dez cards com dado comercial falso no HTML
+
+O template traz 19 posições de "Card Produtos" para 9 produtos reais. O
+`grade.js` preenche as 9 e **esconde** as 10 restantes com `display:none`. Só
+que esconder não é limpar: o conteúdo do template continuava escrito dentro.
+Medido no `index.html` publicado, numa linha só:
+
+> "Polen Preta" · "Esgotado" · "50%" · "R$ 299,00"
+
+Quatro dados falsos: a Polen Preta não está esgotada, não tem 50% de desconto,
+e R$ 299,00 é o preço da **Bee**. Havia ainda um card cujo packshot era
+`/melcam/img/favicon.png`.
+
+> 🟡 **ESVAZIAR, NÃO REMOVER — e a decisão mudou no meio do caminho.** O pedido
+> inicial foi apagar os nós. A leitura do `grade.js` mostrou uma decisão já
+> tomada contra isso, por dois motivos que continuam de pé: o card é o elemento
+> que carrega `data-framer-appear-id="zfsne5"` (a única appear animation do
+> template, que o MOTION_SPEC manda preservar), e os slots voltam a ser úteis
+> quando o catálogo crescer. `tools/limpar-excedentes.js` esvazia o texto e o
+> alt e mantém a estrutura: mesmo resultado prático, sem violar a regra.
+> **70 cards esvaziados nas 7 páginas.**
+
+### 6. Arquivos
+
+**Novos** — `tools/bloco-bee.js`, `tools/limpar-excedentes.js`.
+**Alterados** — `tools/identidade.js` (fonte de todo o CSS acima).
+**Builds** — `melcam/identidade.css` e os 7 HTML.
+
+### 7. Testes
+
+| comando | resultado |
+|---|---|
+| `node tools/preflight.js` | limpo, CSS balanceado 578/578 |
+| `node tools/qa-rede.js` | 7 rotas, 0 imagem quebrada, 0 falha |
+| `node tools/qa-navbar-links.js` | **285/285** em 3 rotas x 9 larguras |
+| `node tools/qa-story.js` | 9 capítulos, subida e descida casadas |
+| `node tools/qa-paleta.js` | **0 textos abaixo de 4,5:1**, nenhuma cor nova fora da paleta |
+
+### 8. O que fica aberto nesta seção
+
+1. **A vitrine de produtos usa PNG quadrado em slot retrato.** As artes são
+   1440x1440 num slot de 252x378: sobram 99px e as câmeras ficam soltas no
+   quadro. Não foi tocado nesta passagem.
+2. **O card de Acessórios continua sem oferecer nada** — o texto diz "categoria
+   em preparação". Agora ocupa o card pequeno, que é o lugar certo para isso,
+   mas segue sendo um card que não converte.
+
+**Nenhum commit. Nenhum deploy.**
+
+
+---
+
+## 🎨 As 7 cores da Polen viraram escolha — 14/08/2026
+
+**Pedido.** "O Polen tem que ser tipo key feature nas cores: ao passar o mouse
+os cards das cores aumentam e o fundo muda de acordo", "os cards estão pequenos
+demais para serem vistos", "a foto do card macro deveria mudar também" e "a foto
+padrão deveria ser mais generalista, respeitando a proposta do card".
+
+### O que mudou
+
+**Em repouso, as 7 cores estão na foto.** O card mostrava um macro do couro
+**marrom** — uma cor só, num cartão cujo título é "7 cores. Uma decisão." Agora
+a área da foto é dividida em sete faixas verticais, uma por variante. Medido:
+sete faixas de 52px contíguas (35, 86, 138, 190, 242, 293, 345), soma 364 contra
+363 de área. As câmeras ficam alinhadas entre as faixas porque todos os
+packshots têm o mesmo enquadramento — lê como composição, não como colagem.
+
+**No hover, a faixa vira o card inteiro.** A cor escolhida abre de 14,29% para
+100%, as outras somem, e o nome com a frase daquela variante aparece acima dos
+swatches.
+
+**Os swatches cresceram de 34px para 46px** e passaram a responder: 1,24x sob o
+ponteiro, anel na própria cor, e os vizinhos recuam para 0,94x e 60% de opacidade.
+
+> 🟡 **NADA DISSO CUSTA DOWNLOAD NOVO.** As sete fotos grandes são os MESMOS
+> arquivos dos swatches — o navegador já baixou cada um para desenhar a
+> miniatura. E o fundo de cada packshot já vem na cor da variante, então trocar
+> a foto troca o fundo junto: o véu ficou só como reforço a 12% na metade de
+> cima, onde o leque não chega.
+
+### A foto grande estava cortada, e ninguém tinha visto
+
+Medido: container **quadrado** de 389x389 com `inset: 194px 39px -67px`, e a
+foto é 807x1125, retrato. Com `object-fit:cover` num quadrado, 28% da altura ia
+fora — a câmera aparecia decepada. E os 39px de margem lateral deixavam a foto
+boiando no meio do cartão. Agora segue a mesma âncora da Bee.
+
+### Três coisas que só a medição pegou
+
+> 🔴 **CSS NÃO PROPAGA CUSTOM PROPERTY DE FILHO PARA PAI.** O véu e a legenda são
+> irmãos da tira: não há como lerem a `--mel-cor` ou o `data-nome` do swatch que
+> está sob o ponteiro. Ou são regras explícitas por índice, ou entra JS. São
+> geradas por `tools/bloco-polen.js > cssCores()`, direto do config — assim
+> nunca saem de sincronia. **Não editar as regras por índice à mão.**
+
+> 🔴 **O SWATCH NÃO PODE TER `overflow:hidden`.** A primeira versão desenhava a
+> legenda num `::after` do próprio swatch, e o overflow a recortava: o nome da
+> cor simplesmente não aparecia, e nada no CSS computado denunciava. Pior: no
+> último swatch da fileira o texto vazava pela borda direita do cartão —
+> "Verde · Natural em cada" cortado no meio da palavra. A legenda passou para a
+> tira, centralizada.
+
+> 🔴 **OS SWATCHES SÃO ELÁSTICOS, NÃO FIXOS.** Medido em 390px com largura
+> cravada em 2.9rem: sete de 46px mais seis vãos pedem 351px e o card tem 327 —
+> o primeiro nascia em x=-13 e o último terminava 13px depois da borda. **Não
+> havia transbordo na PÁGINA para denunciar, porque o card recorta.** Com
+> `flex:1 1 0` e `max-width` eles ficam nos 46px onde cabe e encolhem para 34px
+> onde não cabe, sem media query e sem número mágico.
+
+### Testes
+
+`preflight` limpo (631/631) · `qa-rede` 7 rotas sem falha · `qa-navbar-links`
+**285/285** · `qa-paleta` **0 textos abaixo de 4,5:1**.
+
+**Nenhum commit. Nenhum deploy.**
+
+
+---
+
+## 📷 O "Sobre Nós" saiu da grade e virou obturador — 14/08/2026
+
+**Pergunta do cliente:** "o sobre nós normalmente num site comercial fica onde?"
+**Depois:** "eu quero ele expansível num efeito motion prático, mas super genial
+e criativo".
+
+### Onde ele estava, e por que era o lugar errado
+
+Numa home de e-commerce a ordem de persuasão é: promessa, o que é, prova, quem
+somos, convite. O "Sobre Nós" é o penúltimo degrau. Ele estava no **segundo** —
+dentro de "A câmera que vive com você" — ocupando a coluna 3 inteira, 432x773.
+Era o maior elemento da seção de produtos e o único que não oferecia nada.
+
+Agora entra entre "A Melcam por aí" e "Entre para a Colméia", que é o fim da
+sequência de prova social. Todos os filhos do stack estão em `order:0`, então
+quem manda é a posição no DOM: a faixa é inserida imediatamente antes da
+`<section class="mel-seguranca">`.
+
+> 🟢 **E RESOLVEU UMA QUEIXA ANTIGA DE GRAÇA.** Sem ele, a grade caiu de 3 para
+> 2 colunas e os cards de produto foram de **432px para 655px** de largura —
+> medido. Era o "os cards estão pequenos demais para serem vistos".
+
+### O efeito: obturador de cortina
+
+As duas fotos que o card já carregava não eram enfeite. No template uma sangrava
+pelo topo e a outra pela base: são, literalmente, as duas cortinas de um
+**obturador focal-plane** — o mecanismo real de uma câmera analógica, em que
+duas cortinas correm e o vão entre elas é a exposição.
+
+Fechada, a faixa mostra as cortinas encostadas (vão medido: **0**) com o título
+por cima. Aberta, elas se afastam e o texto aparece no vão, com duas linhas de
+luz em mel nas bordas — a fresta por onde a luz entra.
+
+| | fechado | aberto |
+|---|---|---|
+| palco | 480px | 780px |
+| vão entre as cortinas | 0 | 300px |
+
+> 🔴 **QUEM ANIMA É A ALTURA DO PALCO, NÃO A POSIÇÃO DAS CORTINAS.** A de cima é
+> ancorada em `top:0` e a de baixo em `bottom:0`, as duas com altura fixa.
+> Crescendo o palco, o vão abre sozinho. Animar `translateY` em cada cortina
+> daria o mesmo desenho e exigiria manter três números em sincronia — altura do
+> palco, deslocamento de cima, deslocamento de baixo — e qualquer um fora do
+> lugar abre fresta ou sobrepõe. Aqui é um número só.
+
+### Três coisas que a medição corrigiu
+
+> 🔴 **A PROPORÇÃO DA CORTINA DECIDE SE A FOTO FUNCIONA.** Primeira tentativa:
+> palco com 1377px de largura e cortinas de 180px, ou seja um recorte de
+> **7,6:1** sobre fotos 2:3. Sobrava uma tira de 11% da altura original, e o que
+> aparecia era um pedaço de queixo em cima e céu azul embaixo. **Nenhum
+> `object-position` salva um recorte desses.** Em 1000x240 a proporção cai para
+> 4,2:1 e o assunto de cada foto (a câmera na mão) cabe inteiro.
+
+> 🟡 **O TÍTULO CAÍA EM CIMA DA CÂMERA.** Com a faixa aberta, a capa ficava
+> dentro da cortina de cima — exatamente sobre a Bee, que é o assunto da foto e
+> a parte mais clara dela. Título e produto disputando o mesmo pixel. Agora capa
+> e miolo empilham no vão, na ordem de leitura: título, linha, corpo, CTA.
+
+> 🔴 **NO CELULAR O TEXTO NÃO CABIA NO VÃO.** Medido em 390px com os valores do
+> desktop: o vão abria 260px e o bloco de texto pede **337** — invadia a cortina
+> de baixo por 77px. A largura menor faz a mesma copy ocupar mais linhas, então
+> o vão precisa crescer e a cortina, encolher. Com cortina de 140 e palco aberto
+> em 680, o vão vai a 400 e sobram 63px.
+
+### Arquivos
+
+**Novo** — `tools/sobre-faixa.js` (markup e posição).
+**Alterados** — `tools/identidade.js` (o desenho), `tools/hero-carrossel.js`
+(`iniciarSobre`: só o estado, um atributo no palco e o rótulo do botão).
+
+> 🟡 **SEM JS A FAIXA FICA FECHADA E LEGÍVEL.** Título, linha e o link para
+> /sobre continuam no DOM: nenhum conteúdo depende do script. O botão carrega
+> `aria-expanded` e Escape fecha, como o menu e o painel de conta já fazem.
+
+### Testes
+
+`preflight` limpo (674/674) · `qa-rede` 7 rotas sem falha · `qa-navbar-links`
+**285/285** · `qa-story` 9 capítulos · `qa-paleta` **0 textos abaixo de 4,5:1**.
+
+**Nenhum commit. Nenhum deploy.**
+
+
+---
+
+## 🧩 A grade recomposta, e o erro que a quebrou — 14/08/2026
+
+Esta seção corrige e substitui o que ficou registrado em "A grade de cards da
+home, recomposta" mais acima. Aquele desenho foi revertido.
+
+### O erro
+
+Tirei o "Sobre Nós" da grade para virar faixa própria e passei a grade de 3 para
+2 colunas. **Quebrou o mosaico.** A grade do template não é uma lista de cards
+iguais: são três colunas com alturas alternadas (481/277, 481/277, 773) e o
+ritmo vem dessa alternância. Com quatro cards virou 2x2 simétrico e o desenho
+perdeu o movimento — relatado como "sem graça e sem sal", e procede.
+
+> 🔴 **MEDIR SÓ A LARGURA ESCONDEU O ESTRAGO.** Em 2 colunas o card foi de 432
+> para 655 de largura, e como a altura vem de `aspect-ratio` ela subiu junto,
+> de 481 para **729**. A grade inflou de 1085 para 1492 e a página de 7398 para
+> 8358. O número que eu olhava melhorava enquanto o layout piorava. Depois
+> gastei três rodadas corrigindo sintoma (proporção, max-width, tamanho do
+> leque) quando a causa era ter tirado a peça que sustentava o mosaico.
+
+### O desenho final
+
+A grade volta ao mosaico do template, e a coluna 3 recebe **conteúdo de apoio à
+proposta** em vez do card institucional. O título da seção é "A câmera que vive
+com você": as colunas 1 e 2 dizem QUAIS são as câmeras, a 3 diz o que elas
+FAZEM. Página de volta a 7398 na medição sem a faixa; 8071 com ela.
+
+| coluna | card |
+|---|---|
+| 1 | Polen 432x481 (7 cores) + Polen 432x277 |
+| 2 | Bee 432x481 (lançamento, com preço e CTA) + Acessórios 432x277 |
+| 3 | **8 filtros** 432x773 |
+
+**`tools/bloco-filtros.js`** (novo). As 8 fotos de `melcam/img/filtros/` são a
+MESMA CENA com os 8 filtros aplicados: passar o mouse num nome troca a
+revelação da mesma imagem.
+
+> 🟡 **O MAPEAMENTO NOME→ARQUIVO SAIU DE MEDIÇÃO.** Casar por ordem daria "Mono"
+> numa foto azul saturada. Medido R/G/B e saturação: f7 (1,9%) e f8 (0%) são os
+> P&B → Mono e Noir; f4 é a única quente → Vintage; f2 é a mais saturada e fria
+> → Polar. É inferência a partir da imagem, **não** informação do cliente — se
+> ele confirmar outra correspondência, muda só a tabela em bloco-filtros.js.
+
+### O scrim dos cards pequenos saiu
+
+Ele existia para o rótulo se ler sobre a foto e resolvia isso, mas o preço era
+uma mancha borrada por cima da imagem — pior no Acessórios, cuja foto é clara.
+Trocado por composição: texto em faixa de carvão limpo em cima, foto embaixo.
+
+A foto do Acessórios também trocou. Era uma câmera no bolso da calça: num
+recorte de 432x116 sobrava jeans e um braço, sem acessório à vista. Agora é
+`bee-amarela-angulo-corrente`, que mostra a câmera COM a correntinha.
+
+> 🔴 **TIRAR O `aspect-ratio` É O QUE FAZ O `inset` VALER.** O container da foto
+> tem aspect-ratio 1/1 do template: com ele a altura sai da largura e o bottom
+> do inset é ignorado. Medido: caixa de **432x432 dentro de um card de 277** —
+> só os 147px de cima da imagem apareciam, e nenhum `object-position` deslocava
+> nada porque não sobrava altura. É o mesmo defeito que o card "Sobre Nós" teve,
+> e a mesma correção.
+
+### O "Sobre Nós" continua sendo faixa própria
+
+Entre "A Melcam por aí" e o fechamento, com o obturador de cortina. Mudou uma
+coisa desde o registro anterior: **ele dispara sozinho** quando a faixa entra na
+viewport, em vez de esperar clique. Como accordion parado o efeito existia e
+ninguém via. O clique continua mandando — a partir do primeiro toque no botão o
+observador se desconecta, senão fechar e rolar de leve a reabriria.
+
+> 🔴 **CRASE EM COMENTÁRIO DERRUBOU O BUILD, DE NOVO.** Escrevi uma crase em volta de uma palavra num
+> comentário do CSS. Esse CSS mora dentro de template literal em identidade.js:
+> a crase fechou o literal e o arquivo parou de parsear. É a armadilha nº 1 do
+> AGENTS.md e continua viva. O `preflight` pegou na hora. Conferência rápida:
+> o total de crases no arquivo tem de ser PAR.
+
+### Testes
+
+`preflight` limpo (702/702) · `qa-rede` 7 rotas, 0 asset quebrado ·
+`qa-navbar-links` **285/285** · `qa-story` 9 capítulos · `qa-paleta` 0 textos
+abaixo de 4,5:1.
+
+### Aberto
+
+1. O card de Acessórios continua sem oferecer nada ("categoria em preparação").
+2. A vitrine "DESTAQUES" usa PNG 1440x1440 em slot 252x378: sobram 99px.
+3. **`qa-perfil.js` segue instável** (63/66, mesmas falhas no commit limpo).
+4. Rodapé com "Sobre Nós" duplicado — anterior a esta passagem, conferido
+   contra o commit 84a6c6b.
