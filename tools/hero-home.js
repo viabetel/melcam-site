@@ -67,9 +67,9 @@ function html() {
         '<a class="mel-hh-cta mel-hh-cta-linha" href="/bee#modelos">' + esc(H.ctaSecundario) + '</a>' +
       '</div>' +
     '</div>' +
-    // aria-hidden porque é dica visual de rolagem: quem usa leitor de tela já
-    // recebe a estrutura da página inteira e não precisa ser mandado rolar.
-    '<div class="mel-hh-role" aria-hidden="true"><span>Role</span><i></i></div>' +
+    // O indicador de rolagem SAIU em 15/08/2026, a pedido do cliente. Ele era
+    // aria-hidden e não recebia ponteiro, então nada de navegação nem de leitor
+    // de tela dependia dele: a saída não deixa buraco de acessibilidade.
   '</div>';
 }
 
@@ -154,9 +154,16 @@ ${ABRE}
    nenhum deles. A navbar não entra nessa conta porque este bloco NÃO RECEBE
    PONTEIRO — pointer-events:none no envelope, auto só nos dois links. Mesmo
    cobrindo a faixa dela em geometria, não há clique que ele possa roubar. */
+/* align-items:flex-end desde 15/08/2026 — pedido do cliente, "título nunca fica
+   em cima". Era "center", que punha a manchete em y338 numa hero de 900px, ou
+   seja, no terço superior. Ancorado no pé, quem define o respiro até a base é o
+   padding-bottom do .mel-hh-in, que já existia; não há número novo aqui.
+
+   O rodapé ficou livre porque o indicador de rolagem saiu na mesma passada — se
+   os dois convivessem, a coluna de texto cairia em cima dele. */
 .mel-hh{
   position:absolute; inset:0; z-index:2;
-  display:flex; align-items:center;
+  display:flex; align-items:flex-end;
   pointer-events:none;
 }
 
@@ -202,12 +209,22 @@ ${ABRE}
     rgba(18,15,11,0)   78%);
 }
 
-/* A mesma caixa de conteúdo da /bee: 1240px com 24px de respiro. Em 1440 isso
-   põe a coluna em x124, que é onde a referência a coloca. Reaproveitar a
-   medida em vez de cravar um px novo mantém a home alinhada com as internas. */
+/* A COLUNA É A MESMA DO RESTO DA HOME — corrigido em 15/08/2026.
+   Era 1240px, herdado da /bee, e isso punha a coluna do hero em x124 numa tela
+   de 1440 enquanto as seções logo abaixo começavam em x24: 100px de desencontro,
+   que é o que o cliente viu.
+
+   A grade canônica do projeto já estava escrita no comunidade.js — "largura
+   1440, gutter 24" — e é o que .mel-sec aplica no carrossel, no "Por onde a
+   Melcam passou" e nos selos de garantia. Aqui a caixa passa a ser a MESMA
+   declaração, não um número parecido: max-width 1440 com 24px de gutter, e 16px
+   abaixo de 810 (o mesmo degrau que .mel-sec faz na mesma quebra).
+
+   Medido depois: hero e .mel-sec começam no mesmo x em 1920, 1440, 1280, 810
+   e 390. O padding-bottom continua sendo o respiro do título ancorado no pé. */
 .mel-hh-in{
   position:relative;
-  width:100%; max-width:1240px; margin:0 auto;
+  width:100%; max-width:1440px; margin:0 auto;
   padding:0 24px clamp(56px,7vh,88px);
   display:flex; flex-direction:column; align-items:flex-start;
 }
@@ -275,48 +292,15 @@ ${ABRE}
 }
 .mel-hh-cta-linha:hover{ background:rgba(251,247,238,.16); border-color:${P.papel} }
 
-/* --- o indicador de rolagem ---
-   Centralizado na hero inteira, não na coluna de texto: na referência ele fica
-   no meio da tela, e é dica de página, não do bloco. */
-.mel-hh-role{
-  position:absolute; left:50%; bottom:clamp(18px,3vh,34px);
-  transform:translateX(-50%);
-  isolation:isolate;
-  display:flex; flex-direction:column; align-items:center; gap:9px;
-  color:rgba(251,247,238,.78);
-  font-family:"Area",sans-serif; font-size:.66rem; font-weight:500;
-  letter-spacing:.22em; text-transform:uppercase;
-  text-shadow:0 1px 12px rgba(18,15,11,.6);
-  pointer-events:none;
-}
-/* O indicador fica no MEIO da tela, e ali o véu já acabou — ele termina em
-   transparente aos 78%. Sem nada atrás, o fundo é a camisa amarela do filme:
-   rgb(162,160,5), que contra o papel dá 2,60:1.
+/* O INDICADOR DE ROLAGEM SAIU — 15/08/2026, a pedido do cliente.
+   Saíram com ele a elipse de contraste que o sustentava sobre a camisa amarela
+   do filme, o traço vertical e o keyframe próprio (melHhSobeCentro), que existia
+   só porque o translateX(-50%) do centro não sobrevivia ao "transform:none" do
+   melHhSobe. Nada mais na folha usa esse keyframe.
 
-   A resposta é local e do tamanho da peça, não mais véu: uma elipse suave
-   presa ao próprio indicador. Medida em seis quadros distintos do filme, em
-   quatro janelas, ela entrega de 8,7:1 a 12,6:1 no pior caso de cada uma —
-   folga, e não empate no mínimo.
-
-   O isolation:isolate acima existe para o z-index:-1 daqui parar no
-   indicador: sem ele, o pseudo desceria para trás do véu e do vídeo. */
-.mel-hh-role::before{
-  content:""; position:absolute; z-index:-1;
-  left:50%; top:50%; transform:translate(-50%,-50%);
-  width:220px; height:136px; pointer-events:none;
-  /* closest-side, e não o farthest-corner que o radial-gradient assume sozinho.
-     Com o padrão, a elipse é dimensionada pela DIAGONAL (129px numa caixa de
-     220x136), então no meio de cada lado ela ainda tem alfa e o desenho termina
-     no corte reto da caixa: aparecia um retângulo escuro no meio da cena. Com
-     closest-side os raios viram 110 e 68, que é a caixa inscrita, e a tinta
-     chega a zero antes da borda em todas as direções. */
-  background:radial-gradient(closest-side ellipse at center,
-    rgba(18,15,11,.50) 0%, rgba(18,15,11,.42) 44%, rgba(18,15,11,0) 100%);
-}
-.mel-hh-role i{
-  display:block; width:1px; height:clamp(22px,3.4vh,34px);
-  background:linear-gradient(to bottom, rgba(251,247,238,.72), rgba(251,247,238,0));
-}
+   Ele era aria-hidden e pointer-events:none, então não havia navegação nem
+   leitura de tela apoiada nele. O rodapé da hero que ele ocupava é justamente
+   onde a coluna de texto passou a morar — ver o align-items acima. */
 
 /* Entrada em CSS puro, com "both", pela mesma razão da /bee: se o script
    falhar o conteúdo aparece do mesmo jeito. */
@@ -329,16 +313,6 @@ ${ABRE}
 .mel-hh-tit { animation-delay:220ms }
 .mel-hh-sub { animation-delay:330ms }
 .mel-hh-ctas{ animation-delay:430ms }
-/* O indicador NÃO pode usar melHhSobe: aquele keyframe termina em
-   transform:none e apagaria o translateX(-50%) que o centra. Medido antes de
-   perceber: a caixa saía em x720 com 45px de largura, ou seja, encostada no
-   meio pela ESQUERDA em vez de centrada nele — 22px fora. É a mesma armadilha
-   já registrada no vídeo do retrato da /bee. */
-@keyframes melHhSobeCentro{
-  from{ opacity:0; transform:translate(-50%,18px) }
-  to  { opacity:1; transform:translateX(-50%) }
-}
-.mel-hh-role{ animation:melHhSobeCentro 700ms cubic-bezier(.22,.61,.36,1) 620ms both }
 
 @media (max-width:1024px){
   /* O véu fecha mais cedo e mais forte: a coluna ocupa proporcionalmente mais
@@ -351,13 +325,41 @@ ${ABRE}
       rgba(18,15,11,0)   92%);
   }
   .mel-hh-sub{ max-width:30ch }
+
+  /* O CTA de contorno ganha mais fundo próprio aqui — 15/08/2026. MELHORIA
+     PARCIAL, e está registrado como parcial de propósito.
+
+     O que foi medido: com o alfa de .28 do desktop, três execuções do
+     qa-hero-home deram 4,48 / 4,62 / 4,64 no 390 e 4,73 no 810, contra o
+     mínimo de 4,5 — uma delas reprovou. Não é ruído da medição, a margem é
+     fina mesmo. Com .38 os valores típicos subiram para a faixa de 5,5 a 8.
+
+     O QUE ISTO NÃO RESOLVE. O fundo é filme, e o QA sorteia quadros: numa
+     execução posterior um quadro mais claro no 810 ainda devolveu 4,54. E a
+     conta mostra que perseguir isso por alfa não fecha — contra um quadro
+     BRANCO, .38 dá 2,33, .52 dá 3,58 e nem .60 chega a 4,7. O alfa que
+     garantiria qualquer quadro transforma o botão de contorno num botão
+     preenchido, que passa a competir com o CTA principal em mel. Isso é
+     decisão de desenho, não de implementação, e está aberta com o cliente.
+
+     Por que só abaixo de 1024: no desktop o mesmo botão mede de 6 a 8:1, então
+     escurecer lá seria mexer no desenho sem motivo. O contorno e o texto
+     continuam papel; o que muda é quanto de filme aparece dentro do botão. */
+  .mel-hh-cta-linha{ background:rgba(18,15,11,.38) }
 }
 
 @media (max-width:809.98px){
   /* A navbar tem 81px e fica POR CIMA do topo da página — o mesmo padding de
      104px das internas, pela mesma razão. */
-  .mel-hh-in{ padding:104px 20px clamp(70px,10vh,96px) }
-  .mel-hh{ align-items:center }
+  /* 16px e não 20px: é o gutter que .mel-sec assume nesta mesma quebra
+     (max-width:809.98px). Com 20 o hero ficava 4px fora da coluna do resto da
+     página no celular — pouco, e mesmo assim visível quando se rola de uma
+     seção para a outra e a margem "pula". */
+  .mel-hh-in{ padding:104px 16px clamp(70px,10vh,96px) }
+  /* Mesma âncora do desktop. O padding-top de 104px continua valendo como piso
+     contra a navbar: com o bloco no pé ele não empurra o texto para baixo, só
+     impede que uma coluna alta encoste na barra quando a tela é curta. */
+  .mel-hh{ align-items:flex-end }
   /* Em retrato o véu passa a ser vertical: a coluna ocupa a largura toda, e um
      gradiente horizontal deixaria o fim de cada linha sem cobertura. */
   .mel-hh-veu{
@@ -374,9 +376,6 @@ ${ABRE}
 
 @media (prefers-reduced-motion:reduce){
   .mel-hh-selo, .mel-hh-tit, .mel-hh-sub, .mel-hh-ctas{ animation:none }
-  /* O translateX do indicador é POSIÇÃO, não movimento: reposto na mão, senão
-     o "animation:none" o devolveria para o meio deslocado meia largura. */
-  .mel-hh-role{ animation:none; transform:translateX(-50%) }
 }
 ${FECHA}
 `;

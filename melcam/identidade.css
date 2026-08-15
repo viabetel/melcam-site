@@ -550,6 +550,191 @@ a[data-framer-name="Polen"]:has(.mel-polen-cor[data-i="6"]:hover) .mel-polen-leg
 }
 
 
+/* ============ OS DESTAQUES DA BEE VIRAM ESCOLHA — 15/08/2026 ============
+   Pedido do cliente: o mesmo hover da Polen na coluna da Bee, "em relacao ao
+   key feature".
+
+   O EIXO E OUTRO, DE PROPOSITO. Na Polen o leque e de CORES, porque sao sete e
+   a escolha de cor e a decisao do produto. Na Bee sao duas cores, e "somente
+   amarela e branca" e requisito registrado do cliente — um leque de dois nao e
+   leque, e transformar duas variantes em sete faixas seria inventar produto.
+   Entao o eixo aqui e o que o pedido nomeia: os DESTAQUES. Quatro, um por foto
+   que o acervo ja tem, com a copy saindo de tools/bee.js — a origem de cada
+   frase esta escrita ao lado dela em FEATURES, neste arquivo.
+
+   AS DUAS CORES NAO SUMIRAM: desceram para a linha do preco, em miniatura.
+
+   As regras por indice no fim do bloco sao geradas por cssFeatures(). */
+.mel-bee-troca{
+  position:absolute; top:34%; left:0; right:0; bottom:0; z-index:1;
+  pointer-events:none; border-radius:inherit; overflow:hidden;
+}
+.mel-bee-troca img{
+  position:absolute; top:0; bottom:0; height:100%;
+  object-fit:cover; object-position:50% 50%;
+  transition:left 480ms cubic-bezier(.22,.61,.36,1),
+             width 480ms cubic-bezier(.22,.61,.36,1),
+             opacity 360ms ease;
+}
+a[data-framer-name="Bee"]:has(.mel-bee-cor:hover) .mel-bee-troca img{ opacity:0 }
+
+/* A foto original do template sai de cena: quem desenha a area agora e o
+   leque. Ela fica no DOM, como manda a casa. */
+body:not(.mel-interna) a[data-framer-name="Bee"]:has(.mel-bee-troca) [data-framer-name="Image"]{
+  opacity:0;
+}
+
+/* O veu e mel, e nao a cor do destaque: aqui nao ha cor por item que faca
+   sentido tingir. Ele so aquece a metade de cima do cartao, onde o leque nao
+   chega, para a revelacao nao parecer um retangulo de foto trocando sozinho. */
+.mel-bee-veu{
+  position:absolute; inset:0; z-index:1; pointer-events:none;
+  opacity:0; background:#F2A900; border-radius:inherit;
+  transition:opacity 420ms cubic-bezier(.22,.61,.36,1);
+}
+a[data-framer-name="Bee"]:has(.mel-bee-cor:hover) .mel-bee-veu{ opacity:.10 }
+
+/* OS CHIPS SAO ETIQUETA, NAO BOTAO — e o desenho tem de dizer isso sozinho.
+   Sem hover, sem cursor, sem sombra externa: quem escolhe no cartao e a cor,
+   e dois alvos disputando a mesma intencao e o que faz uma interface parecer
+   rascunho. Eles sao elasticos porque quatro chips de texto com largura de
+   conteudo estouram o cartao em 390px. */
+.mel-bee-chips{
+  display:flex; flex-wrap:wrap; justify-content:center;
+  gap:.34rem; width:100%; pointer-events:none;
+}
+.mel-bee-chip{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:0; padding:.3rem .62rem; border-radius:999px;
+  background:rgba(251,247,238,.07);
+  box-shadow:inset 0 0 0 1px rgba(251,247,238,.16);
+  color:rgba(251,247,238,.88);
+  font-family:"Area",sans-serif; font-size:.66rem; font-weight:600;
+  letter-spacing:.05em; line-height:1.1; white-space:nowrap;
+}
+
+/* OS SWATCHES SAO A ESCOLHA. Mesmo vocabulario do .mel-polen-cor: crescem sob
+   o ponteiro, ganham anel na propria cor, e os vizinhos recuam para a escolha
+   parecer escolha. Crescem para CIMA (transform-origin no rodape) porque para
+   baixo bateriam no preco — a mesma armadilha ja medida na Polen. */
+/* 🔴 pointer-events:auto E OBRIGATORIO AQUI. A .mel-bee-tira inteira e
+   pointer-events:none, para o clique continuar sendo o do <a> que envolve o
+   cartao — e sem devolver o ponteiro aos swatches eles nunca recebem :hover.
+   Medido: o leque ficava travado em 50%/50% com a legenda em opacity 0, e a
+   Polen (que ja tinha pointer-events:auto em .mel-polen-cores) abria normal. */
+.mel-bee-cores{ pointer-events:auto }
+.mel-bee-cor{
+  display:block; flex:none; width:2.35rem; height:2.35rem;
+  border-radius:5px; position:relative; overflow:visible;
+  box-shadow:0 0 0 1px rgba(251,247,238,.10);
+  transition:transform 380ms cubic-bezier(.22,.61,.36,1),
+             box-shadow 380ms ease, opacity 380ms ease;
+  transform-origin:50% 100%;
+}
+.mel-bee-cor img{
+  width:100%; height:100%; object-fit:cover; display:block; border-radius:5px;
+}
+.mel-bee-cor:hover{
+  transform:scale(1.22) translateY(-2px);
+  box-shadow:0 6px 18px rgba(0,0,0,.45), 0 0 0 2px var(--mel-cor,#F2A900);
+  z-index:2;
+}
+a[data-framer-name="Bee"]:has(.mel-bee-cor:hover) .mel-bee-cor:not(:hover){
+  transform:scale(.94); opacity:.6;
+}
+
+/* A legenda ocupa o lugar mesmo vazia: sem isso a tira pula de altura quando o
+   texto aparece e os chips se mexem debaixo do ponteiro. */
+.mel-bee-legenda{
+  display:block; min-height:1.05rem; margin-bottom:.45rem;
+  font-family:"Area",sans-serif; font-size:.72rem; font-weight:600;
+  letter-spacing:.02em; text-align:center; color:#FBF7EE;
+  opacity:0; transition:opacity 260ms ease;
+  text-shadow:0 1px 6px rgba(34,30,23,.9);
+}
+a[data-framer-name="Bee"]:has(.mel-bee-cor:hover) .mel-bee-legenda{ opacity:1 }
+
+/* 🔴 NAO DECLARAR position AQUI. A .mel-bee-tira e ABSOLUTA no rodape do
+   cartao, e o motivo esta no bloco "card da Bee na home" do identidade.js: o
+   cartao tem altura fixa por aspect-ratio e nao cresce, entao em fluxo a tira
+   era cortada e dava 0x0. Custou uma captura para lembrar — a primeira versao
+   deste bloco escrevia "position:relative" e jogava a tira para o meio do
+   cartao, com o scrim virando um retangulo de bordas duras sobre o leque.
+
+   O QUE MUDA AQUI E SO O RESPIRO. A tira ganhou duas faixas novas (a legenda e
+   os chips), entao a rampa do scrim precisa comecar mais cedo: com os 2.6rem
+   originais ela nascia no meio dos chips e a metade de cima deles ficava sobre
+   foto crua. */
+.mel-bee-tira{ padding-top:4.2rem }
+.mel-bee-chips{ margin-bottom:.85rem }
+.mel-bee-linha .mel-bee-cores{ display:flex; flex:none; gap:.36rem }
+
+.mel-bee-cor[data-i="0"]{ --mel-cor:#F2A900 }
+.mel-bee-troca img[data-i="0"]{ left:0.0000%; width:50.0000% }
+a[data-framer-name="Bee"]:has(.mel-bee-cor[data-i="0"]:hover) .mel-bee-troca img[data-i="0"]{ left:0; width:100%; opacity:1; z-index:2 }
+a[data-framer-name="Bee"]:has(.mel-bee-cor[data-i="0"]:hover) .mel-bee-legenda::after{ content:"Bee Amarela" }
+.mel-bee-cor[data-i="1"]{ --mel-cor:#4F86C6 }
+.mel-bee-troca img[data-i="1"]{ left:50.0000%; width:50.0000% }
+a[data-framer-name="Bee"]:has(.mel-bee-cor[data-i="1"]:hover) .mel-bee-troca img[data-i="1"]{ left:0; width:100%; opacity:1; z-index:2 }
+a[data-framer-name="Bee"]:has(.mel-bee-cor[data-i="1"]:hover) .mel-bee-legenda::after{ content:"Bee Branca" }
+
+@media (hover:none){
+  .mel-bee-legenda{ display:none }
+}
+/* ---- A FOTO ABERTA NAO PODE CORTAR O PRODUTO — 15/08/2026 ----
+   Relatado pelo cliente na Polen e valido para as duas colunas. Medido: os
+   packshots sao quadrados (800x800) e a area do leque e 437x331 (proporcao
+   1,32). Com cover a foto escala pela largura e perde 24% na vertical — o que
+   sai do quadro e justamente o topo e a base da camera, ou seja, a peca que o
+   cartao existe para mostrar. Em repouso isso nao incomoda, porque a faixa e
+   estreita e le como composicao; ABERTA, o corte fica na cara.
+
+   Contain so no estado aberto: a faixa em repouso continua sendo cover, senao
+   sete miniaturas contidas viram sete selos flutuando com vao entre eles, e o
+   leque deixa de ser um fundo continuo. O fundo colorido de cada packshot
+   preenche o quadrado central; o que sobra nas laterais e o proprio cartao.
+
+   ⚠️ POR QUE A REGRA DA POLEN MORA NO ARQUIVO DA BEE. A folha e montada em
+   camadas e este bloco e o unico caminho cirurgico que existe hoje para
+   publicar CSS novo na grade sem reescrever a folha inteira (ver o cabecalho
+   do sincronizar-grade-bee.js). Quando a base for regerada, as duas regras
+   voltam para o lugar natural delas no identidade.js. */
+a[data-framer-name="Polen"]:has(.mel-polen-cor:hover) .mel-polen-troca img[data-i],
+a[data-framer-name="Bee"]:has(.mel-bee-cor:hover) .mel-bee-troca img[data-i]{
+  object-fit:contain;
+  object-position:50% 50%;
+}
+
+/* ---- A FOTO DO CARD DE ACESSORIOS — 15/08/2026 ----
+   Dois defeitos, os dois relatados pelo cliente e confirmados por medicao:
+
+   1. ASSUNTO ERRADO. O cartao diz "Acessorios" e mostrava a propria camera
+      (bee-amarela-angulo-corrente). Agora mostra a CAIXA, que e o que o
+      cliente recebe junto — cabo, corrente e embalagem — e portanto o que a
+      categoria promete.
+
+   2. CORTE. A caixa da foto e 437x149 (proporcao 2,94) e a imagem anterior era
+      1072x620 (1,73): o cover jogava fora 41% dela, decepando a camera no
+      canto e cortando a corrente ao meio. Medido, nao estimado.
+
+   A saida NAO e outro object-position. bee-amarela-caixa.png e um recorte com
+   alfa real (ver o cabecalho de tools/bee.js), e recorte com alfa dentro de um
+   cover e desperdicio garantido: nao existe enquadramento que caiba 1,25 em
+   2,94 sem cortar. Com contain a peca aparece inteira, flutuando sobre o fundo
+   do cartao, que e exatamente como um packshot recortado deve ser apresentado.
+   Zero por cento descartado. */
+body:not(.mel-interna) div[data-framer-name="Header Grid"] a[data-framer-name="Sneakers"] img{
+  object-fit:contain !important;
+  object-position:50% 100% !important;
+}
+
+@media (prefers-reduced-motion:reduce){
+  .mel-bee-troca img,.mel-bee-veu,.mel-bee-cor,.mel-bee-legenda{ transition:none }
+  .mel-bee-cor:hover{ transform:none }
+}
+/* ============ fim dos destaques da Bee ============ */
+
+
 /* ============ SOBRE NÓS: a faixa em obturador — 14/08/2026 ============
    O card institucional saiu da grade de produtos (ver tools/sobre-faixa.js) e
    virou faixa propria entre "A Melcam por ai" e o fechamento. Aqui esta so o
@@ -2014,38 +2199,31 @@ body.mel-interna .mel-sobre{ display:none !important }
    TEMA DA NAVBAR, logo abaixo. Os dois assuntos moram juntos porque são a
    mesma barra, e porque o botão de conta é um dos elementos que invertem. */
 
-/* ============ TEMA DA NAVBAR: inversão por região — 14/08/2026 ============
-   O PDF pede header fixo com inversão dinâmica: marca, tipografia e ícones
-   claros sobre fundo escuro, escuros sobre fundo claro, conforme a rolagem.
+/* ============ TEMA DA NAVBAR: UMA COR SÓ, CARVÃO — 15/08/2026 ============
+   DECISÃO DO CLIENTE, em 15/08: a barra é carvão em todo o site, sempre.
 
-   O QUE HAVIA ANTES, e por que não bastava. A navbar era carvão com tinta de
-   papel em todo o site, e a /bee tinha um bloco próprio que a virava do avesso
-   — papel com tinta de carvão — **na página inteira**. Isso resolvia a primeira
-   dobra da /bee, que é clara, e criava outro defeito adiante: de "Destaques"
-   para baixo a /bee volta ao editorial escuro, e ali a barra clara virava uma
-   lasca acesa atravessando uma página escura. Medido em /bee, scrollY 2500:
-   fundo da nav rgb(251,247,238) sobre uma seção rgb(34,30,23).
+   O QUE ISTO SUBSTITUI. De 14/08 até aqui a barra invertia por região: quem
+   fosse claro levava data-mel-tema="claro" no HTML, a /bee abria clara por
+   classe, e um controlador em JS escrevia html[data-mel-nav] conforme a
+   rolagem. Funcionava e era medido — mas o cliente lia as duas caras como
+   "dois headers diferentes", e a inversão dependia de a barra estar visível
+   para ser percebida como intencional. Uma cor só resolve a leitura.
 
-   COMO O TEMA É DECIDIDO. Não por página, não por índice de seção, não por
-   "primeira seção" e não por cor lida do fundo — todas essas quebram quando
-   uma página mistura claro e escuro, que é justamente o caso da /bee e o da
-   grade de produtos da home. Quem decide é uma **região explicitamente
-   marcada**: só quem é claro leva data-mel-tema="claro" no HTML. O resto do
-   site é escuro e continua sendo o padrão, sem marcação nenhuma.
+   POR QUE ISTO É SEGURO DE CONTRASTE. A barra tem fundo sólido próprio: o que
+   está atrás dela não participa da conta. Papel sobre carvão dá 15,5:1 nos
+   rótulos — o mesmo número que o qa-navbar-tema já media nas seis rotas, em
+   todas as amostras. Não existe seção do site onde essa barra fique ilegível,
+   porque não existe seção que atravesse o fundo dela.
 
-   TRÊS CAMADAS, NESTA ORDEM DE PRECEDÊNCIA:
-     1  os tokens em body — o escuro, que vale para tudo;
-     2  o padrão da página, por classe (body.mel-pagina-bee abre em claro).
-        É ELE que garante contraste certo no PRIMEIRO PAINT, sem JavaScript:
-        a barra já nasce com o tema da região que estará debaixo dela em
-        scrollY 0;
-     3  html[data-mel-nav], escrito pelo controlador. Vence a camada 2 por
-        construção — "html[...] body" tem uma especificidade a mais que
-        "body.classe" —, então nunca precisou de !important para se impor.
+   O QUE FICOU INERTE, DE PROPÓSITO E NÃO POR ESQUECIMENTO:
+     - as marcas data-mel-tema="claro" continuam no HTML (grade da home, /bee).
+       Não custam nada, e são o caminho de volta se a inversão for retomada;
+     - iniciarTemaNavbar() sai na porta em hero-carrossel.js, com o motivo
+       escrito lá. Nenhum atributo data-mel-nav é escrito, então não há estado
+       morto no <html>.
 
-   As regras abaixo consomem só os tokens. Nenhuma cor nova entra: os valores
-   claros são os mesmos que a /bee já usava, e os escuros são os que a barra já
-   tinha, medidos antes de mexer (fundo rgb(34,30,23), tinta rgb(251,247,238)). */
+   O antigo realce claro (#8A6A12) sai junto: ele existia para o mel não sumir
+   sobre papel, e não há mais barra de papel. */
 body{
   --mel-nav-fundo:#221E17;
   --mel-nav-tinta:#FBF7EE;
@@ -2053,35 +2231,8 @@ body{
   --mel-nav-realce-fundo:rgba(251,247,238,.10);
   --mel-nav-borda:rgba(0,0,0,.05);
   --mel-nav-foco:#F2A900;
-  /* O selo da sacola não inverte junto com a tinta: no escuro ele é mel sobre
-     carvão, no claro ele é carvão sobre papel. Nos dois casos o anel é da cor
-     da barra, que é o que o recorta do ícone. */
-  --mel-nav-selo-fundo:#F2A900;
-  --mel-nav-selo-tinta:#221E17;
-}
-/* O tema claro, num lugar só. #8A6A12 é o realce: mel sobre papel dá 1,88:1 e
-   sumiria; este dá 4,73:1, e é o mesmo eyebrow que a /bee já usa. */
-body.mel-pagina-bee,
-html[data-mel-nav="claro"] body{
-  --mel-nav-fundo:#FBF7EE;
-  --mel-nav-tinta:#221E17;
-  --mel-nav-realce:#8A6A12;
-  --mel-nav-realce-fundo:rgba(34,30,23,.06);
-  --mel-nav-borda:rgba(34,30,23,.12);
-  --mel-nav-foco:#221E17;
-  --mel-nav-selo-fundo:#221E17;
-  --mel-nav-selo-tinta:#FBF7EE;
-}
-/* E o caminho de volta: o controlador precisa conseguir DESFAZER o padrão
-   claro de uma página quando a barra sai da região clara. Sem esta regra a
-   /bee ficaria presa no claro, que é exatamente o defeito de origem. */
-html[data-mel-nav="escuro"] body{
-  --mel-nav-fundo:#221E17;
-  --mel-nav-tinta:#FBF7EE;
-  --mel-nav-realce:#F2A900;
-  --mel-nav-realce-fundo:rgba(251,247,238,.10);
-  --mel-nav-borda:rgba(0,0,0,.05);
-  --mel-nav-foco:#F2A900;
+  /* O selo da sacola é mel sobre carvão, e o anel é da cor da barra, que é o
+     que o recorta do ícone. */
   --mel-nav-selo-fundo:#F2A900;
   --mel-nav-selo-tinta:#221E17;
 }
@@ -3212,9 +3363,16 @@ body.mel-pagina-polen [data-mel="polen-story"] .mel-polen-story-etiq{
    nenhum deles. A navbar não entra nessa conta porque este bloco NÃO RECEBE
    PONTEIRO — pointer-events:none no envelope, auto só nos dois links. Mesmo
    cobrindo a faixa dela em geometria, não há clique que ele possa roubar. */
+/* align-items:flex-end desde 15/08/2026 — pedido do cliente, "título nunca fica
+   em cima". Era "center", que punha a manchete em y338 numa hero de 900px, ou
+   seja, no terço superior. Ancorado no pé, quem define o respiro até a base é o
+   padding-bottom do .mel-hh-in, que já existia; não há número novo aqui.
+
+   O rodapé ficou livre porque o indicador de rolagem saiu na mesma passada — se
+   os dois convivessem, a coluna de texto cairia em cima dele. */
 .mel-hh{
   position:absolute; inset:0; z-index:2;
-  display:flex; align-items:center;
+  display:flex; align-items:flex-end;
   pointer-events:none;
 }
 
@@ -3260,12 +3418,22 @@ body.mel-pagina-polen [data-mel="polen-story"] .mel-polen-story-etiq{
     rgba(18,15,11,0)   78%);
 }
 
-/* A mesma caixa de conteúdo da /bee: 1240px com 24px de respiro. Em 1440 isso
-   põe a coluna em x124, que é onde a referência a coloca. Reaproveitar a
-   medida em vez de cravar um px novo mantém a home alinhada com as internas. */
+/* A COLUNA É A MESMA DO RESTO DA HOME — corrigido em 15/08/2026.
+   Era 1240px, herdado da /bee, e isso punha a coluna do hero em x124 numa tela
+   de 1440 enquanto as seções logo abaixo começavam em x24: 100px de desencontro,
+   que é o que o cliente viu.
+
+   A grade canônica do projeto já estava escrita no comunidade.js — "largura
+   1440, gutter 24" — e é o que .mel-sec aplica no carrossel, no "Por onde a
+   Melcam passou" e nos selos de garantia. Aqui a caixa passa a ser a MESMA
+   declaração, não um número parecido: max-width 1440 com 24px de gutter, e 16px
+   abaixo de 810 (o mesmo degrau que .mel-sec faz na mesma quebra).
+
+   Medido depois: hero e .mel-sec começam no mesmo x em 1920, 1440, 1280, 810
+   e 390. O padding-bottom continua sendo o respiro do título ancorado no pé. */
 .mel-hh-in{
   position:relative;
-  width:100%; max-width:1240px; margin:0 auto;
+  width:100%; max-width:1440px; margin:0 auto;
   padding:0 24px clamp(56px,7vh,88px);
   display:flex; flex-direction:column; align-items:flex-start;
 }
@@ -3333,48 +3501,15 @@ body.mel-pagina-polen [data-mel="polen-story"] .mel-polen-story-etiq{
 }
 .mel-hh-cta-linha:hover{ background:rgba(251,247,238,.16); border-color:#FBF7EE }
 
-/* --- o indicador de rolagem ---
-   Centralizado na hero inteira, não na coluna de texto: na referência ele fica
-   no meio da tela, e é dica de página, não do bloco. */
-.mel-hh-role{
-  position:absolute; left:50%; bottom:clamp(18px,3vh,34px);
-  transform:translateX(-50%);
-  isolation:isolate;
-  display:flex; flex-direction:column; align-items:center; gap:9px;
-  color:rgba(251,247,238,.78);
-  font-family:"Area",sans-serif; font-size:.66rem; font-weight:500;
-  letter-spacing:.22em; text-transform:uppercase;
-  text-shadow:0 1px 12px rgba(18,15,11,.6);
-  pointer-events:none;
-}
-/* O indicador fica no MEIO da tela, e ali o véu já acabou — ele termina em
-   transparente aos 78%. Sem nada atrás, o fundo é a camisa amarela do filme:
-   rgb(162,160,5), que contra o papel dá 2,60:1.
+/* O INDICADOR DE ROLAGEM SAIU — 15/08/2026, a pedido do cliente.
+   Saíram com ele a elipse de contraste que o sustentava sobre a camisa amarela
+   do filme, o traço vertical e o keyframe próprio (melHhSobeCentro), que existia
+   só porque o translateX(-50%) do centro não sobrevivia ao "transform:none" do
+   melHhSobe. Nada mais na folha usa esse keyframe.
 
-   A resposta é local e do tamanho da peça, não mais véu: uma elipse suave
-   presa ao próprio indicador. Medida em seis quadros distintos do filme, em
-   quatro janelas, ela entrega de 8,7:1 a 12,6:1 no pior caso de cada uma —
-   folga, e não empate no mínimo.
-
-   O isolation:isolate acima existe para o z-index:-1 daqui parar no
-   indicador: sem ele, o pseudo desceria para trás do véu e do vídeo. */
-.mel-hh-role::before{
-  content:""; position:absolute; z-index:-1;
-  left:50%; top:50%; transform:translate(-50%,-50%);
-  width:220px; height:136px; pointer-events:none;
-  /* closest-side, e não o farthest-corner que o radial-gradient assume sozinho.
-     Com o padrão, a elipse é dimensionada pela DIAGONAL (129px numa caixa de
-     220x136), então no meio de cada lado ela ainda tem alfa e o desenho termina
-     no corte reto da caixa: aparecia um retângulo escuro no meio da cena. Com
-     closest-side os raios viram 110 e 68, que é a caixa inscrita, e a tinta
-     chega a zero antes da borda em todas as direções. */
-  background:radial-gradient(closest-side ellipse at center,
-    rgba(18,15,11,.50) 0%, rgba(18,15,11,.42) 44%, rgba(18,15,11,0) 100%);
-}
-.mel-hh-role i{
-  display:block; width:1px; height:clamp(22px,3.4vh,34px);
-  background:linear-gradient(to bottom, rgba(251,247,238,.72), rgba(251,247,238,0));
-}
+   Ele era aria-hidden e pointer-events:none, então não havia navegação nem
+   leitura de tela apoiada nele. O rodapé da hero que ele ocupava é justamente
+   onde a coluna de texto passou a morar — ver o align-items acima. */
 
 /* Entrada em CSS puro, com "both", pela mesma razão da /bee: se o script
    falhar o conteúdo aparece do mesmo jeito. */
@@ -3387,16 +3522,6 @@ body.mel-pagina-polen [data-mel="polen-story"] .mel-polen-story-etiq{
 .mel-hh-tit { animation-delay:220ms }
 .mel-hh-sub { animation-delay:330ms }
 .mel-hh-ctas{ animation-delay:430ms }
-/* O indicador NÃO pode usar melHhSobe: aquele keyframe termina em
-   transform:none e apagaria o translateX(-50%) que o centra. Medido antes de
-   perceber: a caixa saía em x720 com 45px de largura, ou seja, encostada no
-   meio pela ESQUERDA em vez de centrada nele — 22px fora. É a mesma armadilha
-   já registrada no vídeo do retrato da /bee. */
-@keyframes melHhSobeCentro{
-  from{ opacity:0; transform:translate(-50%,18px) }
-  to  { opacity:1; transform:translateX(-50%) }
-}
-.mel-hh-role{ animation:melHhSobeCentro 700ms cubic-bezier(.22,.61,.36,1) 620ms both }
 
 @media (max-width:1024px){
   /* O véu fecha mais cedo e mais forte: a coluna ocupa proporcionalmente mais
@@ -3409,13 +3534,41 @@ body.mel-pagina-polen [data-mel="polen-story"] .mel-polen-story-etiq{
       rgba(18,15,11,0)   92%);
   }
   .mel-hh-sub{ max-width:30ch }
+
+  /* O CTA de contorno ganha mais fundo próprio aqui — 15/08/2026. MELHORIA
+     PARCIAL, e está registrado como parcial de propósito.
+
+     O que foi medido: com o alfa de .28 do desktop, três execuções do
+     qa-hero-home deram 4,48 / 4,62 / 4,64 no 390 e 4,73 no 810, contra o
+     mínimo de 4,5 — uma delas reprovou. Não é ruído da medição, a margem é
+     fina mesmo. Com .38 os valores típicos subiram para a faixa de 5,5 a 8.
+
+     O QUE ISTO NÃO RESOLVE. O fundo é filme, e o QA sorteia quadros: numa
+     execução posterior um quadro mais claro no 810 ainda devolveu 4,54. E a
+     conta mostra que perseguir isso por alfa não fecha — contra um quadro
+     BRANCO, .38 dá 2,33, .52 dá 3,58 e nem .60 chega a 4,7. O alfa que
+     garantiria qualquer quadro transforma o botão de contorno num botão
+     preenchido, que passa a competir com o CTA principal em mel. Isso é
+     decisão de desenho, não de implementação, e está aberta com o cliente.
+
+     Por que só abaixo de 1024: no desktop o mesmo botão mede de 6 a 8:1, então
+     escurecer lá seria mexer no desenho sem motivo. O contorno e o texto
+     continuam papel; o que muda é quanto de filme aparece dentro do botão. */
+  .mel-hh-cta-linha{ background:rgba(18,15,11,.38) }
 }
 
 @media (max-width:809.98px){
   /* A navbar tem 81px e fica POR CIMA do topo da página — o mesmo padding de
      104px das internas, pela mesma razão. */
-  .mel-hh-in{ padding:104px 20px clamp(70px,10vh,96px) }
-  .mel-hh{ align-items:center }
+  /* 16px e não 20px: é o gutter que .mel-sec assume nesta mesma quebra
+     (max-width:809.98px). Com 20 o hero ficava 4px fora da coluna do resto da
+     página no celular — pouco, e mesmo assim visível quando se rola de uma
+     seção para a outra e a margem "pula". */
+  .mel-hh-in{ padding:104px 16px clamp(70px,10vh,96px) }
+  /* Mesma âncora do desktop. O padding-top de 104px continua valendo como piso
+     contra a navbar: com o bloco no pé ele não empurra o texto para baixo, só
+     impede que uma coluna alta encoste na barra quando a tela é curta. */
+  .mel-hh{ align-items:flex-end }
   /* Em retrato o véu passa a ser vertical: a coluna ocupa a largura toda, e um
      gradiente horizontal deixaria o fim de cada linha sem cobertura. */
   .mel-hh-veu{
@@ -3432,11 +3585,12 @@ body.mel-pagina-polen [data-mel="polen-story"] .mel-polen-story-etiq{
 
 @media (prefers-reduced-motion:reduce){
   .mel-hh-selo, .mel-hh-tit, .mel-hh-sub, .mel-hh-ctas{ animation:none }
-  /* O translateX do indicador é POSIÇÃO, não movimento: reposto na mão, senão
-     o "animation:none" o devolveria para o meio deslocado meia largura. */
-  .mel-hh-role{ animation:none; transform:translateX(-50%) }
 }
 /* ============ fim do bloco de texto da hero da home ============ */
+
+
+
+
 
 
 /* ================== /bee — hero premium e claro ==================

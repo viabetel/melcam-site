@@ -251,6 +251,23 @@ const MENU_NA_FRENTE = `(function(){
       await Promise.race([ok, dormir(30000)]);
       await dormir(2000);
 
+      // ESPERA O CONTROLADOR, E NÃO O RELÓGIO. Numa execução de 15/08 a
+      // PRIMEIRA carga de um navegador frio não coube nos 2s acima: a sonda
+      // rolou antes de iniciarNavRetratil estar de pé e o teste acusou "a barra
+      // não se escondeu" numa página onde ela se esconde — conferido logo
+      // depois, isolado, passando duas vezes. Dormir mais só empurra o
+      // problema; o sinal certo é o controlador ter escrito o transition inline
+      // na barra, que é a última coisa que ele faz ao iniciar.
+      for (let t = 0; t < 50; t++) {
+        const pronto = await av(`(() => {
+          var b = document.querySelector('[data-framer-name="Meniu"]');
+          while (b && getComputedStyle(b).position !== 'fixed') b = b.parentElement;
+          return !!(b && b.style.transition);
+        })()`);
+        if (pronto) break;
+        await dormir(100);
+      }
+
       const topo = await av(SONDA);
 
       // rolando para baixo: a barra tem de se esconder (pedido do cliente) e
@@ -258,16 +275,25 @@ const MENU_NA_FRENTE = `(function(){
       await av('window.scrollTo(0,900)');
       await dormir(800);
       const rolado = await av(APOS_ROLAR);
-      // A volta tem dois caminhos, e cada máquina tem o seu: no toque, rolar
-      // para cima; com mouse, aproximar do topo. A sonda percorre o caminho
-      // que vale para o ambiente em que está rodando.
+      // A VOLTA É UMA SÓ, EM TODO APARELHO, DESDE 15/08: rolar para cima.
+      // Até aqui este teste AJUDAVA a barra com um mouseMoved quando a máquina
+      // tinha ponteiro — e era isso que escondia o defeito relatado pelo
+      // cliente: no desktop a barra só voltava pelo ponteiro, e o QA passava
+      // porque ele mesmo fazia o gesto que faltava. Sem ajuda nenhuma agora.
       await av('window.scrollTo(0,520)');
       await dormir(800);
-      if (rolado.temMouse) {
-        await c.enviar('Input.dispatchMouseEvent', { type: 'mouseMoved', x: Math.round(w / 2), y: 20 });
-        await dormir(600);
-      }
       const voltou = await av(APOS_ROLAR);
+
+      // O atalho do ponteiro continua valendo onde há ponteiro, e é testado
+      // DEPOIS e em separado, para nunca mais mascarar o caminho principal.
+      let atalho = null;
+      if (rolado.temMouse) {
+        await av('window.scrollTo(0,900)');
+        await dormir(800);
+        await c.enviar('Input.dispatchMouseEvent', { type: 'mouseMoved', x: Math.round(w / 2), y: 20 });
+        await dormir(700);
+        atalho = await av(APOS_ROLAR);
+      }
       await av('window.scrollTo(0,0)');
       await dormir(700);
 
@@ -286,7 +312,7 @@ const MENU_NA_FRENTE = `(function(){
         await dormir(400);
       }
 
-      saida.rotas[rota][w] = { topo, rolado, voltou, menu, console: problemas };
+      saida.rotas[rota][w] = { topo, rolado, voltou, atalho, menu, console: problemas };
 
       // veredito por largura
       const mortos = (topo.controles || []).filter((x) => !x.recebeClique);
@@ -296,7 +322,12 @@ const MENU_NA_FRENTE = `(function(){
       if (topo.prisoes.length) falhas.push(rota + ' @' + w + ': faixa presa por ' + JSON.stringify(topo.prisoes));
       if (topo.faixaCobreConteudo) falhas.push(rota + ' @' + w + ': conteúdo atrás da faixa — ' + topo.conteudoCoberto.join(', '));
       if (!rolado.presaNaJanela) falhas.push(rota + ' @' + w + ': a faixa perdeu o position:fixed ao rolar');
+      // Descer tem que esconder: sem isto o "voltou" passaria de graça, porque
+      // uma barra que nunca sai também nunca deixa de estar visível.
+      if (!rolado.escondida) falhas.push(rota + ' @' + w + ': rolando para baixo a barra não se escondeu');
       if (!voltou.clicavel) falhas.push(rota + ' @' + w + ': rolando para cima a barra não volta clicável');
+      if (voltou.escondida) falhas.push(rota + ' @' + w + ': rolando para cima a barra continua escondida');
+      if (atalho && atalho.escondida) falhas.push(rota + ' @' + w + ': o ponteiro perto do topo não traz a barra de volta');
       if (menu.abriu && menu.pontosCobertos < 3) falhas.push(rota + ' @' + w + ': menu abriu atrás do conteúdo');
       if (menu.abriu && !menu.dentroDaTela) falhas.push(rota + ' @' + w + ': menu sai da tela');
       if (pequenos.length) falhas.push(rota + ' @' + w + ': alvo de toque < 24px em ' + pequenos.map((p) => p.rot).join(', '));

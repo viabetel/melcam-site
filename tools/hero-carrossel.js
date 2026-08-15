@@ -504,17 +504,31 @@ function js() {
     requestAnimationFrame(passo);
   }
 
-  /* ---------------- nav some ao rolar, volta com o mouse ----------------
-     Pedido do cliente: rolou, a barra sai; o mouse chegando perto do topo, ela
-     volta.
+  /* ---------------- nav some ao rolar, volta ao subir ----------------
+     Pedido do cliente: rolou para baixo, a barra sai; voltou a subir, ela
+     volta. O mouse chegando perto do topo tambem traz de volta.
+
+     ⚠️ CORRIGIDO EM 15/08/2026 — o "volta ao subir" valia SO NO TOQUE.
+     A condicao era "!temMouse && y < ultimoY", entao em qualquer maquina com
+     mouse (hover:hover e pointer:fine) rolar para cima nao trazia a barra: o
+     unico caminho de volta era passar o ponteiro nos 90px do topo. Era isso
+     que o cliente relatou como "ela nao aparece quando scrollamos para cima"
+     e como "a barra so aparece quando passo o mouse perto" — dois sintomas da
+     mesma linha. Desktop e celular tinham comportamentos diferentes sem que
+     nada no pedido pedisse essa diferenca.
+
+     Agora a regra e uma so, para todo aparelho: subiu, aparece. O ponteiro
+     perto do topo continua valendo onde existe ponteiro, mas como ATALHO a
+     mais e nao como unico caminho de volta: ele serve a quem esta parado no
+     meio da pagina e nao quer rolar so para alcancar o menu.
 
      Tres regras de seguranca em cima disso:
        - no topo da pagina (< 80px) a barra fica sempre visivel, senao a home
          abre sem navegacao;
        - com o menu aberto ela nao se esconde, senao o X sumia junto;
-       - quem nao tem mouse (toque) nunca dispararia o "chegar perto", entao
-         ali a barra volta ao rolar para cima — o padrao conhecido de header
-         retratil no celular. */
+       - rolagem menor que o limiar nao conta. Sem isso o tremido de trackpad e
+         a inercia do celular alternam mostrar/esconder no mesmo gesto, e a
+         barra pisca. O limiar acumula: passos de 3px somam ate cruzar. */
   function iniciarNavRetratil() {
     var barra = document.querySelector('[data-framer-name="Meniu"]');
     while (barra && getComputedStyle(barra).position !== 'fixed') barra = barra.parentElement;
@@ -522,6 +536,7 @@ function js() {
 
     var TOPO_SEGURO = 80;   // px de scroll em que a barra nunca some
     var PERTO = 90;         // px do topo da janela que contam como "mouse perto"
+    var LIMIAR = 6;         // px de rolagem que separam intencao de tremido
     var escondida = false;
     var ultimoY = window.scrollY;
     var temMouse = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -553,10 +568,11 @@ function js() {
 
     window.addEventListener('scroll', function () {
       var y = window.scrollY;
+      var d = y - ultimoY;
       if (y <= TOPO_SEGURO) mostrar();
-      else if (!temMouse && y < ultimoY) mostrar();  // rolou pra cima, no toque
-      else esconder();
-      ultimoY = y;
+      else if (d < -LIMIAR) mostrar();    // subiu: volta, em QUALQUER aparelho
+      else if (d > LIMIAR) esconder();    // desceu: sai
+      if (Math.abs(d) > LIMIAR) ultimoY = y;   // abaixo do limiar, ultimoY fica
     }, { passive: true });
 
     if (temMouse) {

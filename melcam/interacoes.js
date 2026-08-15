@@ -298,17 +298,31 @@
     requestAnimationFrame(passo);
   }
 
-  /* ---------------- nav some ao rolar, volta com o mouse ----------------
-     Pedido do cliente: rolou, a barra sai; o mouse chegando perto do topo, ela
-     volta.
+  /* ---------------- nav some ao rolar, volta ao subir ----------------
+     Pedido do cliente: rolou para baixo, a barra sai; voltou a subir, ela
+     volta. O mouse chegando perto do topo tambem traz de volta.
+
+     ⚠️ CORRIGIDO EM 15/08/2026 — o "volta ao subir" valia SO NO TOQUE.
+     A condicao era "!temMouse && y < ultimoY", entao em qualquer maquina com
+     mouse (hover:hover e pointer:fine) rolar para cima nao trazia a barra: o
+     unico caminho de volta era passar o ponteiro nos 90px do topo. Era isso
+     que o cliente relatou como "ela nao aparece quando scrollamos para cima"
+     e como "a barra so aparece quando passo o mouse perto" — dois sintomas da
+     mesma linha. Desktop e celular tinham comportamentos diferentes sem que
+     nada no pedido pedisse essa diferenca.
+
+     Agora a regra e uma so, para todo aparelho: subiu, aparece. O ponteiro
+     perto do topo continua valendo onde existe ponteiro, mas como ATALHO a
+     mais e nao como unico caminho de volta: ele serve a quem esta parado no
+     meio da pagina e nao quer rolar so para alcancar o menu.
 
      Tres regras de seguranca em cima disso:
        - no topo da pagina (< 80px) a barra fica sempre visivel, senao a home
          abre sem navegacao;
        - com o menu aberto ela nao se esconde, senao o X sumia junto;
-       - quem nao tem mouse (toque) nunca dispararia o "chegar perto", entao
-         ali a barra volta ao rolar para cima — o padrao conhecido de header
-         retratil no celular. */
+       - rolagem menor que o limiar nao conta. Sem isso o tremido de trackpad e
+         a inercia do celular alternam mostrar/esconder no mesmo gesto, e a
+         barra pisca. O limiar acumula: passos de 3px somam ate cruzar. */
   function iniciarNavRetratil() {
     var barra = document.querySelector('[data-framer-name="Meniu"]');
     while (barra && getComputedStyle(barra).position !== 'fixed') barra = barra.parentElement;
@@ -316,6 +330,7 @@
 
     var TOPO_SEGURO = 80;   // px de scroll em que a barra nunca some
     var PERTO = 90;         // px do topo da janela que contam como "mouse perto"
+    var LIMIAR = 6;         // px de rolagem que separam intencao de tremido
     var escondida = false;
     var ultimoY = window.scrollY;
     var temMouse = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -347,10 +362,11 @@
 
     window.addEventListener('scroll', function () {
       var y = window.scrollY;
+      var d = y - ultimoY;
       if (y <= TOPO_SEGURO) mostrar();
-      else if (!temMouse && y < ultimoY) mostrar();  // rolou pra cima, no toque
-      else esconder();
-      ultimoY = y;
+      else if (d < -LIMIAR) mostrar();    // subiu: volta, em QUALQUER aparelho
+      else if (d > LIMIAR) esconder();    // desceu: sai
+      if (Math.abs(d) > LIMIAR) ultimoY = y;   // abaixo do limiar, ultimoY fica
     }, { passive: true });
 
     if (temMouse) {
@@ -1238,7 +1254,21 @@
      demonstração local honesta) e o que falta para virar autenticação de
      verdade. Aqui embaixo estão só as decisões de comportamento. */
 
-  /* ====== TEMA DA NAVBAR: um controlador, e só um ======
+  /* ====== TEMA DA NAVBAR: DESLIGADO EM 15/08/2026 ======
+     🔴 O CLIENTE ESCOLHEU UMA COR SÓ: a barra é carvão em todo o site. Esta
+     função sai na primeira linha e não escreve data-mel-nav nenhum, então o
+     <html> não carrega estado morto e o CSS trabalha só com os tokens de body.
+
+     O CORPO FICA, INTEIRO E INTACTO. Ele é a implementação medida da inversão
+     por região, com a histerese e o motivo de cada escolha escritos abaixo — e
+     voltar atrás custa apagar UMA linha aqui e restaurar o bloco de tokens
+     claros em css(). Apagar tudo economizaria linhas e jogaria fora a parte
+     cara: o raciocínio. As marcas data-mel-tema="claro" continuam no HTML pelo
+     mesmo motivo.
+
+     ------------------------------------------------------------------
+     O que segue descreve o comportamento QUANDO LIGADO.
+
      Escreve data-mel-nav="claro" ou "escuro" no <html>. Quem pinta é o CSS
      (ver "TEMA DA NAVBAR" em tools/perfil.js); esta função não toca em cor,
      em classe de elemento nem em estilo inline.
@@ -1259,6 +1289,8 @@
      ele só é instalado em página que TEM região clara. No site escuro inteiro
      esta função sai na segunda linha sem instalar nada. */
   function iniciarTemaNavbar() {
+    return;   // 15/08/2026: barra sempre carvão, por decisão do cliente
+
     var claras = [].slice.call(document.querySelectorAll('[data-mel-tema="claro"]'));
     if (!claras.length) return;
 

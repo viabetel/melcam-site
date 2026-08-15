@@ -65,16 +65,37 @@ const mesmo = (a, b) => {
   return process.platform === 'win32' ? n(a).toLowerCase() === n(b).toLowerCase() : n(a) === n(b);
 };
 
+// Preenchido abaixo e relido no rodapé, para a dica de erro citar as raízes
+// reais do marcador em vez de um caminho fixo de uma das máquinas.
+let raizes = [];
+
 if (marcador) {
   if (marcador.project === 'melcam-site' && marcador.role === 'canonical') {
     ok('marcador do projeto');
   } else {
     erro('marcador do projeto', `project=${marcador.project} role=${marcador.role}`);
   }
-  if (mesmo(RAIZ, marcador.canonicalRoot || '')) {
+  // Lista desde 15/08/2026 — uma raiz por máquina, com o repositório
+  // sincronizado por git. O formato antigo (string) continua valendo, para o
+  // caso de um marcador velho sobrar de um checkout anterior.
+  // `canonicalRoot` costuma repetir o primeiro item de `canonicalRoots`; a
+  // dedupe usa `mesmo`, a mesma comparação da verificação, para a mensagem de
+  // erro não listar a mesma pasta duas vezes.
+  const brutas = [
+    ...(Array.isArray(marcador.canonicalRoots) ? marcador.canonicalRoots : []),
+    ...(marcador.canonicalRoot ? [marcador.canonicalRoot] : []),
+  ].filter((r) => typeof r === 'string' && r.trim());
+
+  raizes = brutas.filter(
+    (r, i) => brutas.findIndex((outra) => mesmo(r, outra)) === i
+  );
+
+  if (!raizes.length) {
+    erro('raiz canônica', `${MARCADOR} não declara canonicalRoots nem canonicalRoot`);
+  } else if (raizes.some((r) => mesmo(RAIZ, r))) {
     ok(`raiz canônica  (${RAIZ})`);
   } else {
-    erro('raiz canônica', `atual:      ${RAIZ}\nautorizada: ${marcador.canonicalRoot}`);
+    erro('raiz canônica', `atual:      ${RAIZ}\nautorizadas:\n    ${raizes.join('\n    ')}`);
   }
 }
 
@@ -255,8 +276,10 @@ if (!cssBuf) {
   console.log('');
   if (falhas) {
     console.log(`${falhas} verificação(ões) reprovada(s).`);
-    console.log('Comando correto:');
-    console.log('  cd C:\\Users\\israe\\viabetel\\melcam-site');
+    console.log('Comando correto, a partir de uma das raízes autorizadas:');
+    for (const r of raizes.length ? raizes : ['<raiz autorizada>']) {
+      console.log(`  cd ${r}`);
+    }
     console.log('  node tools/preflight.js');
     console.log('  node serve.js');
     process.exit(1);

@@ -1,20 +1,28 @@
-// QA da inversão de tema da navbar — 14/08/2026. Só lê.
+// QA da cor da navbar — 14/08/2026, régua trocada em 15/08/2026. Só lê.
 //
 //   node tools/qa-navbar-tema.js [largura]
 //
-// O PDF pede header fixo com inversão dinâmica de cores conforme a rolagem. As
-// afirmações que este arquivo prova, e como:
+// 🔴 A REGRA VIROU "UMA COR SÓ, CARVÃO" EM 15/08, por decisão do cliente.
+// Este arquivo nasceu provando a inversão dinâmica que o PDF pedia, e a
+// máquina dele continua útil — o que mudou é o que se cobra dela. As leituras
+// (pixel atrás da barra, contraste dentro dela, contagem de trocas) são as
+// mesmas; os vereditos foram invertidos onde precisavam ser. O texto original
+// de cada checagem está preservado junto da nova, para o dia em que a inversão
+// voltar: ver o cabeçalho do tema em tools/perfil.js.
 //
-//   1. A BARRA COMBINA COM O QUE ESTÁ ATRÁS DELA. Não por classe e não por
-//      página: a navbar fixa é escondida, a página é capturada, e o pixel que
-//      estava EMBAIXO da barra é lido do PNG. Se o fundo é claro, a barra tem
-//      que ser clara; se é escuro, escura. É a única medida que não se engana
-//      com um seletor certo pintando a coisa errada.
+// As afirmações que este arquivo prova hoje, e como:
+//
+//   1. A BARRA É CARVÃO EM QUALQUER POSIÇÃO DE QUALQUER ROTA. Não por classe e
+//      não por página: a navbar fixa é escondida, a página é capturada, e o
+//      pixel que estava EMBAIXO da barra é lido do PNG — inclusive sobre as
+//      regiões que continuam marcadas como claras, que agora são inertes.
+//      Junto: o controlador tem de estar mudo, sem escrever data-mel-nav.
 //   2. O CONTRASTE DA BARRA NUNCA CAI. Marca, links e ícones contra o fundo da
-//      própria barra, em todos os pontos de parada, nas sete rotas.
-//   3. NÃO PISCA E NÃO ALTERNA. Rolagem lenta (de 40 em 40px), rápida e
-//      reversa: cada troca de tema tem que corresponder a uma troca real de
-//      região. Troca a mais é pisca.
+//      própria barra, em todos os pontos de parada, nas sete rotas. Esta é a
+//      checagem que sustenta a decisão: a barra tem fundo sólido, então o que
+//      está atrás dela não participa da conta e nenhuma seção a torna ilegível.
+//   3. NÃO TROCA DE COR. Rolagem lenta (de 40 em 40px), rápida e reversa:
+//      o esperado é ZERO troca de tema, atravessando quantas regiões forem.
 //   4. HISTERESE. Parado em cima de uma fronteira, tremendo ±6px: no máximo UMA
 //      troca, e depois dela nenhuma. É o "não fique alternando em limites
 //      específicos de scroll" do pedido.
@@ -192,29 +200,24 @@ const SONDA = `(() => {
         barra: v.fundo, barraClara: barra.claro, contraste: +ct.toFixed(2),
       });
 
-      // 1a — o MECANISMO: região clara sob a barra ⟺ barra clara. Esta é a
-      // checagem determinística, e é ela que pega seletor certo pintando a
-      // coisa errada ou região esquecida sem marcação.
-      if (emRegiaoClara !== barra.claro) {
-        p.push(rota + ' y' + y + ': a barra está ' + (barra.claro ? 'CLARA' : 'ESCURA') +
-          ' e a região sob ela ' + (emRegiaoClara ? 'É marcada como clara' : 'NÃO é clara'));
+      // 1a — A REGRA MUDOU EM 15/08/2026: UMA COR SÓ, CARVÃO.
+      // Até 14/08 esta checagem cobrava o inverso — região clara sob a barra
+      // ⟺ barra clara. O cliente escolheu barra carvão em todo o site, então o
+      // que se cobra agora é o oposto: a barra é ESCURA em qualquer posição de
+      // qualquer rota, inclusive sobre as regiões que continuam marcadas como
+      // claras (as marcas ficaram no HTML de propósito, inertes, como caminho
+      // de volta — ver o cabeçalho do tema em tools/perfil.js).
+      if (barra.claro) {
+        p.push(rota + ' y' + y + ': a barra está CLARA — a regra desde 15/08 é carvão sempre');
       }
-      // 1b — e o PIXEL, numa direção só: uma região MARCADA como clara tem que
-      // ser mesmo clara na tela. É o que pega marcação colada no elemento
-      // errado, ou numa região que mudou de cor e ninguém tirou a marca.
-      //
-      // A direção contrária NÃO é cobrada, e isso é decisão, não descuido: fora
-      // das regiões marcadas a barra é uma faixa opaca por cima do que houver,
-      // e o que há na home é fotografia e vídeo. Medido: em y0 o pixel atrás é
-      // rgb(93,161,138) e em y3600 é rgb(232,103,56) — dois quadros de imagem,
-      // claros pela régua da tinta, sobre os quais a barra escura é o desenho
-      // aprovado do site desde sempre. Cobrar "combine com o pixel" ali seria
-      // pedir que a barra piscasse acompanhando foto, que é o oposto de
-      // estabilidade. Quem garante que a barra clara nunca sobra numa seção
-      // escura é a checagem 1a, que é determinística.
-      if (emRegiaoClara && !atras.claro) {
-        p.push(rota + ' y' + y + ': região marcada como clara, mas o pixel atrás é escuro rgb(' +
-          f.cor.join(',') + ')');
+      // 1b — e o controlador tem de estar mudo: nenhum data-mel-nav no <html>.
+      // Sem isto, uma volta acidental do controlador passaria despercebida
+      // enquanto o CSS ainda não tivesse os tokens claros — a barra ficaria
+      // certa por acidente, e voltaria a inverter no dia em que alguém
+      // restaurasse o bloco de tokens.
+      if (v.tema !== null) {
+        p.push(rota + ' y' + y + ': o controlador escreveu data-mel-nav="' + v.tema +
+          '" — ele deve estar desligado');
       }
       // 2 — contraste dentro da barra
       if (ct < 4.5) p.push(rota + ' y' + y + ': tinta da barra em ' + ct.toFixed(2) + ':1 sobre o fundo dela');
@@ -258,11 +261,15 @@ const SONDA = `(() => {
         })()`,
       })).result.value)();
       linha.trocas = lento;
-      // Uma troca de tema por troca de região é o esperado; a primeira troca de
-      // região é a inicialização, então tema pode ter uma a menos.
-      if (lento.trocasTema > lento.trocasRegiao) {
-        p.push(rota + ': ' + lento.trocasTema + ' trocas de tema para ' + lento.trocasRegiao +
-          ' trocas de região na rolagem lenta — está piscando');
+      // O ESPERADO AGORA É ZERO, e não "uma por região". Com a barra em carvão
+      // fixo, QUALQUER troca de tema numa rolagem lenta é regressão: significa
+      // que o controlador voltou a escrever no <html>. A contagem de trocas de
+      // região continua sendo lida e reportada porque é ela que dá o contexto —
+      // atravessar 4 regiões e não trocar nenhuma vez é a prova de que o
+      // desligamento vale onde ele importa, e não só onde não há o que trocar.
+      if (lento.trocasTema > 0) {
+        p.push(rota + ': ' + lento.trocasTema + ' troca(s) de tema na rolagem lenta, atravessando ' +
+          lento.trocasRegiao + ' região(ões) — desde 15/08 o esperado é 0');
       }
 
       // rolagem RÁPIDA e REVERSA: o tema no fim tem que ser o mesmo que o da

@@ -6,32 +6,44 @@
 // palavra "Bee", o selo "Novidade" e uma foto. Nada mais. O card da Polen ao
 // lado, 432x481, trazia eyebrow, conceito, as 7 cores em packshot, o preço e um
 // CTA. A Bee é o LANÇAMENTO — o <h1> do hero da home é "Chegou a Bee" — e era o
-// card com menos informação da seção. O preço dela (R$ 299,00) existia em
-// melcam.config.json e não aparecia em lugar nenhum da home.
+// card com menos informação da seção.
 //
-// O QUE ESTA FERRAMENTA FAZ
-//   1. insere o parágrafo de conceito, com a copy já aprovada da /bee;
-//   2. acrescenta a tira de rodapé: as 2 cores em packshot oficial, o preço e
-//      o CTA.
-// O <a>, suas classes framer-*, o <h3> "Bee", o selo e a foto ficam intactos.
+// ============ O LEQUE DE DESTAQUES — 15/08/2026 ============
+// Pedido do cliente: "a seção das colunas onde temos o Polen de 7 cores que
+// podemos passar o mouse em cima, preciso que faça o mesmo na coluna bee em
+// relação ao key feature".
+//
+// A Polen usa as 7 CORES como leque: sete faixas verticais, e a que está sob o
+// ponteiro se abre para o card inteiro. Na Bee não há sete cores — são duas, e
+// "somente amarela e branca" é requisito do cliente registrado no PDF. Então o
+// eixo do leque aqui é outro: são os DESTAQUES do produto, que é exatamente o
+// que "key feature" quer dizer. Quatro, um por foto que o acervo já tem.
+//
+// 🔴 NENHUMA ESPECIFICAÇÃO NOVA FOI INVENTADA. Cada frase abaixo é copy que já
+// existe no projeto, e a origem está escrita ao lado dela. Inventar um número
+// de produto aqui viraria afirmação comercial sem lastro — a mesma proibição
+// que vale para as descrições do scrollytelling da /polen.
+//
+// AS DUAS CORES NÃO SAÍRAM. Elas desceram para a linha do preço, em miniatura,
+// onde continuam sendo produto visível e não bolinha de cor. O que era uma
+// tira de duas fotos passivas virou uma escolha de quatro, e a informação
+// comercial ficou onde a decisão de compra acontece.
 //
 // A INVERSÃO DE TAMANHO É CSS, e mora em tools/identidade.js — não aqui.
-// A altura dos cards vem de aspect-ratio: 0.897959 no grande (481px) e 1.55752
-// no pequeno (277px), sobre 432px de largura. Trocar os dois entre a Bee e o
-// Acessórios mantém a soma da coluna em 773px e não mexe no layout das outras.
 //
 // POR QUE A BEE NÃO GANHA EYEBROW COMO A POLEN
 // O eyebrow da Polen fica em top:1.25rem left:1.25rem, e é exatamente onde o
 // selo "Novidade" da Bee já está (identidade.js, a[data-framer-name="Bee"]::before).
-// Empilhar os dois no mesmo canto seria colisão. Na Bee quem faz o papel de
-// etiqueta é o selo, e o nome continua no <h3>, grande e centralizado.
 //
 // SEM LINK ANINHADO: o CTA é um <span>, não um <a>. O bloco inteiro já é o link.
 //
-// SÓ A HOME: escreve apenas em index.html, como o bloco-polen.js. As internas
-// também têm Header Grid e não podem mudar.
+// SÓ A HOME: escreve apenas em index.html, como o bloco-polen.js.
 //
-// Idempotente: se a tira já existir, não faz nada.
+// IDEMPOTENTE POR SUBSTITUIÇÃO, e não por presença — mudou em 15/08. Antes ele
+// saía na porta se a marca já estivesse no arquivo, o que tornava impossível
+// evoluir o bloco sem editar HTML à mão. Agora ele REMOVE o que escreveu antes
+// e escreve de novo, como o hero-home.js faz. Rodar duas vezes dá o mesmo
+// arquivo; rodar depois de mexer aqui aplica a mudança.
 const fs = require('fs');
 const path = require('path');
 
@@ -39,35 +51,127 @@ const SITE = path.resolve(__dirname, '..');
 const cfg = JSON.parse(fs.readFileSync(path.join(SITE, 'melcam.config.json'), 'utf8'));
 const BEE = cfg.produtos.bee;
 
-// Copy aprovada, a mesma do <h1> da /bee (tools/bee.js). Não é frase nova:
-// é a promessa do produto, repetida onde a decisão de compra começa.
+// Copy aprovada, a mesma do <h1> da /bee (tools/bee.js).
 const CONCEITO = 'Pequena o bastante para ir junto.';
 // 14/08/2026: era "Conheça a Bee". O topicos_alteracoes.pdf nomeia os dois
-// botões da grade — "Conheça" e "Ver Modelos" —, e é a palavra do cliente que
-// fica. O nome do produto não se perde: o <h3> "Bee" está no mesmo cartão, e o
-// nome acessível do link é o texto inteiro dele ("Bee · Pequena o bastante para
-// ir junto. · R$ 299,00 · Conheça"), então ninguém ouve um "Conheça" solto.
+// botões da grade — "Conheça" e "Ver Modelos" —, e é a palavra do cliente.
 const CTA = 'Conheça';
 
 const MARCA = 'data-mel-bee-card';
 
-function tira() {
-  const minis = BEE.cores.map(c =>
-    `<img src="${c.img}" alt="" loading="lazy" decoding="async" width="800" height="800">`
-  ).join('');
+// A foto do card de Acessórios. Ver o comentário no css() para os dois motivos
+// da troca: assunto errado (mostrava a câmera num cartão de acessórios) e 41%
+// da imagem descartada pelo recorte.
+const FOTO_ACESSORIOS_ANTIGA = 'melcam/img/bee/bee-amarela-angulo-corrente.png';
+const FOTO_ACESSORIOS = 'melcam/img/bee/bee-amarela-caixa.png';
 
-  // Mesma regra da Polen: as miniaturas são decorativas e a cor nunca é a única
-  // portadora da informação — a contagem vai no aria-label e o preço em texto.
+// Os quatro destaques. `rot` é o chip; `frase` é a legenda que aparece no
+// hover; `origem` é onde a afirmação já existia antes desta passagem.
+const FEATURES = [
+  {
+    rot: 'Chaveiro',
+    frase: 'Do tamanho de um chaveiro',
+    origem: 'tools/bee.js > COPY["Bee Amarela"] e o alt do hero da /bee',
+    img: '/melcam/img/bee/bee-amarela-angulo-corrente.png',
+  },
+  {
+    rot: '26 g',
+    frase: 'Aproximadamente 26 gramas',
+    origem: 'tools/bee.js > ESPECIF e o <h2> "O que cabe em 26 gramas"',
+    img: '/melcam/img/bee/bee-lifestyle-acessorio.jpg',
+  },
+  {
+    rot: 'Full HD',
+    frase: 'Vídeo Full HD 1080p e 720p',
+    origem: 'tools/bee.js > ESPECIF, verbatim',
+    img: '/melcam/img/bee/bee-lifestyle-tela.jpg',
+  },
+  {
+    rot: '11 filtros',
+    frase: '11 filtros, escolhidos no clique',
+    origem: 'tools/bee.js > bloco "Filtros e estética retrô"',
+    img: '/melcam/img/bee/bee-filtro-01.jpg',
+  },
+];
+
+// O leque: as quatro fotos lado a lado, cada uma numa faixa vertical. Mesma
+// mecânica do .mel-polen-troca, e o mesmo motivo para o veu existir — ver o
+// bloco "OS DESTAQUES VIRAM ESCOLHA" em tools/identidade.js.
+// 🔴 O LEQUE E DE CORES, e nao de destaques — corrigido em 15/08 depois do
+// retorno do cliente: "la tem azul e amarelo, vc devia colocar o azul e o
+// amarelo para aparecer ao passar a seta". A primeira versao usou os destaques
+// como eixo e fotos de lifestyle como imagem; as duas coisas estavam erradas.
+// O eixo e o mesmo da Polen (a cor), e a imagem e o packshot oficial de cada
+// variante — que ja vem com o fundo na cor, entao a troca de foto troca o fundo
+// junto, sem veu fazendo o trabalho. Os destaques continuam no cartao, mas como
+// etiqueta estatica: eles informam, nao escolhem.
+function leque() {
+  const imgs = BEE.cores.map((c, i) =>
+    `<img src="${c.img}" alt="" data-i="${i}" loading="lazy" decoding="async">`
+  ).join('');
+  return `<span class="mel-bee-veu" ${MARCA}="1" aria-hidden="true"></span>` +
+    `<div class="mel-bee-troca" ${MARCA}="1" aria-hidden="true">${imgs}</div>`;
+}
+
+function tira() {
+  // Os swatches são quem ESCOLHE: cada um carrega o data-i que as regras
+  // geradas usam para abrir a foto da cor no cartão inteiro. Mesma estrutura
+  // do .mel-polen-cor, e por isso o mesmo nome de papel.
+  const minis = BEE.cores.map((c, i) =>
+    `<span class="mel-bee-cor" data-i="${i}" data-nome="${c.nome}">` +
+      `<img src="${c.img}" alt="" loading="lazy" decoding="async" width="800" height="800">` +
+    `</span>`
+  ).join('');
   const nomes = BEE.cores.map(c => c.nome).join(' e ');
   const quantas = BEE.cores.length === 1 ? '1 cor' : BEE.cores.length + ' cores';
 
+  // Os destaques viraram etiqueta estática: informam, não escolhem. Quem
+  // escolhe é a cor. Decorativos para leitor de tela porque o aria-label da
+  // faixa já diz os quatro numa frase, e repetir chip a chip faria a navegação
+  // ouvir quatro fragmentos soltos dentro de um link que já tem nome próprio.
+  const chips = FEATURES.map((f) =>
+    `<span class="mel-bee-chip">${f.rot}</span>`
+  ).join('');
+  const rotulo = 'Destaques da Bee: ' + FEATURES.map(f => f.frase).join('. ') + '.';
+
   return `<div class="mel-bee-tira" ${MARCA}="1">` +
-    `<span class="mel-bee-cores" role="img" aria-label="As ${quantas} da Bee: ${nomes}.">${minis}</span>` +
+    `<span class="mel-bee-legenda" aria-hidden="true"></span>` +
+    `<span class="mel-bee-chips" role="img" aria-label="${rotulo}">${chips}</span>` +
     `<span class="mel-bee-linha">` +
+      `<span class="mel-bee-cores" role="img" aria-label="As ${quantas} da Bee: ${nomes}.">${minis}</span>` +
       `<span class="mel-bee-preco">${BEE.preco}</span>` +
       `<span class="mel-bee-cta">${CTA}</span>` +
     `</span>` +
   `</div>`;
+}
+
+// 🔴 CSS NAO PROPAGA CUSTOM PROPERTY DE FILHO PARA PAI — a mesma razão que o
+// bloco-polen.js documenta. O veu e a legenda são irmãos dos chips: não há como
+// lerem qual chip está sob o ponteiro. Ou são regras explícitas por índice, ou
+// entra JS. Geradas daqui, nunca saem de sincronia com FEATURES.
+//
+// A saída deste gerador está colada em tools/identidade.js, no bloco "OS
+// DESTAQUES DA BEE VIRAM ESCOLHA" — mesma convenção do cssCores() da Polen.
+// Para atualizar: mexer em FEATURES, rodar `node tools/bloco-bee.js --css` e
+// substituir o trecho gerado na folha.
+function cssFeatures() {
+  const n = BEE.cores.length;
+  const larg = (100 / n).toFixed(4);
+  const A = 'a[data-framer-name="Bee"]';
+  // As duas cores do anel do swatch saem dos packshots: amarela é o mel da
+  // marca, branca é o azul do fundo do catálogo. Não são cores novas — são as
+  // que a foto já traz, e é por isso que o anel combina com o que se vê.
+  const anel = ['#F2A900', '#4F86C6'];
+  return BEE.cores.map((c, i) => {
+    const esq = (i * 100 / n).toFixed(4);
+    const hov = A + ':has(.mel-bee-cor[data-i="' + i + '"]:hover) ';
+    return [
+      '.mel-bee-cor[data-i="' + i + '"]{ --mel-cor:' + (anel[i] || '#F2A900') + ' }',
+      '.mel-bee-troca img[data-i="' + i + '"]{ left:' + esq + '%; width:' + larg + '% }',
+      hov + '.mel-bee-troca img[data-i="' + i + '"]{ left:0; width:100%; opacity:1; z-index:2 }',
+      hov + '.mel-bee-legenda::after{ content:"' + c.nome + '" }',
+    ].join('\n');
+  }).join('\n');
 }
 
 // Recorta um <a ...>...</a> a partir de um índice, com contagem equilibrada.
@@ -82,15 +186,50 @@ function recortarA(html, ini) {
   return null;
 }
 
+// Recorta um elemento pelo nome da tag, contando aninhamento da MESMA tag.
+// Regex não serve: a tira tem spans dentro de spans, e um .*? corta no lugar
+// errado e desbalanceia o documento — que é o que o preflight mede.
+function fatiaTag(s, inicio, tag) {
+  const abreRe = new RegExp('<' + tag + '\\b', 'g');
+  const fechaTxt = '</' + tag + '>';
+  let i = inicio, prof = 0;
+  while (i < s.length) {
+    abreRe.lastIndex = i;
+    if (s.startsWith('<' + tag, i) && /[\s>]/.test(s[i + tag.length + 1] || '')) { prof++; i += tag.length + 1; continue; }
+    if (s.startsWith(fechaTxt, i)) { prof--; i += fechaTxt.length; if (!prof) return i; continue; }
+    i++;
+  }
+  return -1;
+}
+
+// Tira do HTML tudo que esta ferramenta escreveu antes, para poder reescrever.
+function removerMarcados(html) {
+  let n = 0;
+  for (const tag of ['p', 'span', 'div']) {
+    for (;;) {
+      const marca = new RegExp('<' + tag + '\\b[^>]*' + MARCA + '="1"[^>]*>');
+      const m = marca.exec(html);
+      if (!m) break;
+      const fim = fatiaTag(html, m.index, tag);
+      if (fim < 0) break;
+      html = html.slice(0, m.index) + html.slice(fim);
+      n++;
+    }
+  }
+  return { html, n };
+}
+
 function aplicar() {
   const arq = path.join(SITE, 'index.html');
   const antes = fs.readFileSync(arq, 'utf8');
-  if (antes.indexOf(MARCA) >= 0) return ['index.html: tira da Bee já presente, nada a fazer'];
-
-  let html = antes;
   const feito = [];
-  let tocados = 0;
 
+  // 1. limpa o que esta ferramenta escreveu em passagens anteriores
+  const limpo = removerMarcados(antes);
+  let html = limpo.html;
+  if (limpo.n) feito.push('removidos ' + limpo.n + ' nó(s) de uma passagem anterior');
+
+  let tocados = 0;
   // De trás para frente, para os índices não se moverem a cada inserção.
   const abre = /<a[^>]*data-framer-name="Bee"[^>]*>/g;
   const pos = [];
@@ -106,19 +245,17 @@ function aplicar() {
     const h3 = /<h3\b[^>]*>Bee<\/h3>/;
     if (!h3.test(bloco)) { feito.push('card em ' + ini + ': <h3>Bee</h3> não encontrado, pulado'); continue; }
 
-    // 1. o conceito, logo depois do <h3>, dentro do mesmo RichTextContainer:
-    //    é onde o parágrafo do card grande da Polen vive.
+    // 1. o conceito, logo depois do <h3>, dentro do mesmo RichTextContainer.
     bloco = bloco.replace(h3, (t) => t + `<p class="mel-bee-sub" ${MARCA}="1">${CONCEITO}</p>`);
 
-    // 2. a tira como FILHO DIRETO do <a>, logo antes do </a>.
+    // 2. o leque e a tira como FILHOS DIRETOS do <a>, logo antes do </a>.
     //
     // ⚠️ Mesma armadilha documentada no bloco-polen.js: NÃO pendurar no
     // container de texto. Há um por variante SSR e só um renderiza por
-    // breakpoint — pendurada ali, a tira dá 0x0 no desktop. Filho direto do <a>
-    // fica fora de qualquer variante e vale nos três.
+    // breakpoint — pendurada ali, a tira dá 0x0 no desktop.
     const fechaA = bloco.lastIndexOf('</a>');
     if (fechaA < 0) { feito.push('card em ' + ini + ': </a> não encontrado, pulado'); continue; }
-    bloco = bloco.slice(0, fechaA) + tira() + bloco.slice(fechaA);
+    bloco = bloco.slice(0, fechaA) + leque() + tira() + bloco.slice(fechaA);
 
     html = html.slice(0, ini) + bloco + html.slice(fecha.fim);
     tocados++;
@@ -126,27 +263,259 @@ function aplicar() {
 
   if (!tocados) { feito.push('index.html: nenhum card Bee encontrado, NADA gravado'); return feito; }
 
+  // ---- a foto do card de Acessorios ----
+  // Troca dentro do <a data-framer-name="Sneakers"> e SO ali: a mesma imagem
+  // aparece noutros lugares do site e trocar por arquivo inteiro mudaria cartao
+  // que ninguem pediu. Idempotente por natureza — reescrever o que ja esta
+  // escrito nao muda nada.
+  {
+    const abreS = /<a[^>]*data-framer-name="Sneakers"[^>]*>/g;
+    const posS = [];
+    let ms;
+    while ((ms = abreS.exec(html))) posS.push(ms.index);
+    let trocas = 0;
+    for (let k = posS.length - 1; k >= 0; k--) {
+      const f = recortarA(html, posS[k]);
+      if (!f) continue;
+      const antesBloco = html.slice(posS[k], f.fim);
+      const depoisBloco = antesBloco.split(FOTO_ACESSORIOS_ANTIGA).join(FOTO_ACESSORIOS);
+      if (depoisBloco !== antesBloco) {
+        html = html.slice(0, posS[k]) + depoisBloco + html.slice(f.fim);
+        trocas++;
+      }
+    }
+    if (trocas) feito.push('foto de Acessórios trocada em ' + trocas + ' variante(s): ' +
+      FOTO_ACESSORIOS_ANTIGA.split('/').pop() + ' -> ' + FOTO_ACESSORIOS.split('/').pop());
+  }
+
   // Guardas: só pode ter entrado o que a ferramenta escreve.
   const conta = (s, t) => (s.match(new RegExp(t, 'g')) || []).length;
+  const porCard = BEE.cores.length * 2;   // as fotos do leque + os swatches
   const okA = conta(antes, '<a\\b') === conta(html, '<a\\b');
   const okSec = conta(antes, '<section\\b') === conta(html, '<section\\b');
-  const okDiv = conta(html, '<div\\b') - conta(antes, '<div\\b') === tocados;
-  const okImg = conta(html, '<img\\b') - conta(antes, '<img\\b') === tocados * BEE.cores.length;
-  const okBal = conta(html, '<div\\b') - conta(html, '</div>') === conta(antes, '<div\\b') - conta(antes, '</div>');
+  const okBalDiv = conta(html, '<div\\b') - conta(html, '</div>') === conta(antes, '<div\\b') - conta(antes, '</div>');
+  const okBalSpan = conta(html, '<span\\b') - conta(html, '</span>') === conta(antes, '<span\\b') - conta(antes, '</span>');
+  // A contagem de <img> é absoluta e não relativa: como a limpeza roda antes,
+  // comparar com o arquivo de entrada mediria a diferença entre duas versões
+  // desta ferramenta, e não o que ela escreveu.
+  const imgsDoLeque = conta(html, 'class="mel-bee-troca"');
+  const okImg = imgsDoLeque === tocados;
 
-  if (!(okA && okSec && okDiv && okImg && okBal)) {
+  if (!(okA && okSec && okBalDiv && okBalSpan && okImg)) {
     return ['index.html: guarda falhou, NADA gravado — ' +
-      JSON.stringify({ okA, okSec, okDiv, okImg, okBal, tocados })];
+      JSON.stringify({ okA, okSec, okBalDiv, okBalSpan, okImg, tocados })];
   }
 
   fs.writeFileSync(arq, html, 'utf8');
-  feito.push('index.html: ' + tocados + ' variante(s) do card Bee enriquecida(s) — ' +
-    '"' + CONCEITO + '" + ' + BEE.cores.length + ' cores + ' + BEE.preco + ' + CTA');
-  feito.push('  guardas: <a> e <section> inalterados, +' + tocados + ' div, +' +
-    (tocados * BEE.cores.length) + ' img, balanço de div preservado');
+  feito.push('index.html: ' + tocados + ' variante(s) do card Bee — ' +
+    FEATURES.length + ' destaques em leque + ' + BEE.cores.length + ' cores + ' +
+    BEE.preco + ' + CTA "' + CTA + '"');
+  feito.push('  destaques: ' + FEATURES.map(f => f.rot).join(' · '));
+  feito.push('  guardas: <a> e <section> inalterados, balanço de div e span preservado, ' +
+    porCard + ' img por card');
   return feito;
 }
 
-module.exports = { aplicar, tira, CONCEITO, CTA };
+const P = cfg.paleta;
 
-if (require.main === module) console.log(aplicar().join('\n'));
+// Marcadores do bloco na folha. O sincronizador troca entre os dois.
+const CSS_ABRE = '/* ============ OS DESTAQUES DA BEE VIRAM ESCOLHA — 15/08/2026 ============';
+const CSS_FECHA = '/* ============ fim dos destaques da Bee ============ */';
+
+// UMA FONTE, DOIS CONSUMIDORES. Este texto e interpolado por tools/identidade.js
+// (que monta a folha base) E trocado no lugar por tools/sincronizar-grade-bee.js
+// (que nao pode reescrever a folha inteira, porque ela e montada em camadas:
+// depois da base vem perfil, /polen, hero da home e /bee, todos inseridos por
+// geradores proprios). Escrever o CSS aqui e a unica forma de os dois caminhos
+// nunca divergirem.
+function css() {
+  return `${CSS_ABRE}
+   Pedido do cliente: o mesmo hover da Polen na coluna da Bee, "em relacao ao
+   key feature".
+
+   O EIXO E OUTRO, DE PROPOSITO. Na Polen o leque e de CORES, porque sao sete e
+   a escolha de cor e a decisao do produto. Na Bee sao duas cores, e "somente
+   amarela e branca" e requisito registrado do cliente — um leque de dois nao e
+   leque, e transformar duas variantes em sete faixas seria inventar produto.
+   Entao o eixo aqui e o que o pedido nomeia: os DESTAQUES. Quatro, um por foto
+   que o acervo ja tem, com a copy saindo de tools/bee.js — a origem de cada
+   frase esta escrita ao lado dela em FEATURES, neste arquivo.
+
+   AS DUAS CORES NAO SUMIRAM: desceram para a linha do preco, em miniatura.
+
+   As regras por indice no fim do bloco sao geradas por cssFeatures(). */
+.mel-bee-troca{
+  position:absolute; top:34%; left:0; right:0; bottom:0; z-index:1;
+  pointer-events:none; border-radius:inherit; overflow:hidden;
+}
+.mel-bee-troca img{
+  position:absolute; top:0; bottom:0; height:100%;
+  object-fit:cover; object-position:50% 50%;
+  transition:left 480ms cubic-bezier(.22,.61,.36,1),
+             width 480ms cubic-bezier(.22,.61,.36,1),
+             opacity 360ms ease;
+}
+a[data-framer-name="Bee"]:has(.mel-bee-cor:hover) .mel-bee-troca img{ opacity:0 }
+
+/* A foto original do template sai de cena: quem desenha a area agora e o
+   leque. Ela fica no DOM, como manda a casa. */
+body:not(.mel-interna) a[data-framer-name="Bee"]:has(.mel-bee-troca) [data-framer-name="Image"]{
+  opacity:0;
+}
+
+/* O veu e mel, e nao a cor do destaque: aqui nao ha cor por item que faca
+   sentido tingir. Ele so aquece a metade de cima do cartao, onde o leque nao
+   chega, para a revelacao nao parecer um retangulo de foto trocando sozinho. */
+.mel-bee-veu{
+  position:absolute; inset:0; z-index:1; pointer-events:none;
+  opacity:0; background:${P.mel}; border-radius:inherit;
+  transition:opacity 420ms cubic-bezier(.22,.61,.36,1);
+}
+a[data-framer-name="Bee"]:has(.mel-bee-cor:hover) .mel-bee-veu{ opacity:.10 }
+
+/* OS CHIPS SAO ETIQUETA, NAO BOTAO — e o desenho tem de dizer isso sozinho.
+   Sem hover, sem cursor, sem sombra externa: quem escolhe no cartao e a cor,
+   e dois alvos disputando a mesma intencao e o que faz uma interface parecer
+   rascunho. Eles sao elasticos porque quatro chips de texto com largura de
+   conteudo estouram o cartao em 390px. */
+.mel-bee-chips{
+  display:flex; flex-wrap:wrap; justify-content:center;
+  gap:.34rem; width:100%; pointer-events:none;
+}
+.mel-bee-chip{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:0; padding:.3rem .62rem; border-radius:999px;
+  background:rgba(251,247,238,.07);
+  box-shadow:inset 0 0 0 1px rgba(251,247,238,.16);
+  color:rgba(251,247,238,.88);
+  font-family:"Area",sans-serif; font-size:.66rem; font-weight:600;
+  letter-spacing:.05em; line-height:1.1; white-space:nowrap;
+}
+
+/* OS SWATCHES SAO A ESCOLHA. Mesmo vocabulario do .mel-polen-cor: crescem sob
+   o ponteiro, ganham anel na propria cor, e os vizinhos recuam para a escolha
+   parecer escolha. Crescem para CIMA (transform-origin no rodape) porque para
+   baixo bateriam no preco — a mesma armadilha ja medida na Polen. */
+/* 🔴 pointer-events:auto E OBRIGATORIO AQUI. A .mel-bee-tira inteira e
+   pointer-events:none, para o clique continuar sendo o do <a> que envolve o
+   cartao — e sem devolver o ponteiro aos swatches eles nunca recebem :hover.
+   Medido: o leque ficava travado em 50%/50% com a legenda em opacity 0, e a
+   Polen (que ja tinha pointer-events:auto em .mel-polen-cores) abria normal. */
+.mel-bee-cores{ pointer-events:auto }
+.mel-bee-cor{
+  display:block; flex:none; width:2.35rem; height:2.35rem;
+  border-radius:5px; position:relative; overflow:visible;
+  box-shadow:0 0 0 1px rgba(251,247,238,.10);
+  transition:transform 380ms cubic-bezier(.22,.61,.36,1),
+             box-shadow 380ms ease, opacity 380ms ease;
+  transform-origin:50% 100%;
+}
+.mel-bee-cor img{
+  width:100%; height:100%; object-fit:cover; display:block; border-radius:5px;
+}
+.mel-bee-cor:hover{
+  transform:scale(1.22) translateY(-2px);
+  box-shadow:0 6px 18px rgba(0,0,0,.45), 0 0 0 2px var(--mel-cor,${P.mel});
+  z-index:2;
+}
+a[data-framer-name="Bee"]:has(.mel-bee-cor:hover) .mel-bee-cor:not(:hover){
+  transform:scale(.94); opacity:.6;
+}
+
+/* A legenda ocupa o lugar mesmo vazia: sem isso a tira pula de altura quando o
+   texto aparece e os chips se mexem debaixo do ponteiro. */
+.mel-bee-legenda{
+  display:block; min-height:1.05rem; margin-bottom:.45rem;
+  font-family:"Area",sans-serif; font-size:.72rem; font-weight:600;
+  letter-spacing:.02em; text-align:center; color:${P.papel};
+  opacity:0; transition:opacity 260ms ease;
+  text-shadow:0 1px 6px rgba(34,30,23,.9);
+}
+a[data-framer-name="Bee"]:has(.mel-bee-cor:hover) .mel-bee-legenda{ opacity:1 }
+
+/* 🔴 NAO DECLARAR position AQUI. A .mel-bee-tira e ABSOLUTA no rodape do
+   cartao, e o motivo esta no bloco "card da Bee na home" do identidade.js: o
+   cartao tem altura fixa por aspect-ratio e nao cresce, entao em fluxo a tira
+   era cortada e dava 0x0. Custou uma captura para lembrar — a primeira versao
+   deste bloco escrevia "position:relative" e jogava a tira para o meio do
+   cartao, com o scrim virando um retangulo de bordas duras sobre o leque.
+
+   O QUE MUDA AQUI E SO O RESPIRO. A tira ganhou duas faixas novas (a legenda e
+   os chips), entao a rampa do scrim precisa comecar mais cedo: com os 2.6rem
+   originais ela nascia no meio dos chips e a metade de cima deles ficava sobre
+   foto crua. */
+.mel-bee-tira{ padding-top:4.2rem }
+.mel-bee-chips{ margin-bottom:.85rem }
+.mel-bee-linha .mel-bee-cores{ display:flex; flex:none; gap:.36rem }
+
+${cssFeatures()}
+
+@media (hover:none){
+  .mel-bee-legenda{ display:none }
+}
+/* ---- A FOTO ABERTA NAO PODE CORTAR O PRODUTO — 15/08/2026 ----
+   Relatado pelo cliente na Polen e valido para as duas colunas. Medido: os
+   packshots sao quadrados (800x800) e a area do leque e 437x331 (proporcao
+   1,32). Com cover a foto escala pela largura e perde 24% na vertical — o que
+   sai do quadro e justamente o topo e a base da camera, ou seja, a peca que o
+   cartao existe para mostrar. Em repouso isso nao incomoda, porque a faixa e
+   estreita e le como composicao; ABERTA, o corte fica na cara.
+
+   Contain so no estado aberto: a faixa em repouso continua sendo cover, senao
+   sete miniaturas contidas viram sete selos flutuando com vao entre eles, e o
+   leque deixa de ser um fundo continuo. O fundo colorido de cada packshot
+   preenche o quadrado central; o que sobra nas laterais e o proprio cartao.
+
+   ⚠️ POR QUE A REGRA DA POLEN MORA NO ARQUIVO DA BEE. A folha e montada em
+   camadas e este bloco e o unico caminho cirurgico que existe hoje para
+   publicar CSS novo na grade sem reescrever a folha inteira (ver o cabecalho
+   do sincronizar-grade-bee.js). Quando a base for regerada, as duas regras
+   voltam para o lugar natural delas no identidade.js. */
+a[data-framer-name="Polen"]:has(.mel-polen-cor:hover) .mel-polen-troca img[data-i],
+a[data-framer-name="Bee"]:has(.mel-bee-cor:hover) .mel-bee-troca img[data-i]{
+  object-fit:contain;
+  object-position:50% 50%;
+}
+
+/* ---- A FOTO DO CARD DE ACESSORIOS — 15/08/2026 ----
+   Dois defeitos, os dois relatados pelo cliente e confirmados por medicao:
+
+   1. ASSUNTO ERRADO. O cartao diz "Acessorios" e mostrava a propria camera
+      (bee-amarela-angulo-corrente). Agora mostra a CAIXA, que e o que o
+      cliente recebe junto — cabo, corrente e embalagem — e portanto o que a
+      categoria promete.
+
+   2. CORTE. A caixa da foto e 437x149 (proporcao 2,94) e a imagem anterior era
+      1072x620 (1,73): o cover jogava fora 41% dela, decepando a camera no
+      canto e cortando a corrente ao meio. Medido, nao estimado.
+
+   A saida NAO e outro object-position. bee-amarela-caixa.png e um recorte com
+   alfa real (ver o cabecalho de tools/bee.js), e recorte com alfa dentro de um
+   cover e desperdicio garantido: nao existe enquadramento que caiba 1,25 em
+   2,94 sem cortar. Com contain a peca aparece inteira, flutuando sobre o fundo
+   do cartao, que e exatamente como um packshot recortado deve ser apresentado.
+   Zero por cento descartado. */
+body:not(.mel-interna) div[data-framer-name="Header Grid"] a[data-framer-name="Sneakers"] img{
+  object-fit:contain !important;
+  object-position:50% 100% !important;
+}
+
+@media (prefers-reduced-motion:reduce){
+  .mel-bee-troca img,.mel-bee-veu,.mel-bee-cor,.mel-bee-legenda{ transition:none }
+  .mel-bee-cor:hover{ transform:none }
+}
+${CSS_FECHA}`;
+}
+
+module.exports = {
+  aplicar, tira, leque, css, cssFeatures, FEATURES, CONCEITO, CTA,
+  CSS_ABRE, CSS_FECHA,
+  // Quem governa o leque é a lista de CORES, e não a de destaques — o
+  // sincronizador confere as regras por índice contra esta contagem.
+  CORES: BEE.cores,
+};
+
+if (require.main === module) {
+  if (process.argv.includes('--css')) console.log(cssFeatures());
+  else console.log(aplicar().join('\n'));
+}

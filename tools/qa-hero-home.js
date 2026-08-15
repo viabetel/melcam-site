@@ -19,9 +19,14 @@
 //      sem isso a medida pega os próprios pixels da letra e devolve 1,00:1.
 //
 //   3. A GEOMETRIA É A DA REFERÊNCIA. Bloco à esquerda, selo acima do título,
-//      subtítulo abaixo, CTA depois, indicador centrado na tela. O indicador
-//      já saiu 22px fora do centro uma vez, porque o keyframe terminava em
-//      transform:none e apagava o translateX(-50%) que o centra.
+//      subtítulo abaixo, CTA depois.
+//
+//      Em 15/08/2026 o cliente pediu duas coisas que viraram asserção aqui:
+//      o título desce ("título nunca fica em cima") e o indicador de rolagem
+//      sai. As duas são medidas, não conferidas no olho — a primeira exige a
+//      manchete começando abaixo da metade da hero em TODAS as janelas, e a
+//      segunda exige que `.mel-hh-role` não exista mais no documento, para o
+//      indicador não voltar sem ninguém perceber numa regeração futura.
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -59,7 +64,19 @@ const SONDA_GEO = `(() => {
     ctas:  r('.mel-hh-ctas'),
     ctaA:  r('.mel-hh-cta-mel'),
     ctaB:  r('.mel-hh-cta-linha'),
+    // Tem que vir null desde 15/08: o indicador saiu a pedido do cliente.
     role:  r('.mel-hh-role'),
+    roleNos: document.querySelectorAll('.mel-hh-role').length,
+    // A COLUNA CANÔNICA DA PÁGINA, lida da própria página e não cravada aqui.
+    // Sai da caixa do .mel-sec somada ao padding dela: assim o teste continua
+    // valendo se o gutter mudar um dia, porque ele compara o hero com o que a
+    // página realmente faz, não com um número escrito no QA.
+    secX: (() => {
+      const e = document.querySelector('.mel-sec');
+      if (!e) return null;
+      const b = e.getBoundingClientRect();
+      return Math.round(b.x + parseFloat(getComputedStyle(e).paddingLeft));
+    })(),
     // Em retrato o <nav> de desktop mede 0x0 e quem aparece é o nav mobile.
     // Pegar o primeiro fazia a faixa comparada ter ALTURA ZERO, ou seja, o
     // teste da navbar passava sem comparar pixel nenhum.
@@ -173,7 +190,9 @@ function medir(img, cx, tinta) {
 
     console.log('  bloco ' + g.bloco.x + ',' + g.bloco.y + ' ' + g.bloco.w + 'x' + g.bloco.h +
       '  | selo y' + g.selo.y + '  tit y' + g.tit.y + ' x' + g.tit.x + '-' + (g.tit.x + g.tit.w) +
-      '  sub y' + g.sub.y + '  ctas y' + g.ctas.y + '  role x' + g.role.x + '-' + (g.role.x + g.role.w) + ' y' + g.role.y);
+      '  sub y' + g.sub.y + '  ctas y' + g.ctas.y +
+      '  | hero y' + g.hero.y + ' h' + g.hero.h + '  meio y' + Math.round(g.hero.y + g.hero.h / 2) +
+      '  | coluna da página x' + g.secX);
     console.log('  textos  "' + g.textos.selo + '" / "' + g.textos.tit + '" / "' + g.textos.sub +
       '" / "' + g.textos.ctaA + '" + "' + g.textos.ctaB + '"  -> ' + g.hrefs.join(' , '));
 
@@ -182,11 +201,41 @@ function medir(img, cx, tinta) {
       falhas.push(larg + ': a ordem selo / título / subtítulo / CTA saiu trocada');
     }
     if (g.tit.x > larg * 0.35) falhas.push(larg + ': o bloco não está do lado esquerdo (x' + g.tit.x + ')');
-    const centro = g.role.x + g.role.w / 2;
-    if (Math.abs(centro - larg / 2) > 2) {
-      falhas.push(larg + ': o indicador "Role" está em ' + centro.toFixed(0) + ' e o centro é ' + (larg / 2));
+
+    // ---- a coluna do hero é a coluna do resto da página (15/08)
+    // O pedido do cliente é que o hero não fique numa grade própria. Antes
+    // desta correção o hero nascia numa caixa de 1240px e as seções abaixo em
+    // 1440: x124 contra x24 em 1440, e x364 contra x264 em 1920.
+    if (g.secX === null) {
+      falhas.push(larg + ': não achei .mel-sec para ler a coluna canônica da página');
+    } else {
+      for (const [rot, cx] of [['selo', g.selo.x], ['título', g.tit.x], ['CTAs', g.ctas.x]]) {
+        if (Math.abs(cx - g.secX) > 1) {
+          falhas.push(larg + ': o ' + rot + ' do hero começa em x' + cx +
+            ' e a coluna da página está em x' + g.secX + ' (' + (cx - g.secX) + 'px fora)');
+        }
+      }
     }
-    if (g.role.y + g.role.h > g.hero.h) falhas.push(larg + ': o indicador "Role" passou do fim da hero');
+    // ---- o indicador de rolagem saiu (15/08) e não pode voltar
+    if (g.roleNos !== 0) {
+      falhas.push(larg + ': o indicador "Role" voltou ao documento (' + g.roleNos + ' nó(s))');
+    }
+
+    // ---- "título nunca fica em cima" (15/08)
+    // A régua é a metade da hero, e não um y fixo: a seção tem 900px no
+    // desktop e acompanha a janela no retrato, então cravar pixel reprovaria
+    // uma tela legítima. Medido pelo TOPO da manchete, que é o critério do
+    // pedido — o olho lê onde o título começa, não onde ele acaba.
+    const meioHero = g.hero.y + g.hero.h / 2;
+    if (g.tit.y <= meioHero) {
+      falhas.push(larg + ': o título começa em y' + g.tit.y + ', acima do meio da hero (y' +
+        Math.round(meioHero) + ') — o pedido é que ele nunca fique em cima');
+    }
+    // O bloco não pode ter descido tanto que vaze pelo pé da hero.
+    if (g.ctas.y + g.ctas.h > g.hero.y + g.hero.h) {
+      falhas.push(larg + ': os CTA passaram do fim da hero (y' + (g.ctas.y + g.ctas.h) +
+        ' contra y' + (g.hero.y + g.hero.h) + ')');
+    }
     if (g.h1s !== 1) falhas.push(larg + ': a home tem ' + g.h1s + ' <h1>, tem que ser 1');
     if ((g.h1 || '').trim() !== 'Chegou a Bee') falhas.push(larg + ': o <h1> é "' + g.h1 + '"');
     if (g.transbordo) falhas.push(larg + ': transbordo horizontal');
@@ -226,14 +275,14 @@ function medir(img, cx, tinta) {
     // ---- contraste contra o fundo composto, em vários quadros
     const caixas = [
       ['titulo', g.tit, PAPEL], ['subtitulo', g.sub, PAPEL],
-      ['CTA contorno', g.ctaB, PAPEL], ['Role', g.role, PAPEL],
+      ['CTA contorno', g.ctaB, PAPEL],
     ];
     const pi = {}, mn = {}, ab = {}, tt = {}, quadros = [];
-    // Esconde o TEXTO, não o que está atrás dele. Esconder ".mel-hh-role"
-    // inteiro apagava junto o ::before, que é a elipse que dá contraste ao
-    // indicador — o teste media o vídeo cru e acusava 4,49:1 num lugar onde a
-    // página entrega bem mais. Por isso a regra desce para os filhos.
-    await rodar(c, estilo('.mel-hh-in,.mel-hh-role>span,.mel-hh-role>i{visibility:hidden!important}'));
+    // Esconde o TEXTO, não o que está atrás dele: visibility e não display,
+    // senão a geometria se mexe e a caixa medida deixa de ser a caixa real.
+    // (A exceção que existia aqui para os filhos do indicador saiu junto com
+    // ele em 15/08 — o véu não é pseudo-elemento e não corre esse risco.)
+    await rodar(c, estilo('.mel-hh-in{visibility:hidden!important}'));
     for (let k = 0; k < AMOSTRAS; k++) {
       await rodar(c, tocar);
       await dormir(ESPERA);

@@ -34,13 +34,39 @@ const PORT = Number(process.env.PORT) || 3030;
 //
 // SERVE_ROOT continua livre DENTRO da raiz canônica (SERVE_ROOT=site é uso
 // legítimo). O que a guarda proíbe é servir a partir de outra cópia do projeto.
+//
+// UMA RAIZ POR MÁQUINA — 15/08/2026. O marcador passou a trazer `canonicalRoots`,
+// uma lista. O projeto é tocado de duas máquinas com o repositório sincronizado
+// por git, e com raiz única a segunda reprovava aqui e no pré-voo. Isso NÃO
+// afrouxa a guarda: o que reprova a cópia arquivada de `Downloads\framer-teste`
+// é ela não ter o marcador nenhum, não o caminho dela estar fora da lista.
+// Acrescentar uma raiz é ato deliberado, versionado e revisável no diff.
 const MARCADOR = '.melcam-project.json';
 
-function abortar(linhas) {
+// Lê as raízes autorizadas aceitando o formato antigo (`canonicalRoot`, string)
+// e o novo (`canonicalRoots`, lista). Sem isto, um marcador antigo que sobre de
+// um checkout velho passaria a não autorizar ninguém.
+// `canonicalRoot` costuma repetir o primeiro item de `canonicalRoots`, então a
+// lista é deduplicada com a MESMA regra de comparação da guarda (no Windows,
+// sem caixa) — senão a mensagem de erro lista a mesma pasta duas vezes.
+function raizesAutorizadas(m) {
+  const lista = [
+    ...(Array.isArray(m.canonicalRoots) ? m.canonicalRoots : []),
+    ...(m.canonicalRoot ? [m.canonicalRoot] : []),
+  ].filter((r) => typeof r === 'string' && r.trim());
+
+  return lista.filter(
+    (r, i) => lista.findIndex((outra) => mesmoCaminho(r, outra)) === i
+  );
+}
+
+function abortar(linhas, raizes) {
   console.error('\nERRO: tentativa de servir uma cópia não canônica do MELCAM.');
   for (const l of linhas) console.error(l);
-  console.error('\nExecute:');
-  console.error('  cd C:\\Users\\israe\\viabetel\\melcam-site');
+  console.error('\nExecute, a partir de uma das raízes autorizadas:');
+  for (const r of raizes && raizes.length ? raizes : ['<raiz autorizada>']) {
+    console.error(`  cd ${r}`);
+  }
   console.error('  node serve.js');
   process.exit(1);
 }
@@ -89,12 +115,23 @@ function validarRaiz() {
     ]);
   }
 
-  if (!m.canonicalRoot || !mesmoCaminho(base, m.canonicalRoot)) {
+  const raizes = raizesAutorizadas(m);
+
+  if (!raizes.length) {
     abortar([
       `Raiz atual: ${base}`,
-      `Raiz autorizada: ${m.canonicalRoot}`,
+      `${MARCADOR} não declara nenhuma raiz autorizada.`,
+      'Esperado: canonicalRoots (lista) ou canonicalRoot (string).',
+    ], raizes);
+  }
+
+  if (!raizes.some((r) => mesmoCaminho(base, r))) {
+    abortar([
+      `Raiz atual: ${base}`,
+      `Raízes autorizadas:\n    ${raizes.join('\n    ')}`,
       'O marcador foi copiado para outra pasta.',
-    ]);
+      'Se esta máquina é legítima, acrescente a raiz em canonicalRoots e commite.',
+    ], raizes);
   }
 
   // SERVE_ROOT não pode apontar para fora da raiz canônica. Sem esta checagem a
@@ -104,7 +141,7 @@ function validarRaiz() {
       `Raiz atual: ${base}`,
       `SERVE_ROOT resolve para: ${ROOT}`,
       'SERVE_ROOT só pode apontar para dentro da raiz canônica.',
-    ]);
+    ], raizes);
   }
 
   // Divergência de cwd não impede nada, mas é o sintoma que confundiu antes.
@@ -113,7 +150,9 @@ function validarRaiz() {
     console.warn('       quem manda é a pasta do serve.js, não o diretório do terminal.');
   }
 
-  return { base, canonicalRoot: m.canonicalRoot };
+  // `canonicalRoot` devolve a raiz REAL desta execução, não a primeira da lista:
+  // o ponto inteiro da guarda é que o log diga de qual pasta o conteúdo veio.
+  return { base, canonicalRoot: base, raizes };
 }
 // ---------------------------------------------------------------------------
 

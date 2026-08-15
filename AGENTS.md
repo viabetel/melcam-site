@@ -4,8 +4,10 @@ Antes de qualquer ação:
 
 1. Execute `Get-Location`.
 2. Execute `git rev-parse --show-toplevel`.
-3. A raiz precisa ser exatamente:
-   `C:\Users\israe\viabetel\melcam-site`
+3. A raiz precisa ser **uma das** declaradas em `canonicalRoots`, no
+   `.melcam-project.json`:
+   - `C:\Users\israe\viabetel\melcam-site`
+   - `C:\Users\Nicácio\Desktop\melcam-site`
 4. Execute `node tools/preflight.js`.
 5. Se qualquer verificação falhar, pare.
 6. Nunca trabalhe em:
@@ -36,7 +38,7 @@ do que a porta serve contra o arquivo em disco. É isso que
 ## Como subir o servidor
 
 ```
-cd C:\Users\israe\viabetel\melcam-site
+cd <a sua raiz autorizada>
 node tools/preflight.js
 node serve.js
 ```
@@ -49,8 +51,18 @@ Ou, num passo só (o pré-voo roda antes e o servidor não sobe se reprovar):
 
 O `serve.js` valida a raiz **antes** de abrir a porta: exige
 `.melcam-project.json` com `project="melcam-site"` e `role="canonical"`, e
-confere que a pasta é a mesma declarada em `canonicalRoot`. Quem determina a
-raiz servida é `__dirname` (a pasta do `serve.js`), não o `cwd` do terminal.
+confere que a pasta é **uma das** declaradas em `canonicalRoots`. Quem determina
+a raiz servida é `__dirname` (a pasta do `serve.js`), não o `cwd` do terminal.
+
+**Por que a raiz virou lista (15/08/2026).** O projeto passa a ser tocado de
+duas máquinas com o repositório sincronizado por git, e com raiz única a
+segunda reprovava no pré-voo e não subia o servidor. Isso não afrouxa a guarda:
+o que reprova a cópia arquivada do `Downloads\framer-teste` é ela **não ter
+este arquivo nenhum**, e não o caminho dela estar fora da lista. Acrescentar
+uma raiz é ato deliberado, versionado e visível no diff — o que a guarda
+impede continua sendo servir uma cópia que ninguém autorizou. Máquina nova
+entra em `canonicalRoots`; nunca editando o caminho no lugar, que é o que
+geraria conflito a cada pull e terminaria com alguém desligando a guarda.
 `SERVE_ROOT` continua livre dentro da raiz canônica e é bloqueado se apontar
 para fora.
 

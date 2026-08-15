@@ -731,6 +731,11 @@ a[data-framer-name="Polen"]:has(.mel-polen-cor[data-i="6"]:hover) .mel-polen-leg
 }
 
 
+${require('./bloco-bee.js').css()}
+
+
+
+
 /* ============ SOBRE NÓS: a faixa em obturador — 14/08/2026 ============
    O card institucional saiu da grade de produtos (ver tools/sobre-faixa.js) e
    virou faixa propria entre "A Melcam por ai" e o fechamento. Aqui esta so o

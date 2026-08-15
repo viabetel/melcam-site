@@ -95,38 +95,31 @@ function css() {
    TEMA DA NAVBAR, logo abaixo. Os dois assuntos moram juntos porque são a
    mesma barra, e porque o botão de conta é um dos elementos que invertem. */
 
-/* ============ TEMA DA NAVBAR: inversão por região — 14/08/2026 ============
-   O PDF pede header fixo com inversão dinâmica: marca, tipografia e ícones
-   claros sobre fundo escuro, escuros sobre fundo claro, conforme a rolagem.
+/* ============ TEMA DA NAVBAR: UMA COR SÓ, CARVÃO — 15/08/2026 ============
+   DECISÃO DO CLIENTE, em 15/08: a barra é carvão em todo o site, sempre.
 
-   O QUE HAVIA ANTES, e por que não bastava. A navbar era carvão com tinta de
-   papel em todo o site, e a /bee tinha um bloco próprio que a virava do avesso
-   — papel com tinta de carvão — **na página inteira**. Isso resolvia a primeira
-   dobra da /bee, que é clara, e criava outro defeito adiante: de "Destaques"
-   para baixo a /bee volta ao editorial escuro, e ali a barra clara virava uma
-   lasca acesa atravessando uma página escura. Medido em /bee, scrollY 2500:
-   fundo da nav rgb(251,247,238) sobre uma seção rgb(34,30,23).
+   O QUE ISTO SUBSTITUI. De 14/08 até aqui a barra invertia por região: quem
+   fosse claro levava data-mel-tema="claro" no HTML, a /bee abria clara por
+   classe, e um controlador em JS escrevia html[data-mel-nav] conforme a
+   rolagem. Funcionava e era medido — mas o cliente lia as duas caras como
+   "dois headers diferentes", e a inversão dependia de a barra estar visível
+   para ser percebida como intencional. Uma cor só resolve a leitura.
 
-   COMO O TEMA É DECIDIDO. Não por página, não por índice de seção, não por
-   "primeira seção" e não por cor lida do fundo — todas essas quebram quando
-   uma página mistura claro e escuro, que é justamente o caso da /bee e o da
-   grade de produtos da home. Quem decide é uma **região explicitamente
-   marcada**: só quem é claro leva data-mel-tema="claro" no HTML. O resto do
-   site é escuro e continua sendo o padrão, sem marcação nenhuma.
+   POR QUE ISTO É SEGURO DE CONTRASTE. A barra tem fundo sólido próprio: o que
+   está atrás dela não participa da conta. Papel sobre carvão dá 15,5:1 nos
+   rótulos — o mesmo número que o qa-navbar-tema já media nas seis rotas, em
+   todas as amostras. Não existe seção do site onde essa barra fique ilegível,
+   porque não existe seção que atravesse o fundo dela.
 
-   TRÊS CAMADAS, NESTA ORDEM DE PRECEDÊNCIA:
-     1  os tokens em body — o escuro, que vale para tudo;
-     2  o padrão da página, por classe (body.mel-pagina-bee abre em claro).
-        É ELE que garante contraste certo no PRIMEIRO PAINT, sem JavaScript:
-        a barra já nasce com o tema da região que estará debaixo dela em
-        scrollY 0;
-     3  html[data-mel-nav], escrito pelo controlador. Vence a camada 2 por
-        construção — "html[...] body" tem uma especificidade a mais que
-        "body.classe" —, então nunca precisou de !important para se impor.
+   O QUE FICOU INERTE, DE PROPÓSITO E NÃO POR ESQUECIMENTO:
+     - as marcas data-mel-tema="claro" continuam no HTML (grade da home, /bee).
+       Não custam nada, e são o caminho de volta se a inversão for retomada;
+     - iniciarTemaNavbar() sai na porta em hero-carrossel.js, com o motivo
+       escrito lá. Nenhum atributo data-mel-nav é escrito, então não há estado
+       morto no <html>.
 
-   As regras abaixo consomem só os tokens. Nenhuma cor nova entra: os valores
-   claros são os mesmos que a /bee já usava, e os escuros são os que a barra já
-   tinha, medidos antes de mexer (fundo rgb(34,30,23), tinta rgb(251,247,238)). */
+   O antigo realce claro (#8A6A12) sai junto: ele existia para o mel não sumir
+   sobre papel, e não há mais barra de papel. */
 body{
   --mel-nav-fundo:${P.carvao};
   --mel-nav-tinta:${P.papel};
@@ -134,35 +127,8 @@ body{
   --mel-nav-realce-fundo:rgba(251,247,238,.10);
   --mel-nav-borda:rgba(0,0,0,.05);
   --mel-nav-foco:${P.mel};
-  /* O selo da sacola não inverte junto com a tinta: no escuro ele é mel sobre
-     carvão, no claro ele é carvão sobre papel. Nos dois casos o anel é da cor
-     da barra, que é o que o recorta do ícone. */
-  --mel-nav-selo-fundo:${P.mel};
-  --mel-nav-selo-tinta:${P.carvao};
-}
-/* O tema claro, num lugar só. #8A6A12 é o realce: mel sobre papel dá 1,88:1 e
-   sumiria; este dá 4,73:1, e é o mesmo eyebrow que a /bee já usa. */
-body.mel-pagina-bee,
-html[data-mel-nav="claro"] body{
-  --mel-nav-fundo:${P.papel};
-  --mel-nav-tinta:${P.carvao};
-  --mel-nav-realce:#8A6A12;
-  --mel-nav-realce-fundo:rgba(34,30,23,.06);
-  --mel-nav-borda:rgba(34,30,23,.12);
-  --mel-nav-foco:${P.carvao};
-  --mel-nav-selo-fundo:${P.carvao};
-  --mel-nav-selo-tinta:${P.papel};
-}
-/* E o caminho de volta: o controlador precisa conseguir DESFAZER o padrão
-   claro de uma página quando a barra sai da região clara. Sem esta regra a
-   /bee ficaria presa no claro, que é exatamente o defeito de origem. */
-html[data-mel-nav="escuro"] body{
-  --mel-nav-fundo:${P.carvao};
-  --mel-nav-tinta:${P.papel};
-  --mel-nav-realce:${P.mel};
-  --mel-nav-realce-fundo:rgba(251,247,238,.10);
-  --mel-nav-borda:rgba(0,0,0,.05);
-  --mel-nav-foco:${P.mel};
+  /* O selo da sacola é mel sobre carvão, e o anel é da cor da barra, que é o
+     que o recorta do ícone. */
   --mel-nav-selo-fundo:${P.mel};
   --mel-nav-selo-tinta:${P.carvao};
 }
@@ -498,7 +464,21 @@ function js() {
      demonstração local honesta) e o que falta para virar autenticação de
      verdade. Aqui embaixo estão só as decisões de comportamento. */
 
-  /* ====== TEMA DA NAVBAR: um controlador, e só um ======
+  /* ====== TEMA DA NAVBAR: DESLIGADO EM 15/08/2026 ======
+     🔴 O CLIENTE ESCOLHEU UMA COR SÓ: a barra é carvão em todo o site. Esta
+     função sai na primeira linha e não escreve data-mel-nav nenhum, então o
+     <html> não carrega estado morto e o CSS trabalha só com os tokens de body.
+
+     O CORPO FICA, INTEIRO E INTACTO. Ele é a implementação medida da inversão
+     por região, com a histerese e o motivo de cada escolha escritos abaixo — e
+     voltar atrás custa apagar UMA linha aqui e restaurar o bloco de tokens
+     claros em css(). Apagar tudo economizaria linhas e jogaria fora a parte
+     cara: o raciocínio. As marcas data-mel-tema="claro" continuam no HTML pelo
+     mesmo motivo.
+
+     ------------------------------------------------------------------
+     O que segue descreve o comportamento QUANDO LIGADO.
+
      Escreve data-mel-nav="claro" ou "escuro" no <html>. Quem pinta é o CSS
      (ver "TEMA DA NAVBAR" em tools/perfil.js); esta função não toca em cor,
      em classe de elemento nem em estilo inline.
@@ -519,6 +499,8 @@ function js() {
      ele só é instalado em página que TEM região clara. No site escuro inteiro
      esta função sai na segunda linha sem instalar nada. */
   function iniciarTemaNavbar() {
+    return;   // 15/08/2026: barra sempre carvão, por decisão do cliente
+
     var claras = [].slice.call(document.querySelectorAll('[data-mel-tema="claro"]'));
     if (!claras.length) return;
 
