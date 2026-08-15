@@ -1023,6 +1023,16 @@ body:not(.mel-interna) a[data-framer-name="Sobre Nós"]{
   letter-spacing:.16em; text-transform:uppercase; color:#F2A900;
   pointer-events:none;
 }
+/* O TITULO SOBE 18px — 14/08/2026, mesmo pedido do titulo da Polen. O
+   margin-top:40px e do preset why9d2 do template; com 22px o titulo comeca a
+   66px do topo do card, 28px abaixo do eyebrow, e na mesma linha do
+   "7 cores. Uma decisao." do card da esquerda.
+   O que anda junto: so o paragrafo de apoio, que sobe os mesmos 18px. A cena
+   e absoluta em top:44% e nao se mexe, entao o respiro entre o texto e a foto
+   AUMENTA — era 112px, fica 130. */
+body:not(.mel-interna) a[data-framer-name="Sobre Nós"] h3.framer-text{
+  margin-top:1.375rem;
+}
 
 /* A CENA. Ocupa a metade de baixo do cartao; em cima ficam eyebrow, titulo e a
    linha de apoio, que precisam continuar legiveis sobre carvao. */
@@ -1193,12 +1203,50 @@ body:not(.mel-interna) a[data-framer-name="Polen"]:has(.mel-polen-tira)::after{ 
    13/08, o eyebrow em fluxo mais o titulo de duas linhas empurravam o
    paragrafo para fora e ele sumia. Em absolute o eyebrow nao custa linha
    nenhuma e o texto volta. Nao e pilula como o da Bee de proposito — la o
-   argumento e NOVIDADE e pede etiqueta; aqui e ESCOLHA, e pede rotulo seco. */
+   argumento e NOVIDADE e pede etiqueta; aqui e ESCOLHA, e pede rotulo seco.
+
+   ALTURA CASADA COM "NA PROPRIA CAMERA" — 14/08/2026. O eyebrow dos filtros
+   nasce no fluxo, a 24px do topo do card (o padding-top:1.5rem da coluna 3), e
+   o selo "Novidade" da Bee ocupa a mesma linha. O da Polen caia 46px abaixo dos
+   dois, e nao por causa do proprio top: ele e absolute, mas seu bloco de
+   referencia NAO e o <a> — e o container de texto do template
+   (div.framer-eoeo9w), que nasce ja deslocado dentro do card. Medido em
+   14/08 nas tres variantes SSR do Framer, o deslocamento do container e
+   constante por variante: 50px em >=1440, 24px entre 810 e 1439.98, 50px
+   abaixo de 810. Entao o top aqui e sempre "24 menos esse deslocamento", e o
+   eyebrow pousa a 24px do topo do card nas tres — a mesma linha da coluna 3.
+   Nada mais do card muda: o eyebrow continua fora do fluxo e nao custa linha. */
 .mel-polen-eyebrow{
-  position:absolute; z-index:3; top:1.25rem; left:1.25rem; margin:0;
+  position:absolute; z-index:3; top:-1.625rem; left:1.25rem; margin:0;
   font-family:"Area",sans-serif; font-size:.72rem; font-weight:700;
   letter-spacing:.16em; text-transform:uppercase; color:${P.mel};
   pointer-events:none;
+}
+/* A variante do meio: la o container ja nasce nos 24px, entao o top e zero. */
+@media (min-width:810px) and (max-width:1439.98px){
+  .mel-polen-eyebrow{ top:0 }
+}
+
+/* O TITULO SOBE 24px — 14/08/2026. Pedido: "sobe um pouco 7 cores. Uma
+   decisao.". Quem mandava na altura dele era o margin-top:40px do preset
+   why9d2 do template, herdado de um h3 que nasce sozinho num card; aqui ele
+   nasce debaixo do eyebrow e 40px viravam buraco. Com 16px o titulo comeca a
+   66px do topo do card, ou seja 28px abaixo do eyebrow, e passa a dividir a
+   linha com "8 filtros. Nenhum aplicativo.", que ficou no mesmo 66.
+   ESCOPO: so o card grande da Polen, o que tem a tira. O preset why9d2 e o
+   mesmo h3 da Bee, do card pequeno e das internas — nenhum deles muda.
+   A ALTURA DO CARD NAO MUDA: o container do texto e que encolhe de 124 para
+   100, dentro de um card de altura fixa; a foto, a tira e o eyebrow (que se
+   ancora no container) ficam onde estavam. */
+body:not(.mel-interna) a[data-framer-name="Polen"]:has(.mel-polen-tira) h3.framer-text{
+  margin-top:1rem;
+}
+/* Na variante do meio o container ja nasce 26px mais alto e o titulo ja estava
+   nos 64px — mexer ali so o empurraria para baixo. Fica como esta. */
+@media (min-width:810px) and (max-width:1439.98px){
+  body:not(.mel-interna) a[data-framer-name="Polen"]:has(.mel-polen-tira) h3.framer-text{
+    margin-top:2.5rem;
+  }
 }
 
 /* ABSOLUTA, no rodape do card, e nao em fluxo.

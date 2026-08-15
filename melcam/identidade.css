@@ -842,6 +842,16 @@ body:not(.mel-interna) a[data-framer-name="Sobre Nós"]{
   letter-spacing:.16em; text-transform:uppercase; color:#F2A900;
   pointer-events:none;
 }
+/* O TITULO SOBE 18px — 14/08/2026, mesmo pedido do titulo da Polen. O
+   margin-top:40px e do preset why9d2 do template; com 22px o titulo comeca a
+   66px do topo do card, 28px abaixo do eyebrow, e na mesma linha do
+   "7 cores. Uma decisao." do card da esquerda.
+   O que anda junto: so o paragrafo de apoio, que sobe os mesmos 18px. A cena
+   e absoluta em top:44% e nao se mexe, entao o respiro entre o texto e a foto
+   AUMENTA — era 112px, fica 130. */
+body:not(.mel-interna) a[data-framer-name="Sobre Nós"] h3.framer-text{
+  margin-top:1.375rem;
+}
 
 /* A CENA. Ocupa a metade de baixo do cartao; em cima ficam eyebrow, titulo e a
    linha de apoio, que precisam continuar legiveis sobre carvao. */
@@ -1012,12 +1022,50 @@ body:not(.mel-interna) a[data-framer-name="Polen"]:has(.mel-polen-tira)::after{ 
    13/08, o eyebrow em fluxo mais o titulo de duas linhas empurravam o
    paragrafo para fora e ele sumia. Em absolute o eyebrow nao custa linha
    nenhuma e o texto volta. Nao e pilula como o da Bee de proposito — la o
-   argumento e NOVIDADE e pede etiqueta; aqui e ESCOLHA, e pede rotulo seco. */
+   argumento e NOVIDADE e pede etiqueta; aqui e ESCOLHA, e pede rotulo seco.
+
+   ALTURA CASADA COM "NA PROPRIA CAMERA" — 14/08/2026. O eyebrow dos filtros
+   nasce no fluxo, a 24px do topo do card (o padding-top:1.5rem da coluna 3), e
+   o selo "Novidade" da Bee ocupa a mesma linha. O da Polen caia 46px abaixo dos
+   dois, e nao por causa do proprio top: ele e absolute, mas seu bloco de
+   referencia NAO e o <a> — e o container de texto do template
+   (div.framer-eoeo9w), que nasce ja deslocado dentro do card. Medido em
+   14/08 nas tres variantes SSR do Framer, o deslocamento do container e
+   constante por variante: 50px em >=1440, 24px entre 810 e 1439.98, 50px
+   abaixo de 810. Entao o top aqui e sempre "24 menos esse deslocamento", e o
+   eyebrow pousa a 24px do topo do card nas tres — a mesma linha da coluna 3.
+   Nada mais do card muda: o eyebrow continua fora do fluxo e nao custa linha. */
 .mel-polen-eyebrow{
-  position:absolute; z-index:3; top:1.25rem; left:1.25rem; margin:0;
+  position:absolute; z-index:3; top:-1.625rem; left:1.25rem; margin:0;
   font-family:"Area",sans-serif; font-size:.72rem; font-weight:700;
   letter-spacing:.16em; text-transform:uppercase; color:#F2A900;
   pointer-events:none;
+}
+/* A variante do meio: la o container ja nasce nos 24px, entao o top e zero. */
+@media (min-width:810px) and (max-width:1439.98px){
+  .mel-polen-eyebrow{ top:0 }
+}
+
+/* O TITULO SOBE 24px — 14/08/2026. Pedido: "sobe um pouco 7 cores. Uma
+   decisao.". Quem mandava na altura dele era o margin-top:40px do preset
+   why9d2 do template, herdado de um h3 que nasce sozinho num card; aqui ele
+   nasce debaixo do eyebrow e 40px viravam buraco. Com 16px o titulo comeca a
+   66px do topo do card, ou seja 28px abaixo do eyebrow, e passa a dividir a
+   linha com "8 filtros. Nenhum aplicativo.", que ficou no mesmo 66.
+   ESCOPO: so o card grande da Polen, o que tem a tira. O preset why9d2 e o
+   mesmo h3 da Bee, do card pequeno e das internas — nenhum deles muda.
+   A ALTURA DO CARD NAO MUDA: o container do texto e que encolhe de 124 para
+   100, dentro de um card de altura fixa; a foto, a tira e o eyebrow (que se
+   ancora no container) ficam onde estavam. */
+body:not(.mel-interna) a[data-framer-name="Polen"]:has(.mel-polen-tira) h3.framer-text{
+  margin-top:1rem;
+}
+/* Na variante do meio o container ja nasce 26px mais alto e o titulo ja estava
+   nos 64px — mexer ali so o empurraria para baixo. Fica como esta. */
+@media (min-width:810px) and (max-width:1439.98px){
+  body:not(.mel-interna) a[data-framer-name="Polen"]:has(.mel-polen-tira) h3.framer-text{
+    margin-top:2.5rem;
+  }
 }
 
 /* ABSOLUTA, no rodape do card, e nao em fluxo.
@@ -3147,6 +3195,249 @@ body.mel-pagina-polen [data-mel="polen-story"] .mel-polen-story-etiq{
   .mel-pr-foto{ transition:none }
   .mel-pr-swatch{ transition:none }
 }
+
+/* ================== home — o bloco de texto da hero ==================
+   Entrou em 14/08/2026 com o pedido do bloco de texto da hero da home.
+
+   ONDE ELE MORA. Dentro de section[data-framer-name="The first section"], que
+   é a hero e estava vazia. Nada aqui alcança a navbar, o <video>, o container
+   fixo dele ou a section "Shadow" — os quatro continuam exatamente como
+   estavam, e nenhum seletor deste bloco os nomeia.
+
+   O EMPILHAMENTO, medido antes de escolher o número:
+     container do vídeo   position:fixed    z-index 0
+     section "Shadow"     position:absolute z-index 1   (vazia, sem pintura)
+     "The first section"  position:relative z-index auto
+   Daí z-index:2 aqui: é o primeiro degrau acima dos dois, e não mexe em
+   nenhum deles. A navbar não entra nessa conta porque este bloco NÃO RECEBE
+   PONTEIRO — pointer-events:none no envelope, auto só nos dois links. Mesmo
+   cobrindo a faixa dela em geometria, não há clique que ele possa roubar. */
+.mel-hh{
+  position:absolute; inset:0; z-index:2;
+  display:flex; align-items:center;
+  pointer-events:none;
+}
+
+/* --- o véu, que é obrigação de contraste e não gosto ---
+   O texto é papel (#FBF7EE) sobre vídeo, e o vídeo é uma cena de rua clara.
+   Medido na área que o bloco ocupa (x124..700, y250..700, 7.372 amostras do
+   quadro publicado): o pior contraste do papel contra o vídeo é 1,47:1, e
+   24% das amostras ficam abaixo de 4,5:1. Sem véu, um quarto do texto é
+   ilegível, e o vídeo se move — o quadro seguinte pode ser pior.
+
+   NÃO É O VÉU QUE SAIU EM 13/08. Aquele era a section "Shadow": uma rampa de
+   100vh sobre a hero inteira, que comia 17% no topo e 81% no pé. Este é uma
+   faixa horizontal presa à ESQUERDA, que termina em transparente antes da
+   metade da tela e nunca encosta no lado direito da cena. Ela existe para o
+   texto e acaba onde o texto acaba.
+
+   Os degraus saíram da conta, não do olho: sobre o pixel mais claro medido
+   (rgb(202,215,92)) um preto a 50% devolve 5,24:1 e a 45% devolve 4,52:1. A
+   parada de 38% mantém .66 até depois do fim da manchete, que em 1440 termina
+   em x660, ou 46% da tela. */
+.mel-hh-veu{
+  position:absolute; inset:0; pointer-events:none;
+  /* A MÁSCARA EXISTE PARA A NAVBAR, e é a única razão dela.
+     Primeira montagem: o véu tinha inset:0 e z-index:2, então passava POR CIMA
+     da barra. Medido no pixel: o lettering MELCAM caiu de rgb(251,247,238) para
+     rgb(142,139,132) e o fundo da barra de rgb(34,30,23) para rgb(22,18,14).
+     A barra ficou visivelmente lavada, e ela não pode mudar.
+
+     A máscara zera o véu nos 81px da barra e o traz por completo só aos 150px.
+     Não é um corte em 81: corte reto deixaria um degrau horizontal aparecendo
+     logo abaixo da barra, do lado escuro. Os 69px de rampa fazem o véu nascer
+     de dentro dela.
+
+     Mascarar em vez de reposicionar o bloco de propósito: assim a coluna de
+     texto continua centrada nos 900px inteiros da hero, que é onde a
+     referência a põe. */
+  -webkit-mask-image:linear-gradient(to bottom, transparent 0, transparent 81px, #000 150px);
+  mask-image:linear-gradient(to bottom, transparent 0, transparent 81px, #000 150px);
+  background-image:linear-gradient(90deg,
+    rgba(18,15,11,.74) 0%,
+    rgba(18,15,11,.66) 38%,
+    rgba(18,15,11,.34) 58%,
+    rgba(18,15,11,0)   78%);
+}
+
+/* A mesma caixa de conteúdo da /bee: 1240px com 24px de respiro. Em 1440 isso
+   põe a coluna em x124, que é onde a referência a coloca. Reaproveitar a
+   medida em vez de cravar um px novo mantém a home alinhada com as internas. */
+.mel-hh-in{
+  position:relative;
+  width:100%; max-width:1240px; margin:0 auto;
+  padding:0 24px clamp(56px,7vh,88px);
+  display:flex; flex-direction:column; align-items:flex-start;
+}
+
+/* --- o selo ---
+   Mel com texto carvão, e não o contrário: carvão sobre mel dá 8,25:1, que é
+   o mesmo par já usado nas placas da /bee. Pílula de verdade (999px), porque
+   é etiqueta e não botão — por isso também não tem hover, cursor nem foco. */
+.mel-hh-selo{
+  margin:0 0 clamp(18px,2.2vw,26px);
+  padding:.42rem 1rem;
+  border-radius:999px;
+  background:#F2A900; color:#221E17;
+  font-family:"Area",sans-serif; font-size:.72rem; font-weight:700;
+  letter-spacing:.16em; text-transform:uppercase; line-height:1;
+}
+
+.mel-hh-tit{
+  margin:0; color:#FBF7EE;
+  font-family:"Iowan Old Style",Georgia,serif; font-weight:700;
+  font-size:clamp(2.4rem,5.2vw,4.6rem); line-height:1.02; letter-spacing:-.02em;
+  /* A sombra não substitui o véu, soma a ele: ela salva a borda da letra
+     quando um realce do vídeo passa por baixo entre um quadro e outro. */
+  text-shadow:0 2px 18px rgba(18,15,11,.42);
+}
+
+/* --- o subtítulo, e a fonte dele ---
+   GEORGIA E NÃO IOWAN, de propósito. O projeto carrega uma face só de Iowan
+   Old Style: peso 700, estilo normal. Pedir italic dela faz o navegador
+   SINTETIZAR o itálico inclinando o desenho bold, e o que sai é um serifado
+   pesado torto, não um itálico. Georgia tem itálico de verdade e é o fallback
+   que a manchete já declara, então a família não é estranha à página. */
+.mel-hh-sub{
+  margin:clamp(14px,1.8vw,20px) 0 0; color:#FBF7EE;
+  font-family:Georgia,"Times New Roman",serif; font-style:italic;
+  font-size:clamp(1.05rem,1.7vw,1.5rem); line-height:1.4; letter-spacing:.005em;
+  max-width:34ch;
+  text-shadow:0 1px 14px rgba(18,15,11,.42);
+}
+
+/* --- os dois CTA ---
+   pointer-events volta a auto aqui: são os únicos nós clicáveis do bloco.
+   min-height 44px é o alvo de toque que o resto do site usa. */
+.mel-hh-ctas{
+  margin-top:clamp(26px,3.4vw,40px);
+  display:flex; flex-wrap:wrap; gap:14px;
+  pointer-events:auto;
+}
+.mel-hh-cta{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-height:44px; padding:0 1.65rem; border-radius:999px;
+  font-family:"Area",sans-serif; font-size:.84rem; font-weight:700;
+  letter-spacing:.09em; text-transform:uppercase; line-height:1;
+  text-decoration:none; white-space:nowrap;
+  transition:background-color 220ms ease, color 220ms ease, border-color 220ms ease;
+}
+.mel-hh-cta-mel{ background:#F2A900; color:#221E17; border:1px solid #F2A900 }
+.mel-hh-cta-mel:hover{ background:#FFB81A; border-color:#FFB81A }
+/* O contorno é papel a 72%, não papel cheio: cheio competia com a manchete,
+   que é o elemento que tem de ganhar a dobra. O TEXTO continua papel cheio,
+   então o contraste do que se lê não muda. */
+.mel-hh-cta-linha{
+  background:rgba(18,15,11,.28); color:#FBF7EE;
+  border:1px solid rgba(251,247,238,.72);
+}
+.mel-hh-cta-linha:hover{ background:rgba(251,247,238,.16); border-color:#FBF7EE }
+
+/* --- o indicador de rolagem ---
+   Centralizado na hero inteira, não na coluna de texto: na referência ele fica
+   no meio da tela, e é dica de página, não do bloco. */
+.mel-hh-role{
+  position:absolute; left:50%; bottom:clamp(18px,3vh,34px);
+  transform:translateX(-50%);
+  isolation:isolate;
+  display:flex; flex-direction:column; align-items:center; gap:9px;
+  color:rgba(251,247,238,.78);
+  font-family:"Area",sans-serif; font-size:.66rem; font-weight:500;
+  letter-spacing:.22em; text-transform:uppercase;
+  text-shadow:0 1px 12px rgba(18,15,11,.6);
+  pointer-events:none;
+}
+/* O indicador fica no MEIO da tela, e ali o véu já acabou — ele termina em
+   transparente aos 78%. Sem nada atrás, o fundo é a camisa amarela do filme:
+   rgb(162,160,5), que contra o papel dá 2,60:1.
+
+   A resposta é local e do tamanho da peça, não mais véu: uma elipse suave
+   presa ao próprio indicador. Medida em seis quadros distintos do filme, em
+   quatro janelas, ela entrega de 8,7:1 a 12,6:1 no pior caso de cada uma —
+   folga, e não empate no mínimo.
+
+   O isolation:isolate acima existe para o z-index:-1 daqui parar no
+   indicador: sem ele, o pseudo desceria para trás do véu e do vídeo. */
+.mel-hh-role::before{
+  content:""; position:absolute; z-index:-1;
+  left:50%; top:50%; transform:translate(-50%,-50%);
+  width:220px; height:136px; pointer-events:none;
+  /* closest-side, e não o farthest-corner que o radial-gradient assume sozinho.
+     Com o padrão, a elipse é dimensionada pela DIAGONAL (129px numa caixa de
+     220x136), então no meio de cada lado ela ainda tem alfa e o desenho termina
+     no corte reto da caixa: aparecia um retângulo escuro no meio da cena. Com
+     closest-side os raios viram 110 e 68, que é a caixa inscrita, e a tinta
+     chega a zero antes da borda em todas as direções. */
+  background:radial-gradient(closest-side ellipse at center,
+    rgba(18,15,11,.50) 0%, rgba(18,15,11,.42) 44%, rgba(18,15,11,0) 100%);
+}
+.mel-hh-role i{
+  display:block; width:1px; height:clamp(22px,3.4vh,34px);
+  background:linear-gradient(to bottom, rgba(251,247,238,.72), rgba(251,247,238,0));
+}
+
+/* Entrada em CSS puro, com "both", pela mesma razão da /bee: se o script
+   falhar o conteúdo aparece do mesmo jeito. */
+@keyframes melHhSobe{ from{ opacity:0; transform:translateY(18px) } to{ opacity:1; transform:none } }
+.mel-hh-selo,
+.mel-hh-tit,
+.mel-hh-sub,
+.mel-hh-ctas{ animation:melHhSobe 700ms cubic-bezier(.22,.61,.36,1) both }
+.mel-hh-selo{ animation-delay:120ms }
+.mel-hh-tit { animation-delay:220ms }
+.mel-hh-sub { animation-delay:330ms }
+.mel-hh-ctas{ animation-delay:430ms }
+/* O indicador NÃO pode usar melHhSobe: aquele keyframe termina em
+   transform:none e apagaria o translateX(-50%) que o centra. Medido antes de
+   perceber: a caixa saía em x720 com 45px de largura, ou seja, encostada no
+   meio pela ESQUERDA em vez de centrada nele — 22px fora. É a mesma armadilha
+   já registrada no vídeo do retrato da /bee. */
+@keyframes melHhSobeCentro{
+  from{ opacity:0; transform:translate(-50%,18px) }
+  to  { opacity:1; transform:translateX(-50%) }
+}
+.mel-hh-role{ animation:melHhSobeCentro 700ms cubic-bezier(.22,.61,.36,1) 620ms both }
+
+@media (max-width:1024px){
+  /* O véu fecha mais cedo e mais forte: a coluna ocupa proporcionalmente mais
+     da tela, então a parada de 78% deixaria o fim da manchete sem cobertura. */
+  .mel-hh-veu{
+    background-image:linear-gradient(90deg,
+      rgba(18,15,11,.78) 0%,
+      rgba(18,15,11,.70) 52%,
+      rgba(18,15,11,.38) 74%,
+      rgba(18,15,11,0)   92%);
+  }
+  .mel-hh-sub{ max-width:30ch }
+}
+
+@media (max-width:809.98px){
+  /* A navbar tem 81px e fica POR CIMA do topo da página — o mesmo padding de
+     104px das internas, pela mesma razão. */
+  .mel-hh-in{ padding:104px 20px clamp(70px,10vh,96px) }
+  .mel-hh{ align-items:center }
+  /* Em retrato o véu passa a ser vertical: a coluna ocupa a largura toda, e um
+     gradiente horizontal deixaria o fim de cada linha sem cobertura. */
+  .mel-hh-veu{
+    background-image:linear-gradient(180deg,
+      rgba(18,15,11,.34) 0%,
+      rgba(18,15,11,.62) 34%,
+      rgba(18,15,11,.68) 74%,
+      rgba(18,15,11,.46) 100%);
+  }
+  .mel-hh-sub{ max-width:26ch }
+  .mel-hh-ctas{ gap:11px }
+  .mel-hh-cta{ padding:0 1.25rem; font-size:.78rem }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .mel-hh-selo, .mel-hh-tit, .mel-hh-sub, .mel-hh-ctas{ animation:none }
+  /* O translateX do indicador é POSIÇÃO, não movimento: reposto na mão, senão
+     o "animation:none" o devolveria para o meio deslocado meia largura. */
+  .mel-hh-role{ animation:none; transform:translateX(-50%) }
+}
+/* ============ fim do bloco de texto da hero da home ============ */
+
 
 /* ================== /bee — hero premium e claro ==================
    Conceito: "uma câmera para levar junto". A Bee não é a Polen em amarelo —

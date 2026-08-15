@@ -9080,3 +9080,284 @@ baixo. Comportamento de sombra deslocada, igual ao que os packshots tinham em
   e traria o salto de volta — só faz sentido junto com a escolha de outro
   sub-loop. Fica como decisão, não como defeito.
 - **Nada foi commitado** e `tools/aplicar.js` não rodou.
+
+---
+
+## 🏠 O BLOCO DE TEXTO DA HERO DA HOME — 14/08/2026
+
+Pedido com captura de referência: selo "NOVO", manchete serifada "Chegou a Bee",
+subtítulo em itálico, "Role" com uma linha vertical, tudo à esquerda da hero,
+com os botões existentes logo depois. **Regra absoluta do pedido: não encostar
+na navbar.**
+
+### O que a medição achou antes de escrever uma linha
+
+O enunciado partia de duas premissas, e as duas estavam erradas para este site.
+
+**Não havia botão nenhum na hero.** E não havia texto: a
+`section[data-framer-name="The first section"]`, que é a hero de 1440x900, tinha
+**zero filhos**. Com a página no topo, a hero não dizia nada — só o filme.
+
+**Os textos existiam, em dois lugares errados, os dois abaixo da dobra:**
+
+| nó | onde estava | o que tinha |
+|---|---|---|
+| `div[data-framer-name="Hero"]` | y950, centralizado na seção carvão | "Novo" + `<h1>` "Chegou a Bee" |
+| `div[data-framer-name="Header Info"]` | y1609 | `<h2>` "A câmera que vive com você." |
+
+A navbar da referência também não é a deste site — a da imagem tem o lettering à
+esquerda e HOME/POLEN/BEE/ACESSÓRIOS/SOBRE NÓS na linha; a nossa tem os links à
+esquerda e o logo no centro exato. Levado como pergunta, e a decisão foi mexer só
+na hero.
+
+**Os dois CTA não foram invenção.** O `melcam.config.json` já trazia
+`home.hero.ctaPrimario` ("Conhecer a Bee") e `home.hero.ctaSecundario`
+("escolher modelo") desde o começo do projeto. Nunca tinham sido construídos.
+Todo o texto do bloco sai do config.
+
+### O que entrou
+
+`tools/hero-home.js`, novo, faz duas coisas e é idempotente:
+
+1. **Move** os três textos para dentro da hero. Mover e não copiar, porque o
+   `<h1>` é um só na página — duplicar daria dois e quebraria a etapa de "um
+   `<h1>` por página" do `aplicar.js`. O recorte dos nós balanceia
+   `<div>`/`</div>` na mão em vez de regex: os dois têm divs aninhadas e um
+   `.*?` corta no lugar errado. O arquivo confere o balanço antes de gravar.
+2. **Escreve o CSS** num bloco próprio da folha, **antes** do marcador da /bee —
+   depois dele o `sincronizar-bee-css.js` o apagaria em silêncio, porque ele
+   trunca a folha naquele ponto.
+
+Consequência aceita e conferida na tela: a seção carvão passa a abrir direto na
+fileira de fotos, e o `Header Info` fica só com o parágrafo.
+
+### A navbar, que era a regra absoluta, e que a primeira montagem quebrou
+
+O bloco é `position:absolute; inset:0; z-index:2` dentro da hero. O número saiu
+do empilhamento medido: o container do vídeo é `fixed` com z-index 0 e a section
+"Shadow" é `absolute` com z-index 1. z-index 2 é o primeiro degrau acima dos
+dois.
+
+Só que `inset:0` cobre também os 81px da barra, **e o véu passou por cima dela**:
+
+| pixel | antes | depois da 1ª montagem |
+|---|---|---|
+| lettering MELCAM (720,40) | rgb(251,247,238) | **rgb(142,139,132)** |
+| fundo da barra (200,40) | rgb(34,30,23) | rgb(21,18,13) |
+
+A correção é uma máscara no véu, e não reposicionar o bloco: ela zera a tinta
+nos 81px da barra e traz o véu por completo só aos 150px. **Não é corte em 81** —
+corte reto deixaria um degrau horizontal aparecendo logo abaixo da barra; os
+69px de rampa fazem o véu nascer de dentro dela. Mascarar em vez de mover mantém
+a coluna de texto centrada nos 900px inteiros, que é onde a referência a põe.
+
+Depois disso: **0 de diferença em 116.640 pixels** da faixa da barra em 1440, e
+o mesmo zero em 1280, 810 e 390. O envelope é `pointer-events:none` com `auto`
+só nos dois links, então nem geometria nem clique chegam à barra —
+`elementFromPoint(60,40)` devolve o link da própria navbar.
+
+### O véu, que é obrigação de contraste e não gosto
+
+O texto é papel sobre filme, e o filme é uma cena de rua clara. Medido na área do
+bloco antes de qualquer véu, 7.372 amostras: o pior contraste é **1,47:1** e
+**24% da área fica abaixo de 4,5:1**.
+
+Não é o véu que saiu em 13/08. Aquele era a "Shadow", uma rampa de 100vh sobre a
+hero inteira que comia 17% no topo e 81% no pé. Este é uma faixa horizontal
+presa à esquerda que termina em transparente aos 78% e nunca encosta no lado
+direito da cena.
+
+O indicador "Role" fica no meio da tela, onde o véu já acabou, e ali o fundo é a
+camisa amarela: rgb(162,160,5), 2,60:1. Levou uma elipse própria, presa a ele —
+`closest-side`, e não o `farthest-corner` que o `radial-gradient` assume sozinho:
+com o padrão a elipse é dimensionada pela diagonal, sobra alfa no meio de cada
+lado e aparecia um **retângulo escuro** no meio da cena.
+
+### Validação
+
+`node tools/qa-hero-home.js`, novo, em 1440x900, 1280x800, 810x1080 e 390x844.
+Ele prova as três coisas que captura solta não prova: a barra pixel a pixel com
+e sem o bloco, o contraste contra o fundo COMPOSTO em seis quadros distintos do
+filme, e a geometria da referência.
+
+| janela | navbar | título | subtítulo | CTA contorno | Role |
+|---|---|---|---|---|---|
+| 1440x900 | 0 dif. | 5,73 | 6,46 | 5,32 | 8,81 |
+| 1280x800 | 0 dif. | 6,23 | 6,93 | 5,60 | 8,67 |
+| 810x1080 | 0 dif. | 8,37 | 8,48 | **4,53** | 12,62 |
+| 390x844 | 0 dif. | 5,22 | 5,41 | 6,61 | 9,31 |
+
+Nenhuma caixa abaixo de 4,5:1 em quadro nenhum. O selo é carvão sobre mel, par
+fixo, 8,25:1.
+
+Também de pé: `preflight` limpo, `qa-rede` em 9 rotas sem asset quebrado,
+`qa-carrossel` **[OK]**, `qa-navbar-links` com **285 verificações e 0 falhas**,
+`qa-navbar-mobile` sem falha em 5 larguras x 3 rotas, e movimento reduzido com o
+bloco inteiro no lugar, sem animação.
+
+### Três armadilhas que custaram uma passada cada
+
+**O keyframe apagou a centralização.** O "Role" saiu 22px fora do centro: ele
+usava o `melHhSobe`, que termina em `transform:none` e apagava o
+`translateX(-50%)`. Ganhou keyframe próprio. É a mesma armadilha já registrada no
+vídeo do retrato da /bee.
+
+**A QA mediu seis vezes o mesmo quadro.** A primeira versão buscava posição no
+vídeo com `v.currentTime = 8`. O `serve.js` responde 200 a tudo, sem
+`Accept-Ranges` e ignorando `Range`, então o navegador não consegue buscar e o
+`currentTime` volta em 0 calado — e o quadro 0 é o mais escuro do filme, então o
+contraste saía folgado e falso. Mexer no `serve.js` consertaria o teste e não o
+site; o caminho foi deixar tocar e pausar em pontos sucessivos, com uma
+assinatura por quadro que reprova se eles se repetirem.
+
+**A QA escondia a própria coisa que queria medir.** Para medir o fundo ela
+escondia o texto — e escondia `.mel-hh-role` inteiro, apagando junto o `::before`
+que é a elipse de contraste. Media o vídeo cru e acusava 4,49:1 onde a página
+entrega 8,81:1. A regra desceu para os filhos.
+
+### Um vermelho que NÃO é defeito novo: `qa-navbar-tema` na home
+
+O teste reprova em `/ y2400`: "região marcada como clara, mas o pixel atrás é
+escuro". Medido, é coincidência de amostragem.
+
+O controlador de tema decide pela **meia-altura da barra**, com `FOLGA` de 14px e
+`HISTERESE` de 18px — 32px de zona morta em volta de cada fronteira, de
+propósito, para a barra não alternar quando alguém para em cima da divisa. Tirar
+os textos encurtou a seção carvão em 144px e a faixa clara passou de y1559..2653
+para y1415..2433. Em `scrollY 2400` a base dela cai em y33 da janela e a linha de
+decisão está em 22,5: **dentro da zona morta**, onde os dois temas são válidos
+por projeto. A barra fica papel sobre carvão ali, ou seja, 15,51:1 — legível.
+
+Antes da mudança o mesmo teste passava por sorte: a fronteira caía em y253 na
+amostra de 2400 e o passo de amostragem é de 400px.
+
+**Não corrigido de propósito:** o conserto é na checagem 1a do
+`qa-navbar-tema.js`, que precisa pular a zona morta que ela mesma documenta e já
+testa à parte no teste de jitter. É mudança fora da hero, e o pedido foi manter o
+diff dentro dela.
+
+### Arquivos
+
+| arquivo | o quê |
+|---|---|
+| `tools/hero-home.js` | **novo** — fonte do bloco e do CSS, e a cirurgia no HTML |
+| `tools/qa-hero-home.js` | **novo** |
+| `index.html` | build |
+| `melcam/identidade.css` | build |
+
+Nada mais foi tocado: conferido que tudo que vem antes da hero em `index.html` é
+byte a byte idêntico, que os dois blocos `<nav>` são idênticos, e que os 24
+seletores do CSS novo começam todos em `.mel-hh`.
+
+### Pendências
+
+- **`qa-navbar-tema` na home**, descrito acima.
+- **A fonte do subtítulo.** O projeto carrega uma face só de Iowan Old Style
+  (peso 700, normal). Pedir itálico dela faz o navegador sintetizar um serifado
+  pesado torto, então o subtítulo usa Georgia itálico, que é o fallback já
+  declarado na manchete. Se o cliente quiser Iowan itálico de verdade, falta a
+  face no projeto.
+- **Nada commitado.**
+
+---
+
+## 📐 O EYEBROW "POLEN" SUBIU PARA A LINHA DOS VIZINHOS — 14/08/2026
+
+Pedido, com captura anexa: na grade da home, "POLEN" nascia mais baixo que "NA
+PRÓPRIA CÂMERA" da coluna 3. Mover **só** o "POLEN" para cima, até os dois
+dividirem a mesma linha horizontal. Nada mais podia mudar.
+
+### O que estava errado, medido antes de tocar em nada
+
+Edge headless por CDP, nas três variantes SSR do Framer, medindo a distância de
+cada eyebrow até o topo do **card**:
+
+| largura | "Na própria câmera" | "Polen" (antes) |
+|---|---|---|
+| 1920 e 1440 | 24px | **70px** |
+| 1280, 1024 e 810 | 24px | **44px** |
+| 390 | 24px | **70px** |
+
+O eyebrow dos filtros nasce no fluxo, e os 24px são o `padding-top:1.5rem` que a
+coluna 3 já tinha. O selo "Novidade" da Bee cai na mesma linha.
+
+**O `top:1.25rem` do Polen não estava medindo o que parecia medir.** Ele é
+`position:absolute`, mas o bloco de referência dele não é o `<a>` do card: é o
+container de texto do template (`div.framer-eoeo9w`), que já nasce deslocado
+dentro do card — 50px nas variantes de 1440+ e de mobile, 24px na do meio. Daí a
+diferença de 46px que aparecia na captura, e daí ela mudar de tamanho conforme a
+janela.
+
+### O conserto
+
+Uma linha e uma media query em `.mel-polen-eyebrow`: o `top` passou a ser
+"24 menos o deslocamento do container" em cada variante — `-1.625rem` onde o
+container nasce em 50, `0` na faixa 810..1439.98, onde ele já nasce em 24.
+Medido depois: **24px nas seis larguras**, igual ao dos filtros. Em 1440 os dois
+eyebrows agora dividem o mesmo `y` (1575) ao pixel.
+
+Nada mais foi tocado no card: o eyebrow continua fora do fluxo, não custa linha
+ao título, e imagem, altura, largura, preço, CTA e a tira ficaram onde estavam.
+
+### ⚠️ Um erro no meio do caminho, e o que ele ensina
+
+Editei a fonte (`tools/identidade.js`) e rodei `node tools/identidade.js` para
+gerar a folha. **Isso apaga o resto de `melcam/identidade.css`**: aquele arquivo
+não é saída de uma ferramenta só, é a base do `identidade.js` mais os blocos que
+as outras anexam depois. A folha caiu de 4125 para 1263 linhas e levou junto o
+CSS da hero da home, que ainda não estava commitado.
+
+Recuperado assim, e sem perda: `git show HEAD:melcam/identidade.css` restaurou a
+base commitada e `node tools/hero-home.js` reconstruiu o bloco da hero (ele é
+idempotente, remove o próprio bloco antes de reinserir). Conferido depois —
+`preflight` limpo com CSS balanceado 806/806, `qa-hero-home.js` em 1440x900 [OK]
+com os mesmos números de antes, e o diff da folha contra o HEAD tem exatamente
+duas coisas: o bloco da hero (243 linhas, trabalho anterior) e este conserto.
+
+**Para quem vier depois: não rode `tools/identidade.js` sozinho.** Ou se edita a
+folha gerada junto com a fonte, como foi feito aqui no fim, ou se roda a cadeia
+inteira a partir do `aplicar.js`.
+
+### Arquivos
+
+| arquivo | o quê |
+|---|---|
+| `tools/identidade.js` | fonte do CSS |
+| `melcam/identidade.css` | build, mesmo trecho aplicado à mão |
+
+### Pendências
+
+- **Nada commitado** — segue valendo o que a seção anterior já dizia.
+
+### Os dois títulos subiram junto — mesma passada
+
+Pedido logo depois: "sobe um pouco '7 cores. Uma decisão.' e '8 filtros. Nenhum
+aplicativo.'". Os dois são o **mesmo** elemento do template — `h3.framer-text`
+com o preset `why9d2`, que traz `margin-top:40px`. Esse valor foi feito para um
+h3 que nasce sozinho num card; debaixo de um eyebrow ele vira buraco.
+
+A margem caiu para 16px na Polen e 22px nos filtros, e os dois títulos passaram
+a começar a **66px do topo do card** — 28px abaixo do eyebrow, e na mesma linha
+um do outro. Medido nas seis larguras:
+
+| largura | "7 cores…" antes → depois | "8 filtros…" antes → depois |
+|---|---|---|
+| 1920, 1440, 390 | 90 → **66** | 84 → **66** |
+| 1280, 1024, 810 | 64 → 64 (não mexe) | 84 → **66** |
+
+Na variante do meio (810..1439.98) o título da Polen já estava nos 64px, porque
+lá o container do texto nasce 26px mais alto: baixar a margem ali só empurraria
+para baixo. Ficou como estava, e a media query diz isso.
+
+**Escopo:** `a[data-framer-name="Polen"]:has(.mel-polen-tira)` e
+`a[data-framer-name="Sobre Nós"]`. O preset `why9d2` é o mesmo h3 da Bee, do
+card pequeno da Polen e das internas — conferido que nenhum deles mudou.
+
+Altura dos cards igual (486 e 782 em 1440), cena dos filtros parada em `top:44%`
+— o respiro entre o texto e a foto até aumentou, de 112 para 130px. `preflight`
+limpo.
+
+**Um vermelho pré-existente que apareceu na medição, e NÃO é desta mudança:** em
+810x1080 o eyebrow dos filtros quebra em duas linhas e o parágrafo de apoio
+encosta na cena (parágrafo em 200, cena em 195). Antes desta mudança a sobra era
+de 23px de invasão; agora são 5px. Some sozinho fora daquela largura exata.
