@@ -9,6 +9,12 @@ MOTION_SPEC.md
 AUDITORIA_PALETA.md
 medidas/
 
+# .ref-antigo/ — árvore de referência extraída do git para o qa-navbar-identica.
+# É uma CÓPIA ARQUIVADA do site, com páginas .html completas na raiz dela. Está
+# no .gitignore, mas o .vercelignore é quem manda no que o CLI sobe: sem esta
+# linha, a cópia velha iria ao ar junto com a atual, em /.ref-antigo/*.
+.ref-antigo/
+
 # melcam/img/header-fileira/ NÃO PODE VOLTAR PARA CÁ — 13/08/2026.
 #
 # A regra existia com o comentário "não são usados por nenhuma página; só
