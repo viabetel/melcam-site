@@ -9361,3 +9361,40 @@ limpo.
 810x1080 o eyebrow dos filtros quebra em duas linhas e o parágrafo de apoio
 encosta na cena (parágrafo em 200, cena em 195). Antes desta mudança a sobra era
 de 23px de invasão; agora são 5px. Some sozinho fora daquela largura exata.
+
+---
+
+## ✅ COMMIT, PUSH E DEPLOY — 14/08/2026
+
+Duas seções acima diziam "nada commitado". Agora está.
+
+`93ed222` — "O bloco de texto na hero da home e os eyebrows da grade na mesma
+linha". Seis arquivos: `index.html`, `melcam/identidade.css`, `tools/identidade.js`,
+`tools/hero-home.js` e `tools/qa-hero-home.js` (novos) e este handoff. Pré-voo
+limpo antes de subir, CSS balanceado 810/810.
+
+Push na `main` publica sozinho na Vercel. O build já estava no ar quando a
+primeira sondagem rodou: `mel-hh-veu` presente no HTML servido e 34 ocorrências
+de `mel-hh` na folha de produção.
+
+`qa-hero-home.js` rodado **contra produção**, e não contra o `serve.js`:
+
+```
+BASE_URL=https://melcam-site.vercel.app node tools/qa-hero-home.js 1440x900
+```
+
+Os números vieram iguais aos da bancada. Bloco em 0,0 1440x900, selo em y287,
+manchete y338 (x124-585), subtítulo y433, CTAs y506, "Role" em y820. Os dois
+links apontam para `/bee` e `/bee#modelos`. A faixa da navbar: **0 de diferença
+nos 116.640 pixels** com e sem o bloco — a regra absoluta do pedido continua de
+pé no ar, não só no local.
+
+Contraste medido em seis quadros distintos do filme, todos acima de 4,5:1 com
+0,0% de área reprovada: título 5,63 no pior quadro, subtítulo 6,83, CTA de
+contorno 5,26, "Role" 9,91. O selo é carvão sobre mel, 8,25:1 fixo.
+
+### Pendências
+
+- Nenhuma desta passada. O que segue aberto é o que as seções anteriores já
+  listavam: a face itálica de Iowan Old Style, que falta no projeto, e o
+  vermelho pré-existente do eyebrow dos filtros em 810x1080.
