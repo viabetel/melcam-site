@@ -721,6 +721,29 @@ function js() {
       if (!a.getAttribute('aria-label')) a.setAttribute('aria-label', 'MELCAM, ir para a página inicial');
     });
 
+    /* O SLOT VAZIO EMPURRAVA O BOTÃO PARA FORA EM 320px.
+       Medido: em 320 a linha tem 272px úteis (320 menos os 24 de cada lado) e
+       precisa acomodar hambúrguer (24) + marca (178, fixa) + slot (136, fixa)
+       + botão (44) = 382. O slot é o único que não carrega nada: sobrou nele
+       apenas a lupa inerte do template, invisível e sem ação. Com ele fora do
+       cálculo sobra 246, e o botão encosta na margem direita como deve.
+
+       Recolhido por medição, não por fé: só some se NÃO houver dentro dele
+       nenhum controle visível e ainda alcançável. Se o template um dia puser
+       algo de verdade ali, o slot fica — e é por isso que esta medição continua
+       valendo mesmo quando o HTML já vem com o slot recolhido: ela é a
+       autoridade, o atributo no arquivo é só quem chega primeiro. */
+    function recolherSlot(slot) {
+      var util = Array.prototype.slice.call(slot.querySelectorAll('a,button,[role="button"],img,svg'))
+        .filter(function (e) {
+          var r = e.getBoundingClientRect(), s = getComputedStyle(e);
+          return r.width > 0 && r.height > 0 && s.visibility !== 'hidden'
+            && Number(s.opacity) > 0.05 && s.pointerEvents !== 'none'
+            && e.getAttribute('aria-hidden') !== 'true';
+        });
+      if (!util.length) slot.style.display = 'none';
+    }
+
     var botoes = [];
     slots.forEach(function (slot) {
       /* O botão entra na LINHA da navbar, não dentro do slot de ícones.
@@ -733,7 +756,17 @@ function js() {
          de 24px da navbar, então o último filho dela encosta na margem direita
          em qualquer largura — que é onde o controle de conta tem de estar. */
       var linha = slot.parentElement || slot;
-      if (linha.querySelector('[data-mel-perfil]')) return;
+      /* A BARRA JÁ VEM MONTADA NO HTML desde 14/08 (tools/navbar-estatica.js),
+         e é isso que acaba com o flash da barra antiga: o desenho final pinta
+         no primeiro quadro, sem esperar este script. Aqui o caso passou a ser
+         ADOTAR o que já existe, e não sair pela porta.
+
+         Sair era o que este arquivo fazia, e com o HTML assado viraria defeito:
+         a lista de botoes ficaria vazia, e o corte por lista vazia logo abaixo
+         mataria o painel de conta, a contagem da sacola e o rótulo dos dois
+         controles. A criação continua aqui, intacta, para o caso de uma página
+         nova entrar no site sem passar pelo navbar-estatica. */
+      var pronto = linha.querySelector('[data-mel-perfil]');
 
       /* ---- os quatro destinos, à vista ----
          Entram DENTRO do "Meniu", que é o bloco do hambúrguer e já é a coluna
@@ -768,6 +801,11 @@ function js() {
          Sacola e conta viajam juntas dentro de .mel-nav-acoes: é ela que ocupa
          a terceira coluna da grade. Sem o grupo, os dois botões seriam dois
          filhos da linha e a grade perderia a conta das colunas. */
+      if (pronto) {
+        botoes.push(pronto);
+        recolherSlot(slot);
+        return;
+      }
       var acoes = document.createElement('div');
       acoes.className = 'mel-nav-acoes';
 
@@ -797,24 +835,7 @@ function js() {
       linha.appendChild(acoes);
       botoes.push(b);
 
-      /* O SLOT VAZIO AINDA EMPURRAVA O BOTÃO PARA FORA EM 320px.
-         Medido: em 320 a linha tem 272px úteis (320 menos os 24 de cada lado) e
-         precisa acomodar hambúrguer (24) + marca (178, fixa) + slot (136, fixa)
-         + botão (44) = 382. O slot é o único que não carrega nada: sobrou nele
-         apenas a lupa inerte do template, invisível e sem ação. Com ele fora do
-         cálculo sobra 246, e o botão encosta na margem direita como deve.
-
-         Recolhido por medição, não por fé: só some se NÃO houver dentro dele
-         nenhum controle visível e ainda alcançável. Se o template um dia puser
-         algo de verdade ali, o slot fica. */
-      var util = Array.prototype.slice.call(slot.querySelectorAll('a,button,[role="button"],img,svg'))
-        .filter(function (e) {
-          var r = e.getBoundingClientRect(), s = getComputedStyle(e);
-          return r.width > 0 && r.height > 0 && s.visibility !== 'hidden'
-            && Number(s.opacity) > 0.05 && s.pointerEvents !== 'none'
-            && e.getAttribute('aria-hidden') !== 'true';
-        });
-      if (!util.length) slot.style.display = 'none';
+      recolherSlot(slot);
     });
     if (!botoes.length) return;
 

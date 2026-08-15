@@ -23,6 +23,26 @@ const p = (r) => path.join(SITE, r);
 const ler = (r) => fs.readFileSync(p(r), 'utf8');
 const conta = (s, sub) => s.split(sub).length - 1;
 const crlf = (s) => s.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n');
+const lf = (s) => s.replace(/\r\n/g, '\n');
+
+/* A FOLHA JÁ FOI CRLF, E HOJE NÃO É MAIS.
+   Este arquivo nasceu convertendo todo texto novo para CRLF, porque em 13/08 a
+   folha era 100% CRLF — editada à mão em passagens anteriores. Em 14/08 ela foi
+   regenerada a partir do tools/identidade.js, que emite LF, e passou a ser 100%
+   LF. A conversão fixa virava então o defeito que ela existia para evitar:
+   entraria um bloco CRLF num arquivo LF e o arquivo ficaria misto.
+
+   Então a convenção não é mais escolhida aqui, é LIDA do arquivo. Misto é
+   recusado, que é a única situação em que não dá para adivinhar. */
+function convencao(texto, nome) {
+  const comCRLF = conta(texto, '\r\n');
+  const soLF = conta(lf(texto), '\n') - comCRLF;
+  if (comCRLF && soLF) {
+    erros.push(nome + ': fim de linha misto (' + comCRLF + ' CRLF e ' + soLF + ' LF) — conserte antes');
+    return null;
+  }
+  return comCRLF ? crlf : lf;
+}
 
 const erros = [];
 const passos = [];
@@ -48,15 +68,18 @@ passos.push({
 });
 
 // --------------------------------------------------------- identidade.css
-// A folha é 100% CRLF (editada à mão em passagens anteriores) e os geradores
-// emitem LF. Todo texto novo entra convertido, senão o arquivo vira misto e
-// qualquer diff futuro fica ilegível.
+// Todo texto novo entra na convenção de fim de linha que a folha já usa, senão
+// o arquivo vira misto e qualquer diff futuro fica ilegível. Qual é ela, o
+// arquivo é que diz — ver convencao() lá em cima.
 let css = ler('melcam/identidade.css');
 const cssAntes = css.length;
+const fimDeLinha = convencao(css, 'identidade.css');
 
 const MARCA = '/* ================== conta, sessão e sacola na navbar ==================';
 const ANCORA = '/* ================== /polen — hero premium ==================';
-const blocoNovo = crlf(require('./perfil.js').css()).replace(/^\r\n/, '');
+const blocoNovo = fimDeLinha
+  ? fimDeLinha(require('./perfil.js').css()).replace(/^(\r\n|\n)/, '')
+  : '';
 
 exigir(css.includes(ANCORA), 'identidade.css: âncora do bloco da /polen não encontrada');
 if (css.includes(MARCA)) {
@@ -74,7 +97,9 @@ if (css.includes(MARCA)) {
 {
   const abre = conta(css, '{'), fecha = conta(css, '}');
   exigir(abre === fecha, 'identidade.css: chaves desbalanceadas ' + abre + '/' + fecha);
-  exigir(!/\n(?!\r)/.test(css.replace(/\r\n/g, '')), 'identidade.css: sobrou LF puro — a folha é CRLF');
+  // A mesma leitura de novo, agora sobre o resultado: se o bloco entrou na
+  // convenção errada, o arquivo ficou misto e isto acusa antes de gravar.
+  exigir(!!convencao(css, 'identidade.css, depois da troca'), 'identidade.css: fim de linha misto depois da troca');
   passos.push({
     arq: 'melcam/identidade.css', de: cssAntes, para: css.length, chaves: abre + '/' + fecha,
     escrever: () => fs.writeFileSync(p('melcam/identidade.css'), css, 'utf8'),

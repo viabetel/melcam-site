@@ -9398,3 +9398,212 @@ contorno 5,26, "Role" 9,91. O selo é carvão sobre mel, 8,25:1 fixo.
 - Nenhuma desta passada. O que segue aberto é o que as seções anteriores já
   listavam: a face itálica de Iowan Old Style, que falta no projeto, e o
   vermelho pré-existente do eyebrow dos filtros em 810x1080.
+
+---
+
+## 🍔 O FLASH DA NAVBAR ANTIGA — 14/08/2026
+
+Pedido: ao clicar em qualquer link da barra, a versão antiga dela — hambúrguer
+à esquerda, logo no centro, nenhum destino à vista — piscava antes de a próxima
+página carregar. Achar a origem e eliminar, sem mudar nada da barra atual.
+
+### O que a medição achou
+
+`tools/qa-flash-navbar.js`, novo. Amostra por `requestAnimationFrame` desde
+antes de qualquer script da página (`Page.addScriptToEvaluateOnNewDocument`),
+com rede e CPU freadas como no `qa-flash.js` — o flash é uma corrida, e numa
+máquina rápida com cache quente ele não aparece nem quando existe. Cada amostra
+corresponde a um quadro composto, ou seja, a um quadro que dava para ver.
+
+Indo da home para /polen, como quem clica:
+
+| | antes | depois |
+|---|---|---|
+| quadros pintados com o hambúrguer | **42** (t=3344 a 4791ms) | **0** |
+| quadros sem os destinos à vista | 42 | 0 |
+| trocas de cara depois de pintar | 2 | 1 |
+
+Foi 1,7 segundo de barra velha em cada troca de página. A captura
+`tools/shots-flash-navbar/polen-via-home/07-03652ms.png` mostra o quadro exato.
+
+**Não era nenhuma das hipóteses do pedido.** Não era hidratação desfazendo o
+DOM, não era media query, não era componente duplicado, não era layout antigo
+nem CSS legado. Era o HTML servido: a barra atual nascia em `iniciarPerfil()`,
+no `DOMContentLoaded`, e até lá o arquivo só tinha a barra do export do Framer
+para mostrar. O CSS que troca a linha por grade e recolhe o hambúrguer é
+escopado por `:has(.mel-nav-links)` — sem os links no DOM, ele não valia.
+
+### O conserto, na origem
+
+`tools/navbar-estatica.js`, novo: escreve no HTML das 11 páginas com barra o
+mesmo DOM que o `iniciarPerfil()` criaria — os quatro destinos dentro do
+"Meniu", a sacola e a conta em `.mel-nav-acoes` no fim da linha, e o slot de
+ícones recolhido. Os ícones saem do próprio `tools/perfil.js`, por `require`,
+para não existirem duas verdades. Idempotente, e confere o balanço de `<div>`
+do documento antes de gravar.
+
+Com os links no arquivo, o `:has(.mel-nav-links)` vale no primeiro paint. Nada
+de atraso, nada de esconder a barra até o script chegar: o que pinta no quadro
+1 já é o desenho final. As duas variantes SSR de cada página recebem o mesmo
+tratamento — são duas `<nav>` por página, "Navigation Color" e "Navigation
+Mobile Coor", e ignorar isso já custou uma correção inteira em 13/08.
+
+**O `aria-current` passou a sair por arquivo**, e ficou melhor que antes: o
+script decidia por `location.pathname`, então quem abrisse `/polen.html` direto
+não via destino nenhum marcado. Agora vê.
+
+### O que quase virou defeito no caminho
+
+`iniciarPerfil()` saía na porta quando já havia botão de conta na linha
+(`if (linha.querySelector('[data-mel-perfil]')) return`). Com a barra assada no
+HTML, essa saída passaria a valer sempre: a lista de botões ficaria vazia, o
+corte por lista vazia logo abaixo cortaria o resto, e morreriam o painel de
+conta, a contagem da sacola e o rótulo dos dois controles. Agora o caso é
+**adotar** o que já existe. A criação continua no arquivo, intacta, para uma
+página nova que entre sem passar pelo `navbar-estatica`.
+
+O recolhimento do slot virou função (`recolherSlot`) para valer nos dois
+caminhos. Ele continua medindo de verdade: só some se não houver ali dentro
+nenhum controle visível e alcançável. O atributo no arquivo é quem chega
+primeiro; a medição é quem manda.
+
+### A regra absoluta, medida
+
+`tools/qa-navbar-identica.js`, novo. Compara a faixa de 81px da barra assentada
+entre produção (o HEAD, sem o conserto) e o local (com ele), pixel a pixel, e
+compara também a geometria: x, y, largura e altura com fração, mais fonte,
+peso, espaçamento, cor, padding, raio, ordem dos filhos e `aria-current` de
+cada link.
+
+**A faixa é 81 e não 90 por medição.** Com 90px a home acusava 12.908 pixels
+diferentes em 1440. Não era a barra: eram os 9px de vídeo logo abaixo dela, que
+se move, e cada captura pega um quadro.
+
+**E o pixel de texto não é estável entre duas cargas.** Duas capturas da MESMA
+página, do MESMO build, no mesmo navegador, diferiam em 1.315 dos 116.640
+pixels, sempre na linha dos rótulos (y35..45), com diferença de canal de até
+132. É o Skia escolhendo entre antialiasing de subpixel e cinza conforme o
+cache de fonte. Isso foi descoberto pelo controle — comparar o build consigo
+mesmo — depois de a primeira leitura acusar "a barra mudou" em 21 casos. Sem o
+controle, a conclusão teria sido a errada.
+
+Duas respostas para isso, e as duas ficaram no arquivo: máscara de ruído (cada
+lado capturado duas vezes, só conta o que difere entre os lados e é estável
+dentro de cada um) e, melhor, `--disable-lcd-text` e
+`--disable-font-subpixel-positioning` no headless, que zeram o ruído na origem.
+São ajuste do medidor, não do site.
+
+Com o medidor determinístico: **0 pixel diferente e geometria idêntica** em
+/polen e /bee, 1920 e 1440. Na varredura anterior, com máscara, as 36
+combinações (6 rotas x 6 larguras) deram **geometria idêntica em todas**, e as
+diferenças de pixel que sobraram eram exatamente o conjunto do ruído de texto.
+
+### Os outros QA
+
+| teste | resultado |
+|---|---|
+| `qa-flash-navbar` desktop, /polen /bee /acessorios /sobre /sacola e a home | **0 quadros** com a barra antiga, 1 estado depois de pintar |
+| `qa-flash-navbar` mobile 390 | hambúrguer o tempo todo (é o desenho aprovado ali), 1 estado depois de pintar |
+| `qa-navbar-links` local | **285 verificações, 0 falhas** |
+| `qa-perfil` local | 65/66 |
+| `preflight` | limpo |
+
+O 1 que falta no `qa-perfil` é **anterior a esta mudança**: "hambúrguer fecha o
+painel de perfil" em 1440. Conferido rodando o mesmo teste contra produção, que
+é o HEAD sem o conserto — falha igual, 32/33. Em 1440 o hambúrguer está
+recolhido por desenho desde 13/08, então não há o que clicar; o teste é que
+ficou velho.
+
+### Arquivos
+
+| arquivo | o quê |
+|---|---|
+| `tools/navbar-estatica.js` | **novo** — assa a barra atual no HTML das 11 páginas |
+| `tools/qa-flash-navbar.js` | **novo** — conta os quadros com a barra antiga |
+| `tools/qa-navbar-identica.js` | **novo** — prova que a barra assentada não mudou |
+| `tools/perfil.js` | adota a barra pronta; `recolherSlot` virou função |
+| `tools/sincronizar-perfil.js` | fim de linha lido do arquivo, não mais fixo em CRLF |
+| `melcam/interacoes.js` | build |
+| as 11 páginas com barra | a barra atual no HTML servido |
+
+**Por que o sincronizador mudou:** ele convertia todo texto novo para CRLF,
+porque em 13/08 a folha era 100% CRLF. Depois da regeneração de 14/08 pelo
+`identidade.js`, que emite LF, ela virou 100% LF — e a conversão fixa passou a
+ser exatamente o defeito que ela existia para evitar. Agora a convenção é lida
+do arquivo, e misto é recusado. A folha não mudou nem um byte nesta passagem.
+
+### Pendências
+
+- **`qa-navbar-mobile` e `qa-navbar-tema` não rodaram no local** nesta passagem
+  (a execução foi interrompida). O `qa-navbar-tema` rodou contra produção mais
+  cedo hoje, com o vermelho já documentado do `/ y2400`.
+- **A matriz completa do `qa-navbar-identica` com o medidor determinístico não
+  terminou** — o processo foi interrompido. O que existe é a varredura anterior
+  com máscara (36 casos, geometria idêntica em todos) e a determinística em 4
+  casos. Para fechar: `node tools/qa-navbar-identica.js`.
+- **`contact.html` e `faq.html` não têm barra no HTML** — nenhuma, nem a antiga:
+  o Framer não gerou SSR para elas. Ficaram de fora do `navbar-estatica` por
+  isso. As duas foram substituídas por `/sobre#contato` e `/polen#faq` no
+  `rotas.js`; se voltarem a ser rota de verdade, precisam de tratamento próprio.
+- **Nada commitado.**
+
+---
+
+## ✅ AS PENDÊNCIAS DE QA DA NAVBAR, FECHADAS — 14/08/2026
+
+A seção acima subiu com três testes em aberto porque a execução anterior foi
+interrompida. Rodaram todos, no local, contra o `serve.js` canônico
+(pré-voo limpo antes: CSS 810/810, SHA-256 do que a porta serve confere com o
+disco).
+
+### `qa-navbar-mobile` — 0 falhas
+
+15 casos (5 larguras x 3 rotas). Em todos: faixa `fixed` em y0 com 81px de
+altura, 0 pixel de transbordo horizontal, 3/3 controles alcançáveis, menu ok,
+0 erro de console.
+
+| rota | 320 | 375 | 390 | 430 | 768 |
+|---|---|---|---|---|---|
+| `/` | ok | ok | ok | ok | ok |
+| `/bee` | ok | ok | ok | ok | ok |
+| `/polen` | ok | ok | ok | ok | ok |
+
+Ou seja: a barra assada no HTML não mexeu no desenho mobile, que continua com
+o hambúrguer por escolha de projeto desde 13/08.
+
+### `qa-navbar-tema` — sem regressão
+
+Seis rotas varridas de y0 até o fim, mais o caso "sem JS", o jitter na
+fronteira e a rolagem rápida com reverso. A tinta dos rótulos deu 15,51:1 em
+**todas** as amostras, e o "sem JS: combina" passou nas seis rotas — o que é o
+ponto desta mudança, já que agora a barra existe no arquivo e precisa nascer
+com o tema certo antes de qualquer script.
+
+A `/bee` troca de tema duas vezes (claro até y2000, escuro a partir de y2400),
+o que é o desenho: a fronteira em y2260 não oscila, 0 troca depois de assentar.
+
+**Uma falha, e é a de sempre:** `/ y2400` — região marcada como clara com o
+pixel atrás escuro `rgb(34,30,23)`. É a pendência pré-existente, a mesma que
+apareceu na execução contra produção mais cedo hoje, ou seja, ela vem do HEAD e
+não desta correção.
+
+### `contact.html` e `faq.html` — pendência inerte
+
+Ficaram de fora do `navbar-estatica` por não terem SSR. Conferido agora que
+isso não alcança ninguém: **0 referência** a `contact.html`, `faq.html`,
+`/contact` ou `/faq` em `index`, `bee`, `polen`, `sobre`, `acessorios`,
+`sacola`, `404` e no `sitemap.xml`. São arquivos órfãos no disco, não rota. A
+pendência continua registrada para o dia em que virarem rota de novo, mas não
+bloqueia nada.
+
+### Pendências
+
+- **A matriz determinística completa do `qa-navbar-identica` foi relançada e
+  ainda estava rodando quando este estado foi commitado.** O que sustenta a
+  regra absoluta neste commit é o que a seção anterior já registrava: os 36
+  casos com máscara (6 rotas x 6 larguras), geometria idêntica em todos, mais
+  os 4 casos determinísticos com 0 pixel de diferença. O resultado da matriz
+  nova entra numa seção própria quando fechar.
+- Segue aberto, de sessões anteriores e não tocado aqui: a sangria acima de
+  1440 nas duas internas, a face itálica de Iowan Old Style que falta no
+  projeto, e a pose do poster do vídeo da Bee (decisão, não defeito).
