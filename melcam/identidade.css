@@ -1005,6 +1005,34 @@ body .mel-bt-linha:has(.mel-bt-mask)::before{
   body .mel-acesso-enviar::before{ transition:none }
 }
 
+/* ---- AS PILULAS DOS 8 FILTROS GANHAM PE — 16/08/2026 ----
+   Pedido do Israel no video de 14/08, aos 0:57: "arruma esses filtros aqui
+   tambem".
+
+   O QUE ESTA ERRADO, medido no lugar: a .mel-filtros-tira tem padding
+   "2.6rem 1rem 1.1rem". Os oito nomes quebram em duas fileiras, e 1.1rem —
+   17,6px — e o que sobra entre a segunda fileira e a borda do cartao. Uma
+   fileira encostada na borda le como corte, nao como rodape.
+
+   O 1.1rem servia quando a tira era de UMA fileira, como as da Polen e da Bee.
+   Com duas, o pe precisa do mesmo peso do topo do respiro. Vai para 1.6rem, e
+   o vao entre as fileiras sobe de .35 para .45rem para as duas nao lerem como
+   um bloco so.
+
+   ⚠️ O RECORTE DE 30% DAS FOTOS FICA COMO ESTA, e e decisao, nao esquecimento.
+   A cena e 437x471 (0,93) e as fotos sao 1200x900 (1,33): o cover descarta 30%
+   na horizontal. Forcar a caixa para 4:3 daria 437x328 e abriria um buraco de
+   210px no meio do cartao, porque a cena e ancorada em top:44% e o cartao tem
+   altura fixa pela coluna. E sao fotos de PAISAGEM, nao de produto — cortar
+   30% de um Pao de Acucar e enquadramento comum; cortar 30% de uma camera e
+   que era defeito. O caso do card da Polen nao se aplica aqui. */
+body:not(.mel-interna) a[data-framer-name="Sobre Nós"] .mel-filtros-tira{
+  padding-bottom:1.6rem;
+}
+body:not(.mel-interna) a[data-framer-name="Sobre Nós"] .mel-filtros-lista{
+  gap:.45rem;
+}
+
 /* ---- OS DOIS CARTOES BAIXOS CRESCEM — 15/08/2026 ----
    Pedido do cliente: "aumenta o proprio card junto com os outros que estao ao
    lado pra ter harmonia".
