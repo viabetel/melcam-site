@@ -740,6 +740,34 @@ a[data-framer-name="Bee"]:has(.mel-bee-cor:hover) .mel-bee-troca img[data-i]{
    depender do text-shadow das letras e do proprio filme. Medido depois da
    remocao, e o numero esta na secao do progresso.md. */
 
+/* ---- OS DOIS CARTOES BAIXOS CRESCEM — 15/08/2026 ----
+   Pedido do cliente: "aumenta o proprio card junto com os outros que estao ao
+   lado pra ter harmonia".
+
+   A GEOMETRIA DA SECAO, medida antes de escolher o numero: sao tres colunas.
+   A 1 tem Polen grande (486) sobre Polen pequeno (280); a 2 tem Bee (486) sobre
+   Acessorios (280); a 3 tem os 8 filtros num cartao unico de 782. E 486 + 280 +
+   16 de vao = 782 — nao e coincidencia, e o que faz as tres colunas terminarem
+   na mesma linha.
+
+   Entao crescer so um cartao quebraria o alinhamento das colunas. Os dois
+   baixos crescem juntos, de 280 para 340, e a coluna dos filtros acompanha por
+   stretch — a soma vai de 782 para 842 nas tres. O cartao alto nao precisa de
+   numero novo: ele ja e stretch dentro da linha do grid.
+
+   340 e nao mais: e a altura em que a foto do cartao pequeno da Polen para de
+   cortar a camera com o enquadramento em 88%, medido no lugar. Acima disso os
+   dois cartoes grandes ficariam proporcionalmente menores que os baixos, e a
+   hierarquia da secao (produto grande, categoria pequena) se inverteria.
+
+   O ALVO DO CARTAO PEQUENO E POR FOTO. Sao dois <a data-framer-name="Polen">, e
+   o pequeno e o que carrega polen-lp-1 — as classes framer-* mudam a cada
+   export e nao servem de ancora. */
+body:not(.mel-interna) div[data-framer-name="Header Grid"] a[data-framer-name="Polen"]:has(img[src*="polen-lp-1"]),
+body:not(.mel-interna) div[data-framer-name="Header Grid"] a[data-framer-name="Sneakers"]{
+  aspect-ratio:1.285 !important;
+}
+
 /* ---- A FOTO DO CARD PEQUENO DA POLEN — 15/08/2026 ----
    O cartao tem 437x280 e a foto e um retrato de 1125x1687 numa caixa de
    437x437 ancorada em y95 — ou seja, a janela visivel e uma faixa de 185px
