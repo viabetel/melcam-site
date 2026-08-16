@@ -779,28 +779,37 @@ body .mel-bt-linha:has(.mel-bt-mask)::before{
    ficava sobre a fotografia e nao havia borda visivel para comparar. Com a
    faixa escura a esquerda, o desalinho ficou a vista — o mesmo motivo pelo qual
    o desencontro do hero da /polen so apareceu quando alguem olhou o rodape. */
+/* O TITULO E A LEGENDA DO CARROSSEL NA COLUNA DA PAGINA — 16/08/2026.
+   Pedido do cliente, em duas mensagens: "acerta o titulo por la, ficou fora e
+   vai ter que alinhar com o plano que temos de design" e, logo depois, "a
+   legenda tb, os textos".
+
+   Medido em 1440: a coluna da pagina e x24 — onde comecam o hero da home, o
+   "Memorias da Colmeia", os selos e os heros da /polen e da /bee. O titulo do
+   slide nascia em x80, por causa dos 56px de padding da caixa de texto, e a
+   fileira de pontos e "Pausar" ficava em x728, centralizada. As duas pecas
+   fora da grade.
+
+   Agora: padding da esquerda a zero no titulo, e justify-content:flex-start na
+   fileira de controle. Medido depois: titulo x24, pontos x24, "Pausar" x112
+   logo apos eles.
+
+   ⚠️ EU JA REVERTI ISTO UMA VEZ, POR CONTA PROPRIA, e estava errado. Quando o
+   encolhimento da foto foi desfeito, eu conclui sozinho que o alinhamento
+   tambem devia voltar — o cliente nao pediu isso. O que ele reprovou foi a foto
+   encolhida, nao o texto alinhado. Nao desfazer de novo sem pedido explicito. */
 body:not(.mel-interna) .mel-slide-txt{
   padding-left:0;
 }
-/* A LEGENDA DAS FOTOS ENTRA NA COLUNA JUNTO — 16/08/2026.
-   A .mel-controles — os pontos e o "Pausar" — e flex com justify-content:center,
-   entao ficava em x728 enquanto o titulo do slide foi para x24. Era a unica
-   peca da area sobrando fora da grade, e ficou obvia depois que o titulo entrou
-   nela. flex-start poe as duas na mesma linha vertical. */
 body:not(.mel-interna) .mel-controles{
   justify-content:flex-start;
 }
-/* 🔴 E O RECORTE DO CARROSSEL PRECISA ACOMPANHAR, senao o conserto cria um
-   defeito novo — visto na captura logo depois de alinhar o titulo.
-   O .mel-carrossel tem "padding:0 24px; overflow:hidden", e overflow recorta na
-   borda EXTERNA, nao no conteudo: sobra uma tira de 24px de cada lado onde o
-   slide seguinte aparece. Com o titulo a 56px isso nunca incomodou, porque a
-   primeira letra do proximo nascia em 1472, fora da janela. Com ele em 0, nasce
-   em 1416 — dentro da tira — e a borda direita passou a mostrar o "C" de
-   "Conheca a Polen".
-   overflow-clip-margin:content-box move o recorte para a caixa de conteudo, que
-   e onde o carrossel de fato termina. Uma linha, e nao mexe em largura de slide
-   nem no trilho. */
+/* O recorte do carrossel acompanha: .mel-carrossel tem "padding:0 24px" com
+   overflow:hidden, e overflow recorta na borda EXTERNA. Sobra uma tira de 24px
+   onde o slide seguinte aparece — com o titulo a 56px a primeira letra do
+   proximo nascia fora da janela; com ele em 0, nasce dentro dela, e a borda
+   direita mostrava o "C" de "Conheca a Polen". content-box move o recorte para
+   onde o carrossel de fato termina. */
 body:not(.mel-interna) .mel-carrossel{
   overflow:clip;
   overflow-clip-margin:content-box;
@@ -843,10 +852,21 @@ body:not(.mel-interna) .mel-sobre-cortina img{
   width:72%;
   margin-inline:auto;
 }
-body:not(.mel-interna) .mel-slide-link img{
-  width:68%;
-  margin-inline:auto;
-}
+/* 🔴 O SLIDE VOLTOU A SANGRAR — 16/08/2026, e o encolhimento dele foi erro meu.
+   O mesmo recurso que salvou a cortina do Sobre Nos estragou o banner. Na
+   cortina, a faixa e uma LAMINA de obturador: uma foto encaixada nela, com a
+   lamina aparecendo dos lados, continua lendo como mecanismo. No carrossel, a
+   lamina e um BANNER de capa — a peca inteira e a foto. Encolher a foto ali
+   deixou 223px de carvao de cada lado e o banner virou uma imagem boiando no
+   vazio. O cliente viu na hora.
+
+   Vale como regra: encolher por dentro so funciona onde a moldura tem papel
+   proprio. Onde a moldura E a foto, encolher e tirar a peca.
+
+   O problema de origem do banner continua de pe e esta registrado: banner-bee e
+   banner-polen sao 1066x1600 (retrato) numa caixa 2,40, com 72% descartado. A
+   saida e a mesma da foto do card da Polen — uma versao deitada da cena, que o
+   cliente ja provou saber gerar. Nao e ajuste de CSS. */
 
 /* ---- AS PILULAS DOS 8 FILTROS GANHAM PE — 16/08/2026 ----
    Pedido do Israel no video de 14/08, aos 0:57: "arruma esses filtros aqui
