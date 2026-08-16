@@ -506,6 +506,135 @@ ${require('./bloco-polen.js').cssLeque()}
    depender do text-shadow das letras e do proprio filme. Medido depois da
    remocao, e o numero esta na secao do progresso.md. */
 
+/* ============ OS BOTOES DE MEL GANHAM CARGA — 15/08/2026 ============
+   Pedido: "podiam ter animacao ao passar o mouse, tipo aquela de carregamento
+   que muda de cor ao carregar", e "nao quero nada generico".
+
+   O QUE HAVIA. .mel-bt-mel:hover{ background:#FFC22E } — uma troca de cor
+   chapada, instantanea no olho porque os dois amarelos sao vizinhos. O CTA do
+   hero fazia o mesmo com #FFB81A. E so isso: nenhuma direcao, nenhuma duracao
+   perceptivel. Dai "duros e sem vida".
+
+   A IDEIA NAO E UM HOVER DE BIBLIOTECA, E A MARCA. Mel escorre e ASSENTA. O
+   botao entao nao acende: ele ENCHE, da esquerda para a direita, com um mel
+   mais FUNDO do que o de repouso. Quatro decisoes que separam isto de um
+   preenchimento generico:
+
+   1. ENCHE ESCURECENDO, e nao clareando. Todo hover de template clareia — vira
+      brilho, e brilho nao e materia. #D98E00 e o mel de repouso puxado para
+      baixo; le como liquido que pousou, nao como luz que acendeu. E o carvao do
+      rotulo continua em 6,6:1 contra ele, entao a legibilidade sobe junto.
+
+   2. UM FIO DE PROGRESSO NO PE, e e ele que da o nome de "carregamento". Sao
+      2px de carvao correndo na base, e ele CHEGA ANTES: 380ms contra 520ms do
+      mel. A defasagem e o efeito — com os dois no mesmo tempo o olho le uma
+      coisa so crescendo; com o fio na frente, ele le o fio PUXANDO o mel.
+
+      O fio precisa de um ::after proprio, e nao de uma segunda camada de
+      background: background-size aceita UMA duracao para a propriedade
+      inteira, entao duas camadas no mesmo elemento sao obrigadas a correr
+      juntas. Escrevi assim na primeira versao e a afirmacao era falsa.
+
+   3. SAIR NAO E REBOBINAR. O retorno usa outra duracao e outra curva —
+      260ms com saida acelerada, contra 520ms com chegada que assenta. Espelhar
+      o mesmo movimento para tras e o que faz hover parecer bug de CSS.
+
+   4. NENHUMA ESCALA, NENHUM HALO, NENHUMA SOMBRA QUE CRESCE. O unico
+      deslocamento e o translateY de 1 a 2px que os botoes ja tinham. O que
+      muda e a superficie, nao o tamanho.
+
+   COMO, SEM TOCAR EM HTML. Duas camadas de background-image sobre o
+   background-color de repouso, e o que anima e o background-size. Nenhum
+   pseudo-elemento novo, nenhum <span> duplicado — os botoes sao <a>, <button> e
+   <span> escritos por cinco geradores diferentes, e mexer no HTML dos cinco
+   para um efeito de superficie seria trocar risco por nada.
+
+   ⚠️ ESPECIFICIDADE. .mel-bt-mel:hover mora na base da folha, depois deste
+   bloco. Um seletor de mesmo peso perderia por posicao, entao entra o "body "
+   na frente — vence por peso, e sem !important. */
+/* A CONSTRUCAO E A DO BOTAO DA AKI CAPITAL — o estudo do Norvin.
+   Lida do original em aki-capital/app/globals.css > .nv-btn, e nao reinventada:
+   a primeira versao que entreguei era invencao minha (preenchimento por
+   background-size mais um fio de progresso) e o cliente recusou.
+
+   O QUE FAZ O EFEITO LA, e que vem para ca sem mudar o formato do botao:
+
+   1. UM FILLER ABSOLUTO COM RECUO DE 3px. Nao e o fundo do botao que muda: e
+      uma caixa por dentro dele, afastada 3px de cada borda. Esse recuo e a
+      assinatura — ele deixa um FIO DA PROPRIA COR DO BOTAO como moldura
+      quando o preenchimento chega ao fim. No Norvin o comentario original diz
+      exatamente isso: "deixando um fio fino da COR DO PROPRIO BOTAO como
+      moldura".
+
+   2. QUEM ANIMA E A LARGURA, de 0 ate calc(100% - 6px). Largura e nao
+      transform: com scaleX o raio do canto esticaria junto e a caixa
+      arredondada viraria elipse no meio do caminho.
+
+   3. A CURVA E cubic-bezier(0.76, 0, 0.24, 1) EM 0.55s, os dois valores do
+      original. Ela e simetrica — entra devagar, atravessa rapido, encosta
+      devagar. E o oposto da curva quase exponencial que eu tinha usado, e que
+      a medicao mostrou chegando a 98% em 160ms, rapida demais para se ler
+      como carregamento.
+
+   4. A MESMA CURVA E O MESMO TEMPO NA SAIDA. No Norvin nao ha timing de volta
+      diferente: a transicao mora na regra base e vale nos dois sentidos. Eu
+      tinha inventado uma saida acelerada; saiu.
+
+   O QUE FICA DIFERENTE, E POR QUE. La o filler e laranja sobre botao claro, e
+   o rotulo ROLA entre dois <span> empilhados dentro de uma mascara de 19px —
+   por isso o texto pode virar branco sem passar por estado ilegivel. Aqui o
+   rotulo e um no de texto solto, escrito por cinco geradores diferentes, e sem
+   o segundo <span> nao existe rolagem possivel. Entao o filler e um mel mais
+   FUNDO em vez do carvao: o carvao do rotulo continua legivel do inicio ao fim
+   do percurso (8,25:1 sobre o mel de repouso, 6,18:1 sobre o mel cheio), e
+   nenhum quadro da animacao fica ilegivel.
+
+   Para ter a rolagem do rotulo tambem, os cinco geradores precisam emitir
+   <span class="mel-bt-mask"><span>rotulo</span><span>rotulo</span></span>.
+   E mudanca de HTML, nao de CSS, e nao foi feita nesta passagem.
+
+   ⚠️ O FILLER E ::before COM z-index:-1 E isolation:isolate NO BOTAO.
+   Pseudo posicionado com z-index:0 pintaria POR CIMA do texto, que e conteudo
+   em fluxo. Com -1 ele desce, e o isolation cria o contexto de empilhamento
+   que impede o -1 de cair atras do fundo do proprio botao. */
+body .mel-bt-mel,
+body .mel-hh-cta-mel,
+body .mel-bee-cta,
+body .mel-polen-cta{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+}
+body .mel-bt-mel::before,
+body .mel-hh-cta-mel::before,
+body .mel-bee-cta::before,
+body .mel-polen-cta::before{
+  content:""; position:absolute; z-index:-1;
+  top:3px; bottom:3px; left:3px;
+  width:0;
+  border-radius:inherit;
+  background:#D98E00;
+  pointer-events:none;
+  transition:width .55s cubic-bezier(.76,0,.24,1);
+}
+body .mel-bt-mel:hover::before,
+body .mel-bt-mel:focus-visible::before,
+body .mel-hh-cta-mel:hover::before,
+body .mel-hh-cta-mel:focus-visible::before,
+body a[data-framer-name="Bee"]:hover .mel-bee-cta::before,
+body a[data-framer-name="Polen"]:hover .mel-polen-cta::before{
+  width:calc(100% - 6px);
+}
+
+@media (prefers-reduced-motion:reduce){
+  /* Sem movimento o preenchimento nao percorre: ele ja esta la, e o hover so
+     troca o estado. */
+  body .mel-bt-mel::before,
+  body .mel-hh-cta-mel::before,
+  body .mel-bee-cta::before,
+  body .mel-polen-cta::before{ transition:none }
+}
+
 /* ---- OS DOIS CARTOES BAIXOS CRESCEM — 15/08/2026 ----
    Pedido do cliente: "aumenta o proprio card junto com os outros que estao ao
    lado pra ter harmonia".
