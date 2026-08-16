@@ -763,6 +763,48 @@ body .mel-bt-linha:has(.mel-bt-mask)::before{
   body .mel-acesso-enviar::before{ transition:none }
 }
 
+/* ============ A FOTO ENCOLHE DENTRO DA FAIXA — 16/08/2026 ============
+   Pedido do Israel no video (1:21, sobre a faixa Sobre Nos): "nao tipo diminui
+   isso aqui, mas diminui a camera so por dentro, a imagem por dentro, porque
+   ta meio cortadinha". E depois, do cliente: "encolhe um pouco o suficiente pra
+   gente ver bem o que tem por la, o mesmo pode fazer no Conheca a Bee".
+
+   O PROBLEMA, MEDIDO NOS DOIS LUGARES:
+     cortina do Sobre Nos   faixa 1392x300 (4,64)  foto 1600x2400 (0,67)  86% fora
+     slide do carrossel     faixa 1392x580 (2,40)  foto 1066x1600 (0,67)  72% fora
+   Sao fotos em pe dentro de faixas deitadas. Com object-fit:cover a escala e
+   ditada pela LARGURA, entao o assunto renderiza maior que a altura da faixa e
+   sai decepado em cima e embaixo. Nenhum object-position resolve — ele escolhe
+   QUAL pedaco aparece, nao o zoom. E nao ha asset largo o bastante no projeto:
+   varri as imagens todas e a mais deitada e 1,79.
+
+   COMO SE ENCOLHE POR DENTRO, sem mexer na faixa. Com cover, a escala e
+   max(largura da caixa / largura da foto, altura da caixa / altura da foto).
+   Estreitando a CAIXA DA IMAGEM dentro da faixa, o primeiro termo cai e a
+   escala cai junto: a foto renderiza menor e sobra mais cena visivel. A faixa
+   nao muda de tamanho — muda quanto dela a foto ocupa, que e exatamente o que
+   o pedido descreve.
+
+   Contas, na largura escolhida:
+     cortina a 72%  escala 0,92 -> 0,63   altura visivel da foto  14% -> 20%
+     slide  a 68%   escala 1,31 -> 0,89   altura visivel da foto  28% -> 41%
+
+   O CUSTO, ASSUMIDO: a lamina do obturador e o banner deixam de sangrar de
+   borda a borda, e o carvao do fundo aparece dos lados. O cliente escolheu esta
+   saida sabendo disso, entre trocar as fotos e gerar panoramicas novas.
+
+   As tres laminas do carrossel levam a MESMA largura, inclusive a do banner de
+   3x que e deitada e perdia so 37%. Larguras diferentes fariam a foto pular de
+   tamanho a cada troca de slide, e o pulo apareceria mais que o corte. */
+body:not(.mel-interna) .mel-sobre-cortina img{
+  width:72%;
+  margin-inline:auto;
+}
+body:not(.mel-interna) .mel-slide-link img{
+  width:68%;
+  margin-inline:auto;
+}
+
 /* ---- AS PILULAS DOS 8 FILTROS GANHAM PE — 16/08/2026 ----
    Pedido do Israel no video de 14/08, aos 0:57: "arruma esses filtros aqui
    tambem".
