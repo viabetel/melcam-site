@@ -763,6 +763,41 @@ body .mel-bt-linha:has(.mel-bt-mask)::before{
   body .mel-acesso-enviar::before{ transition:none }
 }
 
+/* ---- O TITULO DO SLIDE ENTRA NA COLUNA — 16/08/2026 ----
+   Pedido do cliente depois do encolhimento: "acerta o titulo por la, ficou fora
+   e vai ter que alinhar com o plano que temos de design".
+
+   Medido em 1440: a coluna da pagina e x24 — e onde comecam o hero, o
+   "Memorias da Colmeia", os selos e agora tambem os heros da /polen e da /bee.
+   A caixa de texto do slide comeca em x24 certinho, mas tem padding de 56px,
+   entao o titulo nascia em x80. Cinquenta e seis pixels pra dentro da grade.
+
+   So o padding da ESQUERDA vai a zero. O de baixo fica: ele e o respiro do
+   titulo contra a borda inferior da lamina, e nao tem nada a ver com a coluna.
+
+   Antes do encolhimento da foto isso passava despercebido, porque o titulo
+   ficava sobre a fotografia e nao havia borda visivel para comparar. Com a
+   faixa escura a esquerda, o desalinho ficou a vista — o mesmo motivo pelo qual
+   o desencontro do hero da /polen so apareceu quando alguem olhou o rodape. */
+body:not(.mel-interna) .mel-slide-txt{
+  padding-left:0;
+}
+/* 🔴 E O RECORTE DO CARROSSEL PRECISA ACOMPANHAR, senao o conserto cria um
+   defeito novo — visto na captura logo depois de alinhar o titulo.
+   O .mel-carrossel tem "padding:0 24px; overflow:hidden", e overflow recorta na
+   borda EXTERNA, nao no conteudo: sobra uma tira de 24px de cada lado onde o
+   slide seguinte aparece. Com o titulo a 56px isso nunca incomodou, porque a
+   primeira letra do proximo nascia em 1472, fora da janela. Com ele em 0, nasce
+   em 1416 — dentro da tira — e a borda direita passou a mostrar o "C" de
+   "Conheca a Polen".
+   overflow-clip-margin:content-box move o recorte para a caixa de conteudo, que
+   e onde o carrossel de fato termina. Uma linha, e nao mexe em largura de slide
+   nem no trilho. */
+body:not(.mel-interna) .mel-carrossel{
+  overflow:clip;
+  overflow-clip-margin:content-box;
+}
+
 /* ============ A FOTO ENCOLHE DENTRO DA FAIXA — 16/08/2026 ============
    Pedido do Israel no video (1:21, sobre a faixa Sobre Nos): "nao tipo diminui
    isso aqui, mas diminui a camera so por dentro, a imagem por dentro, porque
