@@ -782,6 +782,14 @@ body .mel-bt-linha:has(.mel-bt-mask)::before{
 body:not(.mel-interna) .mel-slide-txt{
   padding-left:0;
 }
+/* A LEGENDA DAS FOTOS ENTRA NA COLUNA JUNTO — 16/08/2026.
+   A .mel-controles — os pontos e o "Pausar" — e flex com justify-content:center,
+   entao ficava em x728 enquanto o titulo do slide foi para x24. Era a unica
+   peca da area sobrando fora da grade, e ficou obvia depois que o titulo entrou
+   nela. flex-start poe as duas na mesma linha vertical. */
+body:not(.mel-interna) .mel-controles{
+  justify-content:flex-start;
+}
 /* 🔴 E O RECORTE DO CARROSSEL PRECISA ACOMPANHAR, senao o conserto cria um
    defeito novo — visto na captura logo depois de alinhar o titulo.
    O .mel-carrossel tem "padding:0 24px; overflow:hidden", e overflow recorta na
