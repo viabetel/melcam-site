@@ -649,9 +649,25 @@ function css() {
 }
 
 /* --- camada 3: o texto --- */
+/* A COLUNA DO HERO E A DA PAGINA — corrigido em 16/08/2026.
+   Relatado pelo Israel no video de 14/08, aos 1:38, e ele chama de "erro de
+   design total": "olha aqui embaixo, a questao de alinhamento... ele nao ta tao
+   alinhado com as informacoes".
+
+   Medido antes de mexer, em 1440: o eyebrow, o titulo, o texto e o CTA deste
+   hero comecavam todos em x124, e a faixa "escolha sua Polen" logo abaixo, com
+   o titulo "7 cores. Uma decisao.", comeca em x24. Cem pixels de desencontro.
+
+   A causa e a mesma da home, e o numero e o mesmo: esta caixa era 1240px
+   enquanto o resto da pagina usa a grade canonica do projeto — "largura 1440,
+   gutter 24", escrita no comunidade.js e aplicada pelo .mel-sec. Agora e a
+   MESMA declaracao, e nao um numero parecido.
+
+   O gutter do retrato tambem acompanha: .mel-sec cai para 16px abaixo de 810,
+   e este ficava em 20. Ver o mesmo conserto em tools/hero-home.js. */
 .mel-ph-in{
   position:relative; z-index:3;
-  width:100%; max-width:1240px; margin:0 auto;
+  width:100%; max-width:1440px; margin:0 auto;
   padding:clamp(56px,6vw,88px) 24px;
 }
 .mel-ph-copy{ max-width:min(44%, 34rem) }
@@ -730,7 +746,7 @@ function css() {
   /* A navbar tem 81px e fica POR CIMA do topo da pagina; um padding menor que
      isso esconde o eyebrow e a primeira linha do titulo atras dela. Medido em
      390: com 56px o titulo entrava debaixo da barra. */
-  .mel-ph-in{ padding:104px 20px clamp(28px,7vw,44px) }
+  .mel-ph-in{ padding:104px 16px clamp(28px,7vw,44px) }
   .mel-ph-copy{ max-width:none }
   .mel-ph-txt{ max-width:46ch }
   .mel-ph-foto img{ object-position:50% 50% }

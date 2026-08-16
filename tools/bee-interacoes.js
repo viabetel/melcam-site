@@ -360,10 +360,22 @@ body.mel-pagina-bee{
 .mel-bh-cor-branca { background:${P.papel} }
 .mel-bh-cores i{ font-style:normal; opacity:.42; margin:0 .1rem }
 
-/* --- camada 3: o texto --- */
+/* --- camada 3: o texto ---
+   A COLUNA E A DA PAGINA — corrigido em 16/08/2026, junto com a /polen.
+   O Israel apontou o desalinhamento na /polen (video de 14/08, 1:38), e a
+   medicao mostrou que a /bee tinha o mesmo: esta caixa era 1240px e punha o
+   eyebrow, o titulo, o texto e o CTA em x124, contra os x24 da grade que o
+   resto da pagina usa. Terceira pagina com a mesma causa, depois da home e da
+   /polen, e sempre o mesmo numero: 100px em 1440.
+
+   A grade canonica esta escrita no comunidade.js — "largura 1440, gutter 24" —
+   e e o que o .mel-sec aplica. Aqui passa a ser a MESMA declaracao.
+
+   Ele nao pediu esta pagina. Entrou porque consertar duas e deixar a terceira
+   torta transformaria um defeito em inconsistencia. */
 .mel-bh-in{
   position:relative; z-index:3;
-  width:100%; max-width:1240px; margin:0 auto;
+  width:100%; max-width:1440px; margin:0 auto;
   padding:clamp(48px,6vw,84px) 24px;
 }
 .mel-bh-copy{ max-width:min(46%,33rem) }
