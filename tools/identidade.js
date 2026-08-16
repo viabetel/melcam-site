@@ -1163,9 +1163,27 @@ body:not(.mel-interna) div[data-framer-name="Header Grid"] a[data-framer-name="S
   object-position:50% 45% !important;
 }
 
-/* Regua de cores da Polen: 7 pontos, a assinatura da linha. */
+/* 🔴 REGUA DE CORES DA POLEN — DESLIGADA EM 15/08/2026.
+   Ela nasceu em 13/08 como a unica indicacao das 7 cores no cartao. Desde
+   14/08 o cartao grande tem os packshots reais em swatch, e desde 15/08 tem o
+   leque inteiro — a regua virou ruido sobre a foto.
+
+   E estava quebrada, o que so a medicao mostrou: a regra pede width:7.5rem,
+   height:.75rem e bottom:1.25rem, mas o computado devolve 436x280, o tamanho do
+   cartao. Com a caixa esticada, os sete background-position em rem se espalham
+   sobre 280px de altura e os pontos caem no MEIO da foto, o primeiro cortado
+   pela borda. Foi assim que o cliente viu: "sinal de cores aleatorios".
+
+   ⚠️ SAO DOIS CARTOES COM data-framer-name="Polen": o grande ("7 cores. Uma
+   decisao.", 437x486) e o pequeno ("Polen", 437x280). Qualquer regra com este
+   seletor atinge os dois — a regua so incomodava no pequeno, e medir apenas o
+   grande escondeu o defeito por duas rodadas.
+
+   O desenho fica no arquivo: religar e trocar o content:none por content:"".
+   O mesmo desligamento vive em bloco-bee.js > css(), que e o caminho ate a
+   folha enquanto a base nao for regerada. */
 a[data-framer-name="Polen"]::after{
-  content:""; position:absolute; z-index:3; left:1.25rem; bottom:1.25rem;
+  content:none; position:absolute; z-index:3; left:1.25rem; bottom:1.25rem;
   width:7.5rem; height:.75rem; pointer-events:none;
   background:
     radial-gradient(circle .34rem at .375rem 50%, #F2C300 99%, transparent) 0 0/1.07rem 100% no-repeat,

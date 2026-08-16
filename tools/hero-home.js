@@ -53,11 +53,14 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 
 // ------------------------------------------------------------------- HTML
 function html() {
+  // O VÉU SAIU EM 15/08/2026, a pedido do cliente: "tem uma sombra no hero que
+  // precisa ser removida, ela foi pra lá depois que adicionamos o texto".
+  // Ele estava certo na origem — a sombra entrou junto com este bloco, em
+  // 14/08. Quem passa a fazer o trabalho de contraste é a rampa do template
+  // (a section "Shadow"), religada na mesma passagem; ver o comentário dela em
+  // tools/bloco-bee.js > css(). Era escrito como elemento próprio justamente
+  // para poder sair numa linha, e saiu numa linha.
   return '<div class="mel-hh" data-mel="hero-home">' +
-    // O véu é um elemento próprio, e não background do bloco, para poder sair
-    // numa linha se o cliente pedir. Ver o comentário do CSS: sem ele 24% da
-    // área do texto fica abaixo de 4,5:1 contra o papel.
-    '<div class="mel-hh-veu" aria-hidden="true"></div>' +
     '<div class="mel-hh-in">' +
       '<p class="mel-hh-selo">' + esc(H.badge) + '</p>' +
       '<h1 class="mel-hh-tit">' + esc(H.headline) + '</h1>' +
@@ -167,47 +170,6 @@ ${ABRE}
   pointer-events:none;
 }
 
-/* --- o véu, que é obrigação de contraste e não gosto ---
-   O texto é papel (${P.papel}) sobre vídeo, e o vídeo é uma cena de rua clara.
-   Medido na área que o bloco ocupa (x124..700, y250..700, 7.372 amostras do
-   quadro publicado): o pior contraste do papel contra o vídeo é 1,47:1, e
-   24% das amostras ficam abaixo de 4,5:1. Sem véu, um quarto do texto é
-   ilegível, e o vídeo se move — o quadro seguinte pode ser pior.
-
-   NÃO É O VÉU QUE SAIU EM 13/08. Aquele era a section "Shadow": uma rampa de
-   100vh sobre a hero inteira, que comia 17% no topo e 81% no pé. Este é uma
-   faixa horizontal presa à ESQUERDA, que termina em transparente antes da
-   metade da tela e nunca encosta no lado direito da cena. Ela existe para o
-   texto e acaba onde o texto acaba.
-
-   Os degraus saíram da conta, não do olho: sobre o pixel mais claro medido
-   (rgb(202,215,92)) um preto a 50% devolve 5,24:1 e a 45% devolve 4,52:1. A
-   parada de 38% mantém .66 até depois do fim da manchete, que em 1440 termina
-   em x660, ou 46% da tela. */
-.mel-hh-veu{
-  position:absolute; inset:0; pointer-events:none;
-  /* A MÁSCARA EXISTE PARA A NAVBAR, e é a única razão dela.
-     Primeira montagem: o véu tinha inset:0 e z-index:2, então passava POR CIMA
-     da barra. Medido no pixel: o lettering MELCAM caiu de rgb(251,247,238) para
-     rgb(142,139,132) e o fundo da barra de rgb(34,30,23) para rgb(22,18,14).
-     A barra ficou visivelmente lavada, e ela não pode mudar.
-
-     A máscara zera o véu nos 81px da barra e o traz por completo só aos 150px.
-     Não é um corte em 81: corte reto deixaria um degrau horizontal aparecendo
-     logo abaixo da barra, do lado escuro. Os 69px de rampa fazem o véu nascer
-     de dentro dela.
-
-     Mascarar em vez de reposicionar o bloco de propósito: assim a coluna de
-     texto continua centrada nos 900px inteiros da hero, que é onde a
-     referência a põe. */
-  -webkit-mask-image:linear-gradient(to bottom, transparent 0, transparent 81px, #000 150px);
-  mask-image:linear-gradient(to bottom, transparent 0, transparent 81px, #000 150px);
-  background-image:linear-gradient(90deg,
-    rgba(18,15,11,.74) 0%,
-    rgba(18,15,11,.66) 38%,
-    rgba(18,15,11,.34) 58%,
-    rgba(18,15,11,0)   78%);
-}
 
 /* A COLUNA É A MESMA DO RESTO DA HOME — corrigido em 15/08/2026.
    Era 1240px, herdado da /bee, e isso punha a coluna do hero em x124 numa tela
@@ -315,15 +277,6 @@ ${ABRE}
 .mel-hh-ctas{ animation-delay:430ms }
 
 @media (max-width:1024px){
-  /* O véu fecha mais cedo e mais forte: a coluna ocupa proporcionalmente mais
-     da tela, então a parada de 78% deixaria o fim da manchete sem cobertura. */
-  .mel-hh-veu{
-    background-image:linear-gradient(90deg,
-      rgba(18,15,11,.78) 0%,
-      rgba(18,15,11,.70) 52%,
-      rgba(18,15,11,.38) 74%,
-      rgba(18,15,11,0)   92%);
-  }
   .mel-hh-sub{ max-width:30ch }
 
   /* O CTA de contorno ganha mais fundo próprio aqui — 15/08/2026. MELHORIA
@@ -360,15 +313,6 @@ ${ABRE}
      contra a navbar: com o bloco no pé ele não empurra o texto para baixo, só
      impede que uma coluna alta encoste na barra quando a tela é curta. */
   .mel-hh{ align-items:flex-end }
-  /* Em retrato o véu passa a ser vertical: a coluna ocupa a largura toda, e um
-     gradiente horizontal deixaria o fim de cada linha sem cobertura. */
-  .mel-hh-veu{
-    background-image:linear-gradient(180deg,
-      rgba(18,15,11,.34) 0%,
-      rgba(18,15,11,.62) 34%,
-      rgba(18,15,11,.68) 74%,
-      rgba(18,15,11,.46) 100%);
-  }
   .mel-hh-sub{ max-width:26ch }
   .mel-hh-ctas{ gap:11px }
   .mel-hh-cta{ padding:0 1.25rem; font-size:.78rem }

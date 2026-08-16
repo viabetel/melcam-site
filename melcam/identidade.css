@@ -728,6 +728,68 @@ a[data-framer-name="Bee"]:has(.mel-bee-cor:hover) .mel-bee-troca img[data-i]{
 .mel-polen-troca img[data-i="5"]{ background-color:#FBBAB6 }
 .mel-polen-troca img[data-i="6"]{ background-color:#303F1C }
 
+/* A RAMPA DO TEMPLATE CONTINUA FORA — 15/08/2026.
+   Eu religuei a section "Shadow" nesta mesma sessao, lendo "o template tem um
+   efeito no hero sobre o video" como autorizacao para devolve-la. O cliente
+   respondeu na hora que nao era isso, e a rampa saiu de novo. Fica escrito
+   porque o comentario de 14/08 em hero-carrossel.js ja avisava — "nao
+   'consertar' isso devolvendo o gradiente sem pedir" — e eu passei por cima.
+
+   O hero fica sem rampa E sem veu: o veu proprio (.mel-hh-veu) saiu a pedido
+   na mesma passagem, e nada entrou no lugar. O contraste do texto passa a
+   depender do text-shadow das letras e do proprio filme. Medido depois da
+   remocao, e o numero esta na secao do progresso.md. */
+
+/* ---- A FOTO DO CARD PEQUENO DA POLEN — 15/08/2026 ----
+   O cartao tem 437x280 e a foto e um retrato de 1125x1687 numa caixa de
+   437x437 ancorada em y95 — ou seja, a janela visivel e uma faixa de 185px
+   sobre uma imagem que continua por baixo do corte. Com object-position em 50%
+   o que aparecia era o meio da embalagem, com a camera encostando no fim da
+   faixa e sendo cortada.
+
+   Em 50% aparecia o meio da embalagem. Em 70% a camera entrou na faixa mas
+   ainda encostava no corte de baixo. Em 88% ela sobe de vez e o corpo dela cabe
+   na janela, com a tampa da caixa acima. Numero maior sobe MAIS a imagem
+   dentro da caixa: object-position:Y% alinha o ponto Y da imagem com o ponto Y
+   da caixa, entao 100% encostaria a base da foto na base da caixa.
+
+   O alvo e por SRC e nao por classe: sao dois cartoes com
+   data-framer-name="Polen" e as classes framer-* mudam a cada export, entao o
+   arquivo da foto e a ancora estavel. */
+body:not(.mel-interna) div[data-framer-name="Header Grid"] a[data-framer-name="Polen"] img[src*="polen-lp-1"]{
+  object-position:50% 88% !important;
+}
+
+/* ---- A REGUA DE 7 PONTOS DA POLEN SAI — 15/08/2026 ----
+   Relatado pelo cliente como "sinal de cores aleatorios" sobre a foto, e a
+   medicao explica: a regra e a[data-framer-name="Polen"]::after, em
+   tools/identidade.js, e ela pede width:7.5rem, height:.75rem e bottom:1.25rem.
+   O computado devolve 436x280 — o tamanho do cartao inteiro. A geometria dela
+   esta sendo sobrescrita, entao os sete pontos, que sao background-position em
+   rem sobre uma caixa de 12px de altura, passam a se distribuir sobre uma caixa
+   de 280px e caem no MEIO da foto, com o primeiro nascendo em 6px e sendo
+   cortado pela borda do cartao.
+
+   NAO E SO GEOMETRIA: ela e redundante. A regua nasceu em 13/08 como unica
+   indicacao das 7 cores; desde 14/08 o cartao grande tem os packshots reais em
+   swatch, e desde hoje tem o leque inteiro. Sobrou como ruido sobre a foto.
+
+   ⚠️ SAO DOIS CARTOES COM data-framer-name="Polen" — o grande ("7 cores. Uma
+   decisao.", 437x486) e o pequeno ("Polen", 437x280). Toda regra escopada por
+   esse nome atinge os dois, e foi por isso que eu nao tinha visto o defeito:
+   vinha medindo so o grande. Fica registrado para a proxima regra que use esse
+   seletor.
+
+   A fonte tambem foi corrigida em tools/identidade.js; esta linha e o caminho
+   ate a folha enquanto a base nao for regerada.
+
+   🔴 O !important NAO E PREGUICA, E POSICAO. Este bloco e inserido ANTES do
+   marcador do "SOBRE NÓS", e a regra da regua mora bem depois dele na folha.
+   Com a mesma especificidade, quem vem por ultimo ganha — a primeira tentativa
+   sem !important nao apagou ponto nenhum, e a captura provou. Vale para
+   qualquer override futuro escrito neste bloco. */
+a[data-framer-name="Polen"]::after{ content:none !important }
+
 /* ---- A FOTO DO CARD DE ACESSORIOS — 15/08/2026 ----
    Dois defeitos, os dois relatados pelo cliente e confirmados por medicao:
 
@@ -3399,47 +3461,6 @@ body.mel-pagina-polen [data-mel="polen-story"] .mel-polen-story-etiq{
   pointer-events:none;
 }
 
-/* --- o véu, que é obrigação de contraste e não gosto ---
-   O texto é papel (#FBF7EE) sobre vídeo, e o vídeo é uma cena de rua clara.
-   Medido na área que o bloco ocupa (x124..700, y250..700, 7.372 amostras do
-   quadro publicado): o pior contraste do papel contra o vídeo é 1,47:1, e
-   24% das amostras ficam abaixo de 4,5:1. Sem véu, um quarto do texto é
-   ilegível, e o vídeo se move — o quadro seguinte pode ser pior.
-
-   NÃO É O VÉU QUE SAIU EM 13/08. Aquele era a section "Shadow": uma rampa de
-   100vh sobre a hero inteira, que comia 17% no topo e 81% no pé. Este é uma
-   faixa horizontal presa à ESQUERDA, que termina em transparente antes da
-   metade da tela e nunca encosta no lado direito da cena. Ela existe para o
-   texto e acaba onde o texto acaba.
-
-   Os degraus saíram da conta, não do olho: sobre o pixel mais claro medido
-   (rgb(202,215,92)) um preto a 50% devolve 5,24:1 e a 45% devolve 4,52:1. A
-   parada de 38% mantém .66 até depois do fim da manchete, que em 1440 termina
-   em x660, ou 46% da tela. */
-.mel-hh-veu{
-  position:absolute; inset:0; pointer-events:none;
-  /* A MÁSCARA EXISTE PARA A NAVBAR, e é a única razão dela.
-     Primeira montagem: o véu tinha inset:0 e z-index:2, então passava POR CIMA
-     da barra. Medido no pixel: o lettering MELCAM caiu de rgb(251,247,238) para
-     rgb(142,139,132) e o fundo da barra de rgb(34,30,23) para rgb(22,18,14).
-     A barra ficou visivelmente lavada, e ela não pode mudar.
-
-     A máscara zera o véu nos 81px da barra e o traz por completo só aos 150px.
-     Não é um corte em 81: corte reto deixaria um degrau horizontal aparecendo
-     logo abaixo da barra, do lado escuro. Os 69px de rampa fazem o véu nascer
-     de dentro dela.
-
-     Mascarar em vez de reposicionar o bloco de propósito: assim a coluna de
-     texto continua centrada nos 900px inteiros da hero, que é onde a
-     referência a põe. */
-  -webkit-mask-image:linear-gradient(to bottom, transparent 0, transparent 81px, #000 150px);
-  mask-image:linear-gradient(to bottom, transparent 0, transparent 81px, #000 150px);
-  background-image:linear-gradient(90deg,
-    rgba(18,15,11,.74) 0%,
-    rgba(18,15,11,.66) 38%,
-    rgba(18,15,11,.34) 58%,
-    rgba(18,15,11,0)   78%);
-}
 
 /* A COLUNA É A MESMA DO RESTO DA HOME — corrigido em 15/08/2026.
    Era 1240px, herdado da /bee, e isso punha a coluna do hero em x124 numa tela
@@ -3547,15 +3568,6 @@ body.mel-pagina-polen [data-mel="polen-story"] .mel-polen-story-etiq{
 .mel-hh-ctas{ animation-delay:430ms }
 
 @media (max-width:1024px){
-  /* O véu fecha mais cedo e mais forte: a coluna ocupa proporcionalmente mais
-     da tela, então a parada de 78% deixaria o fim da manchete sem cobertura. */
-  .mel-hh-veu{
-    background-image:linear-gradient(90deg,
-      rgba(18,15,11,.78) 0%,
-      rgba(18,15,11,.70) 52%,
-      rgba(18,15,11,.38) 74%,
-      rgba(18,15,11,0)   92%);
-  }
   .mel-hh-sub{ max-width:30ch }
 
   /* O CTA de contorno ganha mais fundo próprio aqui — 15/08/2026. MELHORIA
@@ -3592,15 +3604,6 @@ body.mel-pagina-polen [data-mel="polen-story"] .mel-polen-story-etiq{
      contra a navbar: com o bloco no pé ele não empurra o texto para baixo, só
      impede que uma coluna alta encoste na barra quando a tela é curta. */
   .mel-hh{ align-items:flex-end }
-  /* Em retrato o véu passa a ser vertical: a coluna ocupa a largura toda, e um
-     gradiente horizontal deixaria o fim de cada linha sem cobertura. */
-  .mel-hh-veu{
-    background-image:linear-gradient(180deg,
-      rgba(18,15,11,.34) 0%,
-      rgba(18,15,11,.62) 34%,
-      rgba(18,15,11,.68) 74%,
-      rgba(18,15,11,.46) 100%);
-  }
   .mel-hh-sub{ max-width:26ch }
   .mel-hh-ctas{ gap:11px }
   .mel-hh-cta{ padding:0 1.25rem; font-size:.78rem }
@@ -3610,6 +3613,7 @@ body.mel-pagina-polen [data-mel="polen-story"] .mel-polen-story-etiq{
   .mel-hh-selo, .mel-hh-tit, .mel-hh-sub, .mel-hh-ctas{ animation:none }
 }
 /* ============ fim do bloco de texto da hero da home ============ */
+
 
 
 
