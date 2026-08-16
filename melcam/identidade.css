@@ -851,13 +851,67 @@ body .mel-polen-cta::before{
   pointer-events:none;
   transition:width .55s cubic-bezier(.76,0,.24,1);
 }
+/* 🔴 O GATILHO E O PROPRIO BOTAO, e nao o cartao — 15/08/2026, a pedido:
+   "tem que separar ele do efeito do hover". As pilulas da grade vivem dentro
+   de um <a> que e o cartao inteiro, e a .mel-bee-tira e pointer-events:none
+   para o clique continuar sendo o do link. O efeito entao disparava quando o
+   ponteiro entrava em QUALQUER lugar do cartao — o botao acendia sozinho, sem
+   relacao com onde a pessoa estava. Devolver o ponteiro so a pilula separa as
+   duas coisas: o cartao continua sendo o link e o botao reage por conta. */
+body .mel-bee-cta,
+body .mel-polen-cta{ pointer-events:auto }
+
 body .mel-bt-mel:hover::before,
 body .mel-bt-mel:focus-visible::before,
 body .mel-hh-cta-mel:hover::before,
 body .mel-hh-cta-mel:focus-visible::before,
-body a[data-framer-name="Bee"]:hover .mel-bee-cta::before,
-body a[data-framer-name="Polen"]:hover .mel-polen-cta::before{
+body .mel-bee-cta:hover::before,
+body .mel-polen-cta:hover::before{
   width:calc(100% - 6px);
+}
+
+/* ---- A ROLAGEM DO ROTULO, que e o que troca a cor ----
+   A mascara e montada em JS (hero-carrossel.js > iniciarBotoesMel) porque os
+   botoes saem de cinco geradores diferentes. Dois rotulos empilhados: o de
+   cima sai por cima, o de baixo entra. Mesma curva e mesmo tempo do
+   preenchimento, entao a cor da letra vira exatamente quando o mel de baixo
+   passa por ela.
+
+   A ALTURA E EM em, e nao em px como no original. La o botao tem um tamanho
+   so (12,5px de texto, mascara de 19px). Aqui os cinco botoes tem corpos
+   diferentes — 0,84rem no hero, 0,85rem no .mel-bt, 0,76rem nas pilulas — e um
+   valor fixo cortaria uns e sobraria noutros. 1,25em cobre a descendente do
+   "ç" de "Conheça" sem mudar a altura da caixa, que e governada por padding e
+   min-height nos cinco. */
+.mel-bt-mask{
+  position:relative; display:block;
+  height:1.25em; overflow:hidden;
+}
+.mel-bt-mask > span{
+  display:block; height:1.25em; line-height:1.25em;
+  white-space:nowrap;
+  transition:transform .55s cubic-bezier(.76,0,.24,1);
+}
+.mel-bt-mask > span:first-child{ color:inherit }
+.mel-bt-mask > span:last-child{ color:#F2A900 }
+body .mel-bt-mel:hover .mel-bt-mask > span,
+body .mel-bt-mel:focus-visible .mel-bt-mask > span,
+body .mel-hh-cta-mel:hover .mel-bt-mask > span,
+body .mel-hh-cta-mel:focus-visible .mel-bt-mask > span,
+body .mel-bee-cta:hover .mel-bt-mask > span,
+body .mel-polen-cta:hover .mel-bt-mask > span{
+  transform:translateY(-1.25em);
+}
+
+/* COM A MASCARA MONTADA, o preenchimento passa a ser CARVAO — que e a troca de
+   cor de verdade, como o laranja do original sobre o botao claro. Sem ela (JS
+   fora do ar) o ::before continua no mel fundo declarado acima, onde o rotulo
+   em carvao permanece legivel. O :has separa os dois casos sozinho. */
+body .mel-bt-mel:has(.mel-bt-mask)::before,
+body .mel-hh-cta-mel:has(.mel-bt-mask)::before,
+body .mel-bee-cta:has(.mel-bt-mask)::before,
+body .mel-polen-cta:has(.mel-bt-mask)::before{
+  background:#221E17;
 }
 
 @media (prefers-reduced-motion:reduce){

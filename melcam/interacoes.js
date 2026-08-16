@@ -298,6 +298,54 @@
     requestAnimationFrame(passo);
   }
 
+  /* ---------------- a mascara do rotulo dos botoes de mel ----------------
+     O botao da AKI Capital (estudo do Norvin) troca a cor do texto ROLANDO
+     dois rotulos empilhados dentro de uma mascara com overflow hidden: o de
+     cima sobe e sai, o de baixo entra no lugar, na mesma curva e no mesmo
+     tempo do preenchimento. E isso que faz a cor do texto virar sem passar por
+     nenhum quadro ilegivel — uma transicao de "color" cruzaria o meio do
+     caminho com o texto sumindo dentro do preenchimento.
+
+     POR QUE EM JS, E NAO NO HTML DOS GERADORES. Estes botoes sao escritos por
+     cinco arquivos diferentes (demais.js, bee.js, hero-home.js, bloco-bee.js,
+     bloco-polen.js), e tres deles nao podem ser reexecutados sem efeito
+     colateral. Envolver o rotulo aqui alcanca todos de uma vez, em toda pagina,
+     e nao pede regeracao de HTML nenhum.
+
+     DEGRADACAO HONESTA: sem JavaScript a mascara nao existe, e o CSS entao
+     mantem o preenchimento num mel mais FUNDO, onde o rotulo em carvao
+     continua legivel. O carvao cheio so entra quando a mascara existe — a
+     regra e ":has(.mel-bt-mask)". Nenhum estado fica ilegivel nos dois casos.
+
+     Idempotente: sai na porta se a mascara ja estiver montada. */
+  function iniciarBotoesMel() {
+    var alvos = document.querySelectorAll(
+      '.mel-bt-mel, .mel-hh-cta-mel, .mel-bee-cta, .mel-polen-cta');
+    for (var i = 0; i < alvos.length; i++) {
+      var b = alvos[i];
+      if (b.querySelector('.mel-bt-mask')) continue;
+      /* So rotulo de texto puro. Botao com icone, svg ou span proprio fica como
+         esta: envolver o que ja tem estrutura quebraria o desenho dele. */
+      if (b.children.length) continue;
+      var txt = (b.textContent || '').trim();
+      if (!txt) continue;
+
+      var mask = document.createElement('span');
+      mask.className = 'mel-bt-mask';
+      var um = document.createElement('span');
+      um.textContent = txt;
+      var dois = document.createElement('span');
+      dois.textContent = txt;
+      /* O segundo e a mesma palavra: sem o aria-hidden o leitor de tela
+         anunciaria o rotulo duas vezes. */
+      dois.setAttribute('aria-hidden', 'true');
+      mask.appendChild(um);
+      mask.appendChild(dois);
+      b.textContent = '';
+      b.appendChild(mask);
+    }
+  }
+
   /* ---------------- nav some ao rolar, volta ao subir ----------------
      Pedido do cliente: rolou para baixo, a barra sai; voltou a subir, ela
      volta. O mouse chegando perto do topo tambem traz de volta.
@@ -2989,6 +3037,9 @@
     /* Depois de iniciarPerfil: os links da barra nascem ali, e o tema pinta
        eles. Sai sozinho em página sem região clara. */
     iniciarTemaNavbar();
+    /* Depois de iniciarPerfil também: ele cria o botão de conta, e a máscara
+       precisa varrer a página já com todos os botões de mel no lugar. */
+    iniciarBotoesMel();
 
     /* O vídeo pode ser bloqueado pelo navegador: nesse caso fica o poster,
        que o atributo já garante. Com reduced-motion nem tenta tocar. */
