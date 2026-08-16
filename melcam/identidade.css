@@ -1138,6 +1138,33 @@ body:not(.mel-interna) a[data-framer-name="Sobre Nós"] .mel-filtros-lista{
   gap:.45rem;
 }
 
+/* ---- A GALERIA DA /POLEN PARA DE CORTAR — 16/08/2026 ----
+   Auditoria de recorte da /polen inteira, a pedido do cliente ("muita foto
+   cortada que tem que afastar no card"). Das 15 fotos visiveis da pagina, 9
+   descartam 30% ou mais — e 8 delas sao a galeria "Fotos reais, sem edicao
+   nenhuma".
+
+   MEDIDO: as celulas sao 339x452 por causa de "aspect-ratio:3/4" em
+   .mel-gal-item img (tools/paginas.js), e as oito fotos sao 1200x900 — 4:3
+   DEITADAS. Retrato recebendo paisagem: 44% de cada foto fora, em todas.
+
+   E uma galeria cuja legenda e "fotos reais, sem edicao nenhuma". Cortar 44% de
+   uma foto que a pagina apresenta como prova do que a camera faz contradiz o
+   proprio argumento — o visitante nao ve a foto, ve um pedaco dela.
+
+   A correcao e trocar a proporcao da CELULA, nao o enquadramento: 4/3 e
+   exatamente a das oito, entao o descarte vai a ZERO sem escolher que pedaco
+   sacrificar. A grade continua de 4 colunas; o que muda e a altura da linha,
+   de 452 para 254.
+
+   Mora aqui e nao em paginas.js porque o aplicar() de la APENDA CSS na folha —
+   roda-lo de novo duplicaria o arquivo inteiro. Mesmo motivo dos outros
+   overrides deste bloco. */
+body:not(.mel-interna) .mel-gal-item img,
+body.mel-interna .mel-gal-item img{
+  aspect-ratio:4/3;
+}
+
 /* ---- OS DOIS CARTOES BAIXOS CRESCEM — 15/08/2026 ----
    Pedido do cliente: "aumenta o proprio card junto com os outros que estao ao
    lado pra ter harmonia".
