@@ -471,11 +471,28 @@ ${cssFeatures()}
    publicar CSS novo na grade sem reescrever a folha inteira (ver o cabecalho
    do sincronizar-grade-bee.js). Quando a base for regerada, as duas regras
    voltam para o lugar natural delas no identidade.js. */
-a[data-framer-name="Polen"]:has(.mel-polen-cor:hover) .mel-polen-troca img[data-i],
 a[data-framer-name="Bee"]:has(.mel-bee-cor:hover) .mel-bee-troca img[data-i]{
   object-fit:contain;
   object-position:50% 50%;
 }
+
+/* ---- O LEQUE DA POLEN CABE, NAO E FATIADO — 15/08/2026 ----
+   Em REPOUSO tambem, e nao so no hover: com cover, cada faixa de 62x331 exibia
+   uma fatia de 19% de um packshot quadrado, e como a camera ocupa quase todo o
+   quadro a fatia caia sobre a lente. Eram sete ampliacoes do mesmo pedaco de
+   camera, em sete cores. Contido, cada faixa mostra a camera INTEIRA, e a cor
+   de fundo por indice (gerada em bloco-polen.js > cssLeque, amostrada do
+   proprio packshot) preenche o vao que sobra — sem ela o leque viraria sete
+   selos flutuando sobre o carvao do cartao.
+
+   A Bee fica em cover no repouso de propósito: la sao duas faixas de 218x331
+   (0,66), e a camera dela e larga e centrada no quadro, entao o recorte nao
+   come a peca. Medido antes de generalizar a regra. */
+.mel-polen-troca img{
+  object-fit:contain;
+  object-position:50% 50%;
+}
+${require('./bloco-polen.js').cssLeque()}
 
 /* ---- A FOTO DO CARD DE ACESSORIOS — 15/08/2026 ----
    Dois defeitos, os dois relatados pelo cliente e confirmados por medicao:

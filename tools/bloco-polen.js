@@ -130,6 +130,35 @@ function cssCores() {
   }).join('\n');
 }
 
+// A COR DE FUNDO DE CADA FAIXA DO LEQUE — 15/08/2026.
+//
+// POR QUE ISTO EXISTE. Em repouso cada faixa tem 62px de largura por 331 de
+// altura (proporcao 0,19) e recebe um packshot QUADRADO de 800x800. Com
+// object-fit:cover o navegador escala pela altura e corta a largura: sobra uma
+// fatia de 19% da foto, em altura cheia. Como a camera ocupa quase todo o
+// quadro do packshot, essa fatia cai em cima da lente — e o cartao passa a
+// mostrar sete ampliacoes do mesmo pedaco de camera, em sete cores, no lugar
+// de sete cameras. Relatado pelo cliente ("a foto do polen ainda ta errada") e
+// confirmado na captura.
+//
+// A SAIDA E contain, E ELA SO FUNCIONA COM ESTA COR. Contido, o packshot passa
+// a caber inteiro na largura da faixa e sobra vao acima e abaixo dele. Sem
+// fundo, esse vao mostraria o carvao do cartao e o leque viraria sete selos
+// flutuando. Com a cor da variante — a MESMA que o veu e o anel do swatch ja
+// usam, amostrada do proprio packshot — a faixa fica solida de cima a baixo e
+// a emenda com o fundo da foto e invisivel. Sete bandas de cor com uma camera
+// inteira em cada: e o que o titulo "7 cores. Uma decisao." promete.
+//
+// Vale tambem no estado aberto, e ali resolve outro defeito: com contain e sem
+// cor, a foto expandida ficava com tarjas escuras nas laterais.
+function cssLeque() {
+  const alt = ['#F4B233', '#DADADA', '#EF6C29', '#5F2D0B', '#2B2B2B', '#FBBAB6', '#303F1C'];
+  return POLEN.cores.map((c, i) => {
+    const cor = polenUI.corDoTile(c.img, alt[i] || '#2B251C');
+    return '.mel-polen-troca img[data-i="' + i + '"]{ background-color:' + cor + ' }';
+  }).join('\n');
+}
+
 // Recorta um <a ...>...</a> a partir de um indice, com contagem equilibrada.
 function recortarA(html, ini) {
   const re = /<(\/?)a\b[^>]*>/g;
@@ -211,6 +240,6 @@ function aplicar() {
   return feito;
 }
 
-module.exports = { aplicar, tira, cssCores, TITULO, EYEBROW, CTA };
+module.exports = { aplicar, tira, cssCores, cssLeque, TITULO, EYEBROW, CTA };
 
 if (require.main === module) console.log(aplicar().join('\n'));
