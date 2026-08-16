@@ -317,10 +317,22 @@
      continua legivel. O carvao cheio so entra quando a mascara existe — a
      regra e ":has(.mel-bt-mask)". Nenhum estado fica ilegivel nos dois casos.
 
-     Idempotente: sai na porta se a mascara ja estiver montada. */
+     Idempotente: sai na porta se a mascara ja estiver montada.
+
+     16/08/2026: a lista deixou de ser quatro e passou a seis. A varredura das 7
+     rotas mediu o fundo de cada clicavel em repouso e sob hover, e achou dois
+     botoes de rotulo que ficavam de fora do efeito:
+       - .mel-sobre-cta, mel em repouso, na faixa Sobre da home;
+       - .mel-bt-linha, a variante de contorno do mesmo componente .mel-bt, que
+         vira mel no hover e aparece lado a lado com a .mel-bt-mel na /404.
+     O terceiro achado, .mel-acesso-enviar, NAO entra aqui de proposito: ele
+     nasce com o modal de conta, depois deste laco, e o modulo de perfil
+     reescreve o rotulo dele em quatro pontos, o que apagaria a mascara no
+     primeiro clique de aba. La so vale o preenchimento, pelo CSS. */
   function iniciarBotoesMel() {
     var alvos = document.querySelectorAll(
-      '.mel-bt-mel, .mel-hh-cta-mel, .mel-bee-cta, .mel-polen-cta');
+      '.mel-bt-mel, .mel-hh-cta-mel, .mel-bee-cta, .mel-polen-cta,'
+      + ' .mel-sobre-cta, .mel-bt-linha');
     for (var i = 0; i < alvos.length; i++) {
       var b = alvos[i];
       if (b.querySelector('.mel-bt-mask')) continue;

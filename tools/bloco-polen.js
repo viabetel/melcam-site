@@ -153,10 +153,79 @@ function cssCores() {
 // cor, a foto expandida ficava com tarjas escuras nas laterais.
 function cssLeque() {
   const alt = ['#F4B233', '#DADADA', '#EF6C29', '#5F2D0B', '#2B2B2B', '#FBBAB6', '#303F1C'];
-  return POLEN.cores.map((c, i) => {
+  const faixas = POLEN.cores.map((c, i) => {
     const cor = polenUI.corDoTile(c.img, alt[i] || '#2B251C');
     return '.mel-polen-troca img[data-i="' + i + '"]{ background-color:' + cor + ' }';
   }).join('\n');
+
+  return faixas + '\n' + cssFotoCardPequeno();
+}
+
+// A FOTO DO CARD PEQUENO DA POLEN, AFASTADA ATE A CAMERA CABER — 15/08/2026.
+//
+// Pedido: "afasta a camera do polen ate ela aparecer por inteiro no card".
+//
+// POR QUE object-position NAO RESOLVIA. Medido: o cartao tem 437x340, o titulo
+// acaba em y64, e o container da foto e 437x437 ancorado em y116 — ele
+// TRANSBORDA o cartao, e so 224px dele ficam visiveis. object-position escolhe
+// QUAL pedaco aparece, mas nao muda o zoom: com cover a foto de 1125x1687 e
+// escalada pela largura para 437x655 e recortada, entao a camera nunca cabe
+// inteira nos 224px, esteja o enquadramento em 50%, 70% ou 88%. Foram tres
+// tentativas minhas empurrando o mesmo numero para lados diferentes.
+//
+// O QUE RESOLVE E AFASTAR DE VERDADE: a caixa da imagem passa a ter a altura da
+// JANELA (224px, do fim do titulo ate a base do cartao) e o ajuste vira
+// contain. Contida, a foto inteira cabe — e se a foto inteira cabe, a camera
+// cabe por definicao. Nao ha enquadramento a escolher, e por isso nao ha o que
+// errar de novo aqui.
+//
+// So no desktop: abaixo de 810 a grade vira uma coluna e o cartao tem outra
+// altura, entao a janela de 224px nao vale la.
+//
+// MORA NESTE ARQUIVO, e nao no bloco-bee.js onde estao as outras regras da
+// grade, porque cssLeque() ja e interpolado la — e no momento desta edicao um
+// agente estava mexendo naquele arquivo. Chegar pela funcao ja consumida evita
+// duas escritas no mesmo lugar.
+function cssFotoCardPequeno() {
+  // ✅ RESOLVIDO EM 16/08/2026 COM A LANDSCAPE. O cliente gerou uma versao
+  // deitada da mesma cena a partir da referencia: 2752x1536, proporcao 1,792
+  // contra 1,95 da janela. O corte vertical cai de 33% para 8% e a camera cabe
+  // inteira — sem enquadramento forcado, que foi onde eu insisti tres vezes
+  // (50%, 70%, 88%) sem sucesso.
+  //
+  // O historico fica registrado porque a licao vale para o proximo cartao: o
+  // problema nunca foi QUAL pedaco mostrar, era a ORIENTACAO da foto. Uma
+  // janela deitada nao comporta um assunto em pe sem encolher ou cortar, e
+  // nenhum object-position muda isso.
+  const FOTO = 'polen-card-landscape';
+  const A = 'body:not(.mel-interna) div[data-framer-name="Header Grid"] ' +
+            'a[data-framer-name="Polen"]:has(img[src*="' + FOTO + '"]) img[src*="' + FOTO + '"]';
+  const CARTAO = 'body:not(.mel-interna) div[data-framer-name="Header Grid"] ' +
+                 'a[data-framer-name="Polen"]:has(img[src*="' + FOTO + '"])';
+  return [
+    '@media (min-width:810px){',
+    /* 🔴 A ALTURA DO CARTAO VEM JUNTO, e o motivo e uma regressao que eu mesmo
+       causei. A regra que subiu os dois cartoes baixos de 280 para 340 mora em
+       bloco-bee.js e casa o cartao pequeno da Polen por :has(img[src*=
+       "polen-lp-1"]). Ao trocar a foto, o seletor deixou de casar e o cartao
+       voltou para 280 — a janela encolheu de 224 para 164 e a base da camera
+       ficou decepada. Medido, nao suposto.
+       Repetir a altura aqui, ancorada na foto NOVA, fecha o buraco sem eu
+       precisar escrever no bloco-bee.js. O ramo polen-lp-1 de la ficou morto e
+       precisa ser limpo numa proxima passagem — anotado. */
+    '  ' + CARTAO + '{ aspect-ratio:1.285 !important }',
+    '  ' + A + '{',
+    /* A CAIXA PASSA A SER A JANELA (224px), e nao os 437 que transbordam o
+       cartao. Sem isto o cover trabalha contra uma caixa quadrada que o cartao
+       recorta depois, e o enquadramento vira adivinhacao — foi o que aconteceu
+       nas tres tentativas anteriores. Com a caixa certa e uma foto deitada, o
+       cover preenche a janela e o corte de 8% sai do fundo, nao da camera. */
+    '    height:224px !important;',
+    '    object-fit:cover !important;',
+    '    object-position:50% 50% !important;',
+    '  }',
+    '}',
+  ].join('\n');
 }
 
 // Recorta um <a ...>...</a> a partir de um indice, com contagem equilibrada.

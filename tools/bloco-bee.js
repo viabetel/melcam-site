@@ -597,10 +597,57 @@ ${require('./bloco-polen.js').cssLeque()}
    Pseudo posicionado com z-index:0 pintaria POR CIMA do texto, que e conteudo
    em fluxo. Com -1 ele desce, e o isolation cria o contexto de empilhamento
    que impede o -1 de cair atras do fundo do proprio botao. */
+/* ---- OS TRES QUE ENTRARAM NA PADRONIZACAO DE 16/08/2026 ----
+   A varredura das 7 rotas foi por MEDICAO, e nao por leitura da folha: cada
+   clicavel de cada rota teve o fundo lido em repouso e sob :hover forcado, com
+   as transicoes congeladas para o computado devolver o valor final e nao um
+   quadro do meio do caminho. O censo de fundo mel devolveu tres botoes de
+   rotulo que estavam de fora, e eles entram nas listas que ja existiam:
+
+   1. .mel-sobre-cta ("Conheca quem faz a Melcam", faixa Sobre da home). Mel em
+      repouso, rotulo de texto puro, nenhum filho. E um CTA identico em papel
+      aos quatro ja cobertos, e era o unico que trocava de cor de forma chapada.
+
+   2. .mel-bt-linha, a variante de contorno do MESMO componente .mel-bt. Em
+      repouso ela e transparente, mas o hover dela E o mel (medido:
+      rgb(242,169,0)). Na /404 ela aparece LADO A LADO com a .mel-bt-mel, e era
+      ali que a inconsistencia ficava visivel: um botao carregava, o vizinho
+      piscava. Ela chega ao mesmo estado final dos outros, com a moldura de 3px
+      e o miolo em carvao.
+
+   3. .mel-acesso-enviar (ENTRAR / CRIAR CONTA, no modal de conta). Mel em
+      repouso, 356x48, alcancavel de qualquer rota pelo icone de perfil.
+
+   ⚠️ .mel-acesso-enviar NAO GANHA MASCARA, so o preenchimento, e a razao e o
+   proprio modulo de perfil: ele reescreve o rotulo do botao em quatro pontos
+   (troca de aba, "ENTRANDO...", "PRONTO"), com textContent e innerHTML. Uma
+   mascara montada ali seria apagada no primeiro clique de aba. Sem mascara o
+   :has la embaixo mantem o filler no mel fundo, que e a mesma degradacao ja
+   prevista para o caso de o JS nao rodar, e o rotulo em carvao continua
+   legivel do inicio ao fim do percurso.
+
+   O QUE FICOU DE FORA, e por que (tudo medido, nao suposto):
+     - .mel-seta, .mel-fil-seta, .mel-dot e .mel-qtd button viram mel no hover,
+       mas sao controles de icone sem rotulo nenhum: nao ha texto para rolar, e
+       um filler recuado 3px dentro de um circulo de 9 a 48px le como anel, e
+       nao como carga. O mel deles ja e o proprio realce.
+     - .mel-sobre-bt ("Abrir") vira mel no hover, mas e um botao de sanfona com
+       chevron proprio, tem filhos e nao aceita a mascara. O giro do chevron ja
+       e a resposta dele.
+     - .mel-filtro-nome fica mel por regra com :has do cartao inteiro, ou seja
+       quem e o controle e o cartao, nao a pilula de 24px de altura.
+     - .mel-hh-selo, .mel-perfil-selo, .mel-bee-veu e o fundo da secao
+       "Header Grid" sao mel mas nao sao botoes: etiqueta, contador, veu de
+       revelacao e plano de fundo.
+     - o botao "Quero entrar na Colmeia" do template Framer foi medido e NAO e
+       mel: o fundo dele e papel, rgb(251,247,238). */
 body .mel-bt-mel,
 body .mel-hh-cta-mel,
 body .mel-bee-cta,
-body .mel-polen-cta{
+body .mel-polen-cta,
+body .mel-sobre-cta,
+body .mel-bt-linha,
+body .mel-acesso-enviar{
   position:relative;
   isolation:isolate;
   overflow:hidden;
@@ -608,7 +655,10 @@ body .mel-polen-cta{
 body .mel-bt-mel::before,
 body .mel-hh-cta-mel::before,
 body .mel-bee-cta::before,
-body .mel-polen-cta::before{
+body .mel-polen-cta::before,
+body .mel-sobre-cta::before,
+body .mel-bt-linha::before,
+body .mel-acesso-enviar::before{
   content:""; position:absolute; z-index:-1;
   top:3px; bottom:3px; left:3px;
   width:0;
@@ -627,12 +677,27 @@ body .mel-polen-cta::before{
 body .mel-bee-cta,
 body .mel-polen-cta{ pointer-events:auto }
 
+/* 🔴 O .mel-sobre-cta TAMBEM PRECISA DO PONTEIRO DE VOLTA — 16/08/2026.
+   Ele recebeu o efeito na padronizacao, mas medido com ponteiro de verdade o
+   preenchimento ficava em 0: o computado dele e pointer-events:none, herdado do
+   palco do obturador da faixa "Sobre Nos", que e none para as cortinas nao
+   roubarem clique da pagina. Sem ponteiro nao ha :hover, e sem :hover o efeito
+   nao existe — ele so aparecia se o estado fosse FORCADO por ferramenta.
+   Mesma correcao das pilulas da grade, e pelo mesmo motivo. */
+body .mel-sobre-cta{ pointer-events:auto }
+
 body .mel-bt-mel:hover::before,
 body .mel-bt-mel:focus-visible::before,
 body .mel-hh-cta-mel:hover::before,
 body .mel-hh-cta-mel:focus-visible::before,
 body .mel-bee-cta:hover::before,
-body .mel-polen-cta:hover::before{
+body .mel-polen-cta:hover::before,
+body .mel-sobre-cta:hover::before,
+body .mel-sobre-cta:focus-visible::before,
+body .mel-bt-linha:hover::before,
+body .mel-bt-linha:focus-visible::before,
+body .mel-acesso-enviar:hover:not([disabled])::before,
+body .mel-acesso-enviar:focus-visible:not([disabled])::before{
   width:calc(100% - 6px);
 }
 
@@ -665,7 +730,11 @@ body .mel-bt-mel:focus-visible .mel-bt-mask > span,
 body .mel-hh-cta-mel:hover .mel-bt-mask > span,
 body .mel-hh-cta-mel:focus-visible .mel-bt-mask > span,
 body .mel-bee-cta:hover .mel-bt-mask > span,
-body .mel-polen-cta:hover .mel-bt-mask > span{
+body .mel-polen-cta:hover .mel-bt-mask > span,
+body .mel-sobre-cta:hover .mel-bt-mask > span,
+body .mel-sobre-cta:focus-visible .mel-bt-mask > span,
+body .mel-bt-linha:hover .mel-bt-mask > span,
+body .mel-bt-linha:focus-visible .mel-bt-mask > span{
   transform:translateY(-1.25em);
 }
 
@@ -676,7 +745,9 @@ body .mel-polen-cta:hover .mel-bt-mask > span{
 body .mel-bt-mel:has(.mel-bt-mask)::before,
 body .mel-hh-cta-mel:has(.mel-bt-mask)::before,
 body .mel-bee-cta:has(.mel-bt-mask)::before,
-body .mel-polen-cta:has(.mel-bt-mask)::before{
+body .mel-polen-cta:has(.mel-bt-mask)::before,
+body .mel-sobre-cta:has(.mel-bt-mask)::before,
+body .mel-bt-linha:has(.mel-bt-mask)::before{
   background:${P.carvao};
 }
 
@@ -686,7 +757,10 @@ body .mel-polen-cta:has(.mel-bt-mask)::before{
   body .mel-bt-mel::before,
   body .mel-hh-cta-mel::before,
   body .mel-bee-cta::before,
-  body .mel-polen-cta::before{ transition:none }
+  body .mel-polen-cta::before,
+  body .mel-sobre-cta::before,
+  body .mel-bt-linha::before,
+  body .mel-acesso-enviar::before{ transition:none }
 }
 
 /* ---- OS DOIS CARTOES BAIXOS CRESCEM — 15/08/2026 ----
